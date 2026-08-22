@@ -233,11 +233,21 @@ import { ScoreMeterComponent } from '../../shared/components/score-meter.compone
         <!-- Evaluation Results (5 cols) -->
         <div class="lg:col-span-5 space-y-4">
           @if (errorMessage) {
-            <div class="p-4 bg-rose-50 border border-rose-200 text-rose-800 rounded-lg text-xs">
-              <div class="font-bold flex items-center gap-1.5">
-                <span>⚠️ Error</span>
+            <div class="p-4 bg-rose-50 border border-rose-200 text-rose-800 rounded-lg text-xs space-y-2">
+              <div class="font-bold flex items-center justify-between">
+                <span class="flex items-center gap-1.5">⚠️ Risk Engine Error</span>
+                <button
+                  type="button"
+                  (click)="evaluate()"
+                  class="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded text-[11px] font-semibold transition-colors"
+                >
+                  Retry Evaluation
+                </button>
               </div>
-              <p class="mt-1 font-mono text-[11px]">{{ errorMessage }}</p>
+              <p class="font-mono text-[11px] leading-relaxed bg-white/70 p-2 rounded border border-rose-100">{{ errorMessage }}</p>
+              <div class="text-[10px] text-rose-600">
+                Notice: The UI refuses to show simulated or fabricated risk scores when the backend is unavailable.
+              </div>
             </div>
           }
 
