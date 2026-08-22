@@ -1,0 +1,5 @@
+population_category,total_transactions,actual_abuse,detected_abuse (TP),missed_abuse (FN),false_positives (FP),recall
+ABUSE_RING,43,43,43,0,0,1.0
+BENIGN_ISOLATED,5953,0,0,0,5,1.0
+BENIGN_SHARED,933,0,0,0,0,1.0
+ABUSE_TOPOLOGY: BIPARTITE_MESH,43,43,43,0,0,1.0

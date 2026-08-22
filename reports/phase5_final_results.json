@@ -1,0 +1,294 @@
+{
+  "evaluation_summary": {
+    "dataset_statistics": {
+      "test_period": "2026-03-16 -> 2026-03-31",
+      "total_transactions": 6929,
+      "abuse_transactions": 43,
+      "benign_transactions": 6886,
+      "abuse_prevalence_pct": 0.6206
+    },
+    "model_metadata": {
+      "model_name": "abuse_ring_sentinel",
+      "model_type": "hist_gradient_boosting",
+      "model_version": "phase3-v1",
+      "feature_version": "features-v2",
+      "policy_version": "val-opt-v1",
+      "production_threshold": 0.9
+    },
+    "classification_metrics": {
+      "pr_auc": 1.0,
+      "roc_auc": 1.0,
+      "brier_score": 0.002127,
+      "precision": 0.8958,
+      "recall": 1.0,
+      "f1": 0.9451,
+      "accuracy": 0.999278
+    },
+    "confusion_matrix": {
+      "tp": 43,
+      "tn": 6881,
+      "fp": 5,
+      "fn": 0
+    },
+    "business_impact": {
+      "cost_fp": 10.0,
+      "cost_fn": 50.0,
+      "baseline_unmitigated_loss": 2150.0,
+      "model_loss": 50.0,
+      "net_merchant_savings": 2100.0,
+      "cost_reduction_percentage": 97.67
+    },
+    "decision_distribution": {
+      "approve_count": 6867,
+      "approve_pct": 99.11,
+      "review_count": 14,
+      "review_pct": 0.2,
+      "block_count": 48,
+      "block_pct": 0.69
+    }
+  },
+  "score_distributions": {
+    "benign_distribution": {
+      "count": 6886,
+      "mean": 0.00335,
+      "median": 5.5e-05,
+      "p95": 0.000432,
+      "p99": 0.006979,
+      "max": 0.979874,
+      "false_positives_ge_0_90": 5
+    },
+    "abuse_distribution": {
+      "count": 43,
+      "min": 0.999264,
+      "p05": 0.999646,
+      "p25": 0.999829,
+      "median": 0.999913,
+      "p75": 0.999936,
+      "mean": 0.999861,
+      "max": 0.999946,
+      "false_negatives_lt_0_90": 0
+    }
+  },
+  "threshold_diagnostics": [
+    {
+      "threshold": 0.5,
+      "precision": 0.6935,
+      "recall": 1.0,
+      "f1": 0.819,
+      "tp": 43,
+      "fp": 19,
+      "fn": 0,
+      "tn": 6867,
+      "business_loss": 190.0,
+      "is_production": false
+    },
+    {
+      "threshold": 0.6,
+      "precision": 0.7288,
+      "recall": 1.0,
+      "f1": 0.8431,
+      "tp": 43,
+      "fp": 16,
+      "fn": 0,
+      "tn": 6870,
+      "business_loss": 160.0,
+      "is_production": false
+    },
+    {
+      "threshold": 0.7,
+      "precision": 0.7414,
+      "recall": 1.0,
+      "f1": 0.8515,
+      "tp": 43,
+      "fp": 15,
+      "fn": 0,
+      "tn": 6871,
+      "business_loss": 150.0,
+      "is_production": false
+    },
+    {
+      "threshold": 0.8,
+      "precision": 0.7679,
+      "recall": 1.0,
+      "f1": 0.8687,
+      "tp": 43,
+      "fp": 13,
+      "fn": 0,
+      "tn": 6873,
+      "business_loss": 130.0,
+      "is_production": false
+    },
+    {
+      "threshold": 0.9,
+      "precision": 0.8958,
+      "recall": 1.0,
+      "f1": 0.9451,
+      "tp": 43,
+      "fp": 5,
+      "fn": 0,
+      "tn": 6881,
+      "business_loss": 50.0,
+      "is_production": true
+    },
+    {
+      "threshold": 0.95,
+      "precision": 0.9556,
+      "recall": 1.0,
+      "f1": 0.9773,
+      "tp": 43,
+      "fp": 2,
+      "fn": 0,
+      "tn": 6884,
+      "business_loss": 20.0,
+      "is_production": false
+    }
+  ],
+  "temporal_stability": [
+    {
+      "time_slice": "2026-03-16 -> 2026-03-18",
+      "transactions": 1213,
+      "abuse_transactions": 43,
+      "abuse_rate_pct": 3.545,
+      "fp": 1,
+      "fn": 0,
+      "precision": 0.9773,
+      "recall": 1.0,
+      "mean_risk_score": 0.04016
+    },
+    {
+      "time_slice": "2026-03-19 -> 2026-03-22",
+      "transactions": 1623,
+      "abuse_transactions": 0,
+      "abuse_rate_pct": 0.0,
+      "fp": 1,
+      "fn": 0,
+      "precision": 0.0,
+      "recall": 1.0,
+      "mean_risk_score": 0.0047
+    },
+    {
+      "time_slice": "2026-03-23 -> 2026-03-26",
+      "transactions": 1784,
+      "abuse_transactions": 0,
+      "abuse_rate_pct": 0.0,
+      "fp": 3,
+      "fn": 0,
+      "precision": 0.0,
+      "recall": 1.0,
+      "mean_risk_score": 0.00416
+    },
+    {
+      "time_slice": "2026-03-27 -> 2026-03-31",
+      "transactions": 2309,
+      "abuse_transactions": 0,
+      "abuse_rate_pct": 0.0,
+      "fp": 0,
+      "fn": 0,
+      "precision": 0.0,
+      "recall": 1.0,
+      "mean_risk_score": 0.000982
+    }
+  ],
+  "ring_generalization": [
+    {
+      "population_category": "ABUSE_RING",
+      "total_transactions": 43,
+      "actual_abuse": 43,
+      "detected_abuse (TP)": 43,
+      "missed_abuse (FN)": 0,
+      "false_positives (FP)": 0,
+      "recall": 1.0
+    },
+    {
+      "population_category": "BENIGN_ISOLATED",
+      "total_transactions": 5953,
+      "actual_abuse": 0,
+      "detected_abuse (TP)": 0,
+      "missed_abuse (FN)": 0,
+      "false_positives (FP)": 5,
+      "recall": 1.0
+    },
+    {
+      "population_category": "BENIGN_SHARED",
+      "total_transactions": 933,
+      "actual_abuse": 0,
+      "detected_abuse (TP)": 0,
+      "missed_abuse (FN)": 0,
+      "false_positives (FP)": 0,
+      "recall": 1.0
+    },
+    {
+      "population_category": "ABUSE_TOPOLOGY: BIPARTITE_MESH",
+      "total_transactions": 43,
+      "actual_abuse": 43,
+      "detected_abuse (TP)": 43,
+      "missed_abuse (FN)": 0,
+      "false_positives (FP)": 0,
+      "recall": 1.0
+    }
+  ],
+  "calibration_bins": [
+    {
+      "bin_range": "0.0-0.1",
+      "transaction_count": 6846,
+      "mean_predicted_risk": 0.0002,
+      "actual_abuse_rate": 0.0
+    },
+    {
+      "bin_range": "0.1-0.2",
+      "transaction_count": 4,
+      "mean_predicted_risk": 0.1661,
+      "actual_abuse_rate": 0.0
+    },
+    {
+      "bin_range": "0.2-0.3",
+      "transaction_count": 9,
+      "mean_predicted_risk": 0.2415,
+      "actual_abuse_rate": 0.0
+    },
+    {
+      "bin_range": "0.3-0.4",
+      "transaction_count": 2,
+      "mean_predicted_risk": 0.3414,
+      "actual_abuse_rate": 0.0
+    },
+    {
+      "bin_range": "0.4-0.5",
+      "transaction_count": 6,
+      "mean_predicted_risk": 0.453,
+      "actual_abuse_rate": 0.0
+    },
+    {
+      "bin_range": "0.5-0.6",
+      "transaction_count": 3,
+      "mean_predicted_risk": 0.5351,
+      "actual_abuse_rate": 0.0
+    },
+    {
+      "bin_range": "0.6-0.7",
+      "transaction_count": 1,
+      "mean_predicted_risk": 0.6757,
+      "actual_abuse_rate": 0.0
+    },
+    {
+      "bin_range": "0.7-0.8",
+      "transaction_count": 2,
+      "mean_predicted_risk": 0.7154,
+      "actual_abuse_rate": 0.0
+    },
+    {
+      "bin_range": "0.8-0.9",
+      "transaction_count": 8,
+      "mean_predicted_risk": 0.848,
+      "actual_abuse_rate": 0.0
+    },
+    {
+      "bin_range": "0.9-1.0",
+      "transaction_count": 48,
+      "mean_predicted_risk": 0.9943,
+      "actual_abuse_rate": 0.8958
+    }
+  ],
+  "false_positives_count": 5,
+  "false_negatives_count": 0
+}

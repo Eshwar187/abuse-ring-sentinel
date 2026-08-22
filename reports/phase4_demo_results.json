@@ -1,0 +1,245 @@
+[
+  {
+    "transaction_id": "tx_0012427",
+    "risk_score": 0.0001,
+    "risk_level": "LOW",
+    "decision": "APPROVE",
+    "reason_codes": [
+      {
+        "code": "LOW_RISK_ESTABLISHED_ACCOUNT",
+        "message": "Account tenure and transaction history indicate normal, established customer behavior.",
+        "evidence": {
+          "account_age_days": 145.0,
+          "user_historical_tx_count": 4
+        }
+      }
+    ],
+    "evidence": {
+      "account_age_days": 145.03,
+      "user_tx_count_24h": 0,
+      "device_prior_user_count": 1,
+      "ip_prior_user_count": 1,
+      "payment_prior_user_count": 1,
+      "shipping_address_prior_user_count": 1,
+      "number_of_prior_connected_users": 0,
+      "max_shared_entity_user_count": 1,
+      "is_promo_used": 0,
+      "amount": 31.58
+    },
+    "model_metadata": {
+      "model_name": "abuse_ring_sentinel",
+      "model_type": "hist_gradient_boosting",
+      "model_version": "phase3-v1",
+      "feature_version": "features-v2",
+      "policy_version": "val-opt-v1",
+      "review_threshold": 0.5,
+      "block_threshold": 0.9
+    },
+    "evaluated_at": "2026-08-22T15:46:17Z"
+  },
+  {
+    "transaction_id": "tx_0024439",
+    "risk_score": 0.0002,
+    "risk_level": "LOW",
+    "decision": "APPROVE",
+    "reason_codes": [
+      {
+        "code": "GRAPH_SHARED_PAYMENT",
+        "message": "Payment instrument is associated with multiple distinct user accounts.",
+        "evidence": {
+          "payment_prior_user_count": 3
+        }
+      },
+      {
+        "code": "GRAPH_SHARED_ADDRESS",
+        "message": "Shipping address is associated with multiple distinct user accounts.",
+        "evidence": {
+          "shipping_address_prior_user_count": 4
+        }
+      },
+      {
+        "code": "GRAPH_MULTI_ENTITY_OVERLAP",
+        "message": "Multiple entity infrastructure types are shared across accounts.",
+        "evidence": {
+          "shared_entity_types_count": 4
+        }
+      },
+      {
+        "code": "GRAPH_CONNECTED_USERS",
+        "message": "Transaction belongs to a highly connected account cluster in the entity graph.",
+        "evidence": {
+          "number_of_prior_connected_users": 3
+        }
+      },
+      {
+        "code": "OFF_HOURS_ACTIVITY",
+        "message": "Transaction initiated during an unusual overnight activity window (01:00-06:00).",
+        "evidence": {
+          "hour_of_day": 3
+        }
+      }
+    ],
+    "evidence": {
+      "account_age_days": 178.87,
+      "user_tx_count_24h": 0,
+      "device_prior_user_count": 1,
+      "ip_prior_user_count": 4,
+      "payment_prior_user_count": 3,
+      "shipping_address_prior_user_count": 4,
+      "number_of_prior_connected_users": 3,
+      "max_shared_entity_user_count": 4,
+      "is_promo_used": 0,
+      "amount": 62.36
+    },
+    "model_metadata": {
+      "model_name": "abuse_ring_sentinel",
+      "model_type": "hist_gradient_boosting",
+      "model_version": "phase3-v1",
+      "feature_version": "features-v2",
+      "policy_version": "val-opt-v1",
+      "review_threshold": 0.5,
+      "block_threshold": 0.9
+    },
+    "evaluated_at": "2026-08-22T15:46:17Z"
+  },
+  {
+    "transaction_id": "tx_0024882",
+    "risk_score": 0.0001,
+    "risk_level": "LOW",
+    "decision": "APPROVE",
+    "reason_codes": [
+      {
+        "code": "GRAPH_CONNECTED_USERS",
+        "message": "Transaction belongs to a highly connected account cluster in the entity graph.",
+        "evidence": {
+          "number_of_prior_connected_users": 3
+        }
+      }
+    ],
+    "evidence": {
+      "account_age_days": 44.11,
+      "user_tx_count_24h": 0,
+      "device_prior_user_count": 1,
+      "ip_prior_user_count": 4,
+      "payment_prior_user_count": 1,
+      "shipping_address_prior_user_count": 1,
+      "number_of_prior_connected_users": 3,
+      "max_shared_entity_user_count": 4,
+      "is_promo_used": 0,
+      "amount": 30.33
+    },
+    "model_metadata": {
+      "model_name": "abuse_ring_sentinel",
+      "model_type": "hist_gradient_boosting",
+      "model_version": "phase3-v1",
+      "feature_version": "features-v2",
+      "policy_version": "val-opt-v1",
+      "review_threshold": 0.5,
+      "block_threshold": 0.9
+    },
+    "evaluated_at": "2026-08-22T15:46:17Z"
+  },
+  {
+    "transaction_id": "tx_0027436",
+    "risk_score": 1.0,
+    "risk_level": "HIGH",
+    "decision": "BLOCK",
+    "reason_codes": [
+      {
+        "code": "NEW_ACCOUNT",
+        "message": "Account was recently created and has minimal prior tenure.",
+        "evidence": {
+          "account_age_days": 0.17
+        }
+      },
+      {
+        "code": "GRAPH_CONNECTED_USERS",
+        "message": "Transaction belongs to a highly connected account cluster in the entity graph.",
+        "evidence": {
+          "number_of_prior_connected_users": 4
+        }
+      },
+      {
+        "code": "GRAPH_SHARED_ADDRESS",
+        "message": "Shipping address is associated with multiple distinct user accounts.",
+        "evidence": {
+          "shipping_address_prior_user_count": 4
+        }
+      },
+      {
+        "code": "GRAPH_SHARED_DEVICE",
+        "message": "Device fingerprint is associated with multiple distinct user accounts.",
+        "evidence": {
+          "device_prior_user_count": 3
+        }
+      },
+      {
+        "code": "DISPOSABLE_EMAIL_DOMAIN",
+        "message": "Account registered with a temporary or disposable email service.",
+        "evidence": {
+          "email_domain": "tempmail.org"
+        }
+      }
+    ],
+    "evidence": {
+      "account_age_days": 0.17,
+      "user_tx_count_24h": 0,
+      "device_prior_user_count": 3,
+      "ip_prior_user_count": 1,
+      "payment_prior_user_count": 1,
+      "shipping_address_prior_user_count": 4,
+      "number_of_prior_connected_users": 4,
+      "max_shared_entity_user_count": 4,
+      "is_promo_used": 1,
+      "amount": 101.07
+    },
+    "model_metadata": {
+      "model_name": "abuse_ring_sentinel",
+      "model_type": "hist_gradient_boosting",
+      "model_version": "phase3-v1",
+      "feature_version": "features-v2",
+      "policy_version": "val-opt-v1",
+      "review_threshold": 0.5,
+      "block_threshold": 0.9
+    },
+    "evaluated_at": "2026-08-22T15:46:17Z"
+  },
+  {
+    "transaction_id": "tx_0014738",
+    "risk_score": 0.0001,
+    "risk_level": "LOW",
+    "decision": "APPROVE",
+    "reason_codes": [
+      {
+        "code": "LOW_RISK_ESTABLISHED_ACCOUNT",
+        "message": "Account tenure and transaction history indicate normal, established customer behavior.",
+        "evidence": {
+          "account_age_days": 4.0,
+          "user_historical_tx_count": 1
+        }
+      }
+    ],
+    "evidence": {
+      "account_age_days": 3.98,
+      "user_tx_count_24h": 1,
+      "device_prior_user_count": 1,
+      "ip_prior_user_count": 1,
+      "payment_prior_user_count": 1,
+      "shipping_address_prior_user_count": 1,
+      "number_of_prior_connected_users": 0,
+      "max_shared_entity_user_count": 1,
+      "is_promo_used": 1,
+      "amount": 51.81
+    },
+    "model_metadata": {
+      "model_name": "abuse_ring_sentinel",
+      "model_type": "hist_gradient_boosting",
+      "model_version": "phase3-v1",
+      "feature_version": "features-v2",
+      "policy_version": "val-opt-v1",
+      "review_threshold": 0.5,
+      "block_threshold": 0.9
+    },
+    "evaluated_at": "2026-08-22T15:46:17Z"
+  }
+]

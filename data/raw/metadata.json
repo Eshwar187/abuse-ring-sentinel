@@ -1,0 +1,20 @@
+{
+  "seed": 42,
+  "generated_at": "2026-08-22 13:54:01 UTC",
+  "total_users": 5006,
+  "total_transactions": 27439,
+  "benign_isolated_users": 3750,
+  "benign_shared_users": 750,
+  "abuse_ring_users": 506,
+  "num_abuse_rings": 56,
+  "num_benign_groups": 750,
+  "abuse_ring_transaction_count": 1438,
+  "benign_transaction_count": 26001,
+  "ring_topology_breakdown": {
+    "BIPARTITE_MESH": 212,
+    "STAR": 205,
+    "CHAINED_SYBIL": 89
+  },
+  "date_range_start": "2026-01-01 00:56:55",
+  "date_range_end": "2026-03-31 23:48:50"
+}
