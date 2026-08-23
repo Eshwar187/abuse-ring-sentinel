@@ -28,8 +28,14 @@ class RiskDecisionEngine:
         model_service: Optional[ModelServingService] = None,
         policy: Optional[DecisionPolicy] = None,
         explainer: Optional[TransactionExplainer] = None,
+        model_path: Optional[str] = None,
     ):
-        self.model_service = model_service or ModelServingService()
+        if model_service is not None:
+            self.model_service = model_service
+        elif model_path is not None:
+            self.model_service = ModelServingService(model_path=model_path)
+        else:
+            self.model_service = ModelServingService()
         self.policy = policy or DecisionPolicy()
         self.explainer = explainer or TransactionExplainer()
 
