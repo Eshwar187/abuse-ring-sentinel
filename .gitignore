@@ -1,12 +1,56 @@
-@"
+# Python
 __pycache__/
-*.pyc
-.venv/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
 venv/
-.env
-node_modules/
-dist/
+.venv/
+ENV/
 build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Node & Angular
+node_modules/
+frontend/node_modules/
 .angular/
+frontend/.angular/
+frontend/dist/
+
+# Environments & Secrets
+.env
+.env.local
+.env.*.local
+
+# IDE & OS
 .vscode/
-"@ | Out-File -Encoding utf8 .gitignore
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
