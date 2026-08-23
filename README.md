@@ -3,233 +3,251 @@
 **Defensive Coordinated Merchant Abuse Ring & Sybil Network Detector**  
 *Built for the Razorpay Buildathon — Track 02 (AI Risk Manager)*
 
----
-
-## 📌 Project Overview
-
-**Abuse-Ring Sentinel** protects e-commerce merchants against organized multi-account fraud syndicates (voucher harvesting, card testing rings, chargeback networks). 
-
-The system bridges the gap between traditional single-transaction models and entity network analysis by combining **point-in-time behavioral ML** with **heterogeneous bipartite entity relationship graphs** (Users, Devices, IPs, Payment Tokens, Addresses) to uncover hidden collusion while protecting legitimate shared infrastructure (such as family households).
+[![Tests](https://img.shields.io/badge/Tests-54%2F54%20Passed-emerald.svg)](tests/)
+[![Model](https://img.shields.io/badge/Model-HistGradientBoosting-blue.svg)](models/model_f.joblib)
+[![Recall](https://img.shields.io/badge/Benchmark%20Recall-100.0%25-emerald.svg)](reports/phase5_evaluation_report.md)
+[![Precision@0.90](https://img.shields.io/badge/Precision%400.90-89.58%25-blue.svg)](reports/phase5_evaluation_report.md)
+[![Frontend](https://img.shields.io/badge/Frontend-Angular%2019-red.svg)](frontend/)
 
 ---
 
-## 🏗️ System Architecture
+## 1. Project Overview
+
+**Abuse-Ring Sentinel** is a production-grade, defensive AI risk decision and explainability engine engineered to detect coordinated multi-account merchant fraud syndicates (voucher harvesting, card testing rings, chargeback syndicates). 
+
+By integrating **point-in-time behavioral velocity signals** with **incremental bipartite entity relationship graphs** (Users, Devices, IPs, Payment Instruments, Shipping Addresses), the system uncovers concealed Sybil and mesh collusion at checkout while safeguarding legitimate shared infrastructure (such as family households and corporate networks) against false declines.
+
+---
+
+## 2. The Problem
+
+Modern fraud syndicates no longer operate through obvious single-account velocity anomalies. Instead, coordinated rings distribute malicious transactions across hundreds of newly registered, seemingly independent synthetic user profiles (Sybil attacks) sharing underlying physical or digital infrastructure. 
+
+Traditional rule engines and isolated per-transaction classifiers fail because:
+1. **Isolated Analysis Blindness**: Individual accounts show low transaction volume and appear benign in isolation.
+2. **Legitimate Sharing Over-Blocking**: Naive device/IP blacklisting falsely blocks entire apartment buildings, universities, or family households.
+3. **Temporal Lookahead Leakage**: Research graph algorithms frequently leak future graph edges established *after* the transaction timestamp into real-time scoring.
+
+---
+
+## 3. The Solution
+
+Abuse-Ring Sentinel resolves these challenges through:
+- **Strict Point-in-Time Causality**: Zero lookahead leakage. Graph state and behavioral aggregates only include events strictly prior to $t_{\text{pred}}$.
+- **Heterogeneous Bipartite Graph Intelligence**: Models accounts and shared digital entities to measure connected component size, edge density, and 1-hop neighbor counts dynamically.
+- **Explainable Decision Engine**: Enforces a validation-optimized 3-tier operating policy ($\tau^* = 0.90$) and returns 3–5 ranked reason codes with explicit evidence.
+- **Enterprise-Ready Full Stack**: Fast, hardened FastAPI backend paired with an Angular 19 merchant risk management console.
+
+---
+
+## 4. System Architecture
 
 ```
-Incoming Transaction Event (t_pred)
-       ↓
-Pydantic Schema & Anti-Leakage Validator
-       ↓
-Point-in-Time Feature Engine (33 Behavioral + Graph Features)
-       ↓
-Frozen Model Serving Layer (HistGradientBoostingClassifier)
-       ↓
-Continuous Risk Score in [0.0, 1.0]
-       ↓
-Merchant Decision Policy (<0.50 APPROVE | 0.50-0.90 REVIEW | >=0.90 BLOCK)
-       ↓
-Explainability Engine (Top 3-5 Ranked Reason Codes + Feature Evidence)
-       ↓
-Structured JSON Audit Logger & REST API Response
+                               ┌─────────────────────────────┐
+                               │   Merchant Checkout Event   │
+                               └──────────────┬──────────────┘
+                                              │ POST /predict
+                                              ▼
+                               ┌─────────────────────────────┐
+                               │  Pydantic Anti-Leakage Gate │
+                               └──────────────┬──────────────┘
+                                              │
+                      ┌───────────────────────┴───────────────────────┐
+                      │                                               │
+                      ▼                                               ▼
+       ┌─────────────────────────────┐                 ┌─────────────────────────────┐
+       │   Point-in-Time Behavioral  │                 │    Incremental Bipartite    │
+       │     Feature Engine (21)     │                 │      Graph Engine (12)      │
+       └──────────────┬──────────────┘                 └──────────────┬──────────────┘
+                      │                                               │
+                      └───────────────────────┬───────────────────────┘
+                                              │ 33 Combined Features
+                                              ▼
+                               ┌─────────────────────────────┐
+                               │  TreeRiskModel (model_f)    │
+                               │  HistGradientBoosting       │
+                               └──────────────┬──────────────┘
+                                              │ Risk Score in [0.0, 1.0]
+                                              ▼
+                               ┌─────────────────────────────┐
+                               │   Risk Decision Policy      │
+                               │   (<0.50, 0.50-0.90, ≥0.90) │
+                               └──────────────┬──────────────┘
+                                              │
+                      ┌───────────────────────┴───────────────────────┐
+                      │                                               │
+                      ▼                                               ▼
+       ┌─────────────────────────────┐                 ┌─────────────────────────────┐
+       │    Transaction Explainer    │                 │   Structured Audit Logger   │
+       │   (Ranked Reason Codes)     │                 │   (reports/audit_log.jsonl) │
+       └──────────────┬──────────────┘                 └─────────────────────────────┘
+                      │
+                      ▼
+       ┌─────────────────────────────┐
+       │   FastAPI Response &        │
+       │   Angular 19 Risk Console   │
+       └─────────────────────────────┘
 ```
 
 ---
 
-## 🚀 Quick Start & CLI Usage
+## 5. Dataset Generation & Multi-Topology Simulation
 
-### 1. Requirements
-Ensure Python 3.10+ is available:
+Phase 1 generated a deterministic, 90-day synthetic benchmark dataset without target leakage:
+- **Total Transactions**: 27,439
+- **Total Accounts**: 5,006
+- **Abuse Syndicates**: 56 coordinated rings across 3 distinct topological structures:
+  1. **Bipartite Mesh**: Dense cross-sharing of devices and payment cards.
+  2. **Star Topology**: Central hub entity rotating through peripheral Sybil accounts.
+  3. **Chained Sybil**: Sequential hopping across transient IP subnets.
+- **Benign Shared Infrastructure**: Realistic household clusters and corporate office IP blocks.
+
+---
+
+## 6. Feature Engineering Contract (33 Features)
+
+Features are computed using point-in-time historical tables with zero lookahead:
+
+| Feature Category | Count | Key Examples |
+| :--- | :--- | :--- |
+| **Transaction Context** | 8 | `amount`, `product_category`, `is_promo_used`, `hour_of_day`, `day_of_week`, `is_weekend`, `billing_shipping_match`, `amount_to_user_mean_ratio` |
+| **Account Profile** | 6 | `account_age_days`, `email_domain`, `user_historical_tx_count`, `user_historical_mean_amount`, `user_historical_std_amount`, `user_promo_rate` |
+| **Velocity & Diversity** | 7 | `user_tx_count_1h`, `user_tx_count_24h`, `user_tx_count_7d`, `user_unique_device_count`, `user_unique_ip_count`, `user_unique_payment_count`, `user_unique_address_count` |
+| **Shared Entity Counts** | 7 | `device_prior_user_count`, `ip_prior_user_count`, `payment_prior_user_count`, `shipping_address_prior_user_count`, `billing_address_prior_user_count`, `max_shared_entity_user_count`, `shared_entity_types_count` |
+| **Graph Topology Signals** | 5 | `number_of_prior_connected_users`, `connected_component_user_count`, `connected_component_total_nodes`, `connected_component_edge_count`, `connected_component_density` |
+
+---
+
+## 7. Model Selection & Ablation Study
+
+Phase 3 evaluated 6 model architectures on chronological splits:
+- **Train Window**: Jan 1, 2026 – Feb 28, 2026 ($N=15,060$)
+- **Validation Window**: Mar 1, 2026 – Mar 15, 2026 ($N=5,450$)
+
+| Candidate | Architecture | Feature Set | PR-AUC | ROC-AUC | Validation False Positives |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| Model A | Logistic Regression | Behavioral Only (21) | 0.9412 | 0.9780 | 38 |
+| Model B | Logistic Regression | Graph Only (12) | 0.9820 | 0.9910 | 19 |
+| Model C | Logistic Regression | Combined (33) | 0.9958 | 0.9996 | 12 |
+| Model D | Random Forest | Combined (33) | 0.9989 | 0.9999 | 8 |
+| **Model F (Selected)** | **HistGradientBoosting** | **Combined (33)** | **0.9996** | **1.0000** | **5** |
+
+**Production Artifact**: `models/model_f.joblib` (Frozen).
+
+---
+
+## 8. Decision Engine & Operating Policy
+
+The validation-selected policy optimizes merchant profit under asymmetric error costs:
+- **$\text{Risk Score} < 0.50$** $\to$ **`APPROVE`** (`LOW RISK` — Auto-authorized)
+- **$0.50 \le \text{Risk Score} < 0.90$** $\to$ **`REVIEW`** (`MEDIUM RISK` — Step-up 2FA / OTP)
+- **$\text{Risk Score} \ge 0.90$** $\to$ **`BLOCK`** (`HIGH RISK` — Automated decline, $\tau^* = 0.90$)
+
+---
+
+## 9. Final Held-Out Evaluation Results (Phase 5)
+
+Evaluated strictly once on the held-out test dataset (Mar 16, 2026 – Mar 31, 2026, $N=6,929$, 43 abuse transactions):
+
+| Evaluation Metric | Baseline / Ideal | Held-Out Result | Verdict |
+| :--- | :--- | :--- | :--- |
+| **Total Test Transactions** | — | **6,929** | Complete window |
+| **Actual Abuse Events** | — | **43** | 0.62% prevalence |
+| **True Positives (TP)** | 43 | **43** | **100.00% Recall** |
+| **False Negatives (FN)** | 0 | **0** | **0 Missed Attacks** |
+| **False Positives (FP)** | 0 | **5** | 0.07% False Alarm Rate |
+| **Precision @ 0.90** | 100% | **89.58%** | Highly actionable |
+| **PR-AUC** | 1.0000 | **1.0000** | Perfect ranking |
+| **ROC-AUC** | 1.0000 | **1.0000** | Complete separability |
+| **Financial Cost Reduction** | — | **97.67%** | Illustrative benchmark |
+
+> *Disclaimer: Financial loss calculations use illustrative benchmark parameters ($FP = \$10, FN = \$50$) and represent synthetic evaluation performance rather than production financial figures.*
+
+---
+
+## 10. Security & Production Hardening (Phase 8)
+
+1. **Environment Configuration**: Centralized in [`src/config.py`](src/config.py) and [`.env.example`](.env.example).
+2. **CORS Allowlist**: Explicit origin whitelisting in production (wildcard `*` disabled).
+3. **API Rate Limiting**: In-memory sliding-window limiter (120 req/min/IP) returning `HTTP 429`.
+4. **Target Leakage Protection**: Pydantic validators reject all ground-truth columns (`is_abuse_ring`, `ring_id`, etc.) with `HTTP 422`.
+5. **Observability**: `GET /metrics/summary` provides live throughput and latency telemetry.
+6. **Safe Failure Mode**: Missing or corrupted model triggers `HTTP 503 Service Unavailable` with zero fake prediction fallbacks.
+7. **PII Sanitization**: Scrubbers in [`src/audit/logger.py`](src/audit/logger.py) sanitize passwords, tokens, and payment card numbers before writing to `reports/audit_log.jsonl`.
+
+---
+
+## 11. Quick Start & Local Execution
+
+### 1. Prerequisites & Dependencies
 ```bash
 py -m pip install -r requirements.txt
 ```
 
-### 2. Generate Benchmark Dataset (Phase 1)
-```bash
-py scripts/generate_dataset.py --seed 42 --users 5000 --days 90 --out-dir data/raw
-```
-
-### 3. Extract Point-in-Time Features (Phase 2)
-```bash
-py scripts/build_features.py --raw-dir data/raw --out-dir data/processed
-```
-
-### 4. Run Ablation Study & Model Experiments (Phase 3)
-```bash
-py scripts/run_phase3_experiments.py
-```
-
-### 5. Run Batch Inference on Transactions (Phase 4)
-```bash
-py scripts/predict_batch.py --input data/demo/demo_transactions.csv --output reports/predictions.csv
-```
-
-### 6. Run Complete Test Suite
+### 2. Run All Automated Tests (54 Tests)
 ```bash
 py -m pytest tests/ -v
 ```
 
----
-
-## 🌐 FastAPI Risk Decision Service (Phase 4)
-
-### Starting the API Server:
+### 3. Start the FastAPI Production Server
 ```bash
-py -m uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+py -m uvicorn api.main:app --host 0.0.0.0 --port 8000
 ```
 
-### 1. Health Check (`GET /health`)
+### 4. Start the Angular Merchant Console
 ```bash
-curl -X GET http://localhost:8000/health
-```
-**Response**:
-```json
-{
-  "status": "ok",
-  "model_name": "abuse_ring_sentinel",
-  "model_type": "hist_gradient_boosting",
-  "model_version": "phase3-v1",
-  "feature_version": "features-v2",
-  "policy_version": "val-opt-v1"
-}
-```
-
-### 2. Real-Time Transaction Scoring (`POST /predict`)
-```bash
-curl -X POST http://localhost:8000/predict \
-  -H "Content-Type: application/json" \
-  -d '{
-    "transaction_id": "tx_demo_001",
-    "features": {
-      "amount": 249.99,
-      "product_category": "electronics",
-      "is_promo_used": 1,
-      "hour_of_day": 3,
-      "day_of_week": 2,
-      "is_weekend": 0,
-      "billing_shipping_match": 0,
-      "account_age_days": 0.45,
-      "email_domain": "tempmail.org",
-      "user_tx_count_1h": 2,
-      "user_tx_count_24h": 4,
-      "user_tx_count_7d": 4,
-      "user_historical_tx_count": 1,
-      "user_historical_mean_amount": 249.99,
-      "user_historical_std_amount": 0.0,
-      "amount_to_user_mean_ratio": 1.0,
-      "user_promo_rate": 1.0,
-      "user_unique_device_count": 1,
-      "user_unique_ip_count": 2,
-      "user_unique_payment_count": 1,
-      "user_unique_address_count": 1,
-      "device_prior_user_count": 7,
-      "ip_prior_user_count": 4,
-      "payment_prior_user_count": 6,
-      "shipping_address_prior_user_count": 1,
-      "billing_address_prior_user_count": 0,
-      "max_shared_entity_user_count": 7,
-      "number_of_prior_connected_users": 8,
-      "shared_entity_types_count": 3,
-      "connected_component_user_count": 8,
-      "connected_component_total_nodes": 14,
-      "connected_component_edge_count": 22,
-      "connected_component_density": 0.2418
-    }
-  }'
-```
-
-**Response**:
-```json
-{
-  "transaction_id": "tx_demo_001",
-  "risk_score": 1.0,
-  "risk_level": "HIGH",
-  "decision": "BLOCK",
-  "reason_codes": [
-    {
-      "code": "NEW_ACCOUNT",
-      "message": "Account was recently created and has minimal prior tenure.",
-      "evidence": {
-        "account_age_days": 0.45
-      }
-    },
-    {
-      "code": "GRAPH_CONNECTED_USERS",
-      "message": "Transaction belongs to a highly connected account cluster in the entity graph.",
-      "evidence": {
-        "number_of_prior_connected_users": 8
-      }
-    },
-    {
-      "code": "GRAPH_SHARED_DEVICE",
-      "message": "Device fingerprint is associated with multiple distinct user accounts.",
-      "evidence": {
-        "device_prior_user_count": 7
-      }
-    }
-  ],
-  "evidence": {
-    "account_age_days": 0.45,
-    "user_tx_count_24h": 4,
-    "device_prior_user_count": 7,
-    "ip_prior_user_count": 4,
-    "payment_prior_user_count": 6,
-    "shipping_address_prior_user_count": 1,
-    "number_of_prior_connected_users": 8,
-    "max_shared_entity_user_count": 7,
-    "is_promo_used": 1,
-    "amount": 249.99
-  },
-  "model_version": "phase3-v1",
-  "feature_version": "features-v2",
-  "policy_version": "val-opt-v1",
-  "evaluated_at": "2026-08-22T21:15:00Z"
-}
-```
-
----
-
-## 💻 Merchant Risk Console Frontend (Phase 6)
-
-The merchant web console is built with **Angular 19**, **TypeScript**, **Tailwind CSS**, **Apache ECharts**, and **Cytoscape.js**.
-
-### Starting the Web Console:
-```bash
-# Terminal 1: Start FastAPI backend
-py -m uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
-
-# Terminal 2: Start Angular development server
 cd frontend
+npm install
 npm start
-# Console available at: http://localhost:4200
+# Navigate to: http://localhost:4200 (or http://localhost:8000 directly!)
 ```
-*(Alternatively, accessing `http://localhost:8000` directly serves the production pre-compiled Angular SPA from the FastAPI server!)*
 
-### Frontend Routes & Capabilities:
-- **`/dashboard`**: Real-time KPI summary (6,929 evaluated, 99.11% approved, 0.69% blocked, 100% abuse caught), ECharts risk distribution histogram, and decision donut breakdown.
-- **`/transactions`**: Searchable transaction investigation console with risk filters, compact score meters, and reason summaries.
-- **`/transactions/:id`**: Deep-dive transaction forensic view with 3-step reason timeline and categorized feature evidence.
-- **`/risk-analyzer`**: Live Interactive Studio with 5 pre-configured demo scenarios (Coordinated Abuse, Household, Corporate IP, Established Shopper, Borderline) for real-time scoring against `POST /predict`.
-- **`/risk-networks`**: Interactive Cytoscape.js entity relationship graph visualizing multi-account collusion across Users, Devices, IPs, Payments, and Addresses.
-- **`/monitoring`**: Operational batch metrics, 4-slice temporal stability charts, and frozen model governance specifications.
-- **`/audit`**: Immutable regulatory compliance log with slide-over event inspector.
-
-
-| Risk Score Range | Risk Level | Action | Merchant Workflow |
-| :--- | :--- | :--- | :--- |
-| **`score < 0.50`** | `LOW` | **`APPROVE`** | Seamless auto-authorization (zero customer friction). |
-| **`0.50 <= score < 0.90`** | `MEDIUM` | **`REVIEW`** | Trigger step-up 2FA / SMS OTP or flag for manual review queue. |
-| **`score >= 0.90`** | `HIGH` | **`BLOCK`** | Automated decline with reason codes logged for chargeback defense. |
+### 5. Build Production Frontend SPA
+```bash
+cd frontend
+npm run build
+```
 
 ---
 
-## 📂 Project Repository Structure
+## 12. Docker Container Deployment
+
+Build and run using the multi-stage hardened `Dockerfile`:
+```bash
+# Build container image
+docker build -t abuse-ring-sentinel:latest .
+
+# Run containerized service on port 8000
+docker run -d -p 8000:8000 --name sentinel-app abuse-ring-sentinel:latest
+
+# Verify health status
+curl http://localhost:8000/health
+```
+
+---
+
+## 13. API Endpoint Reference
+
+### `GET /health`
+Returns system status, environment, and model version metadata.
+
+### `GET /metrics/summary`
+Returns live operational inference telemetry, request counters, decision breakdowns, and latency percentiles.
+
+### `POST /predict`
+Evaluates a 33-feature transaction dictionary and returns a continuous risk score, decision, ranked reason codes, and audit `request_id`.
+
+---
+
+## 14. Repository Structure
 
 ```
 abuse-ring-sentinel/
 ├── api/
 │   ├── __init__.py
-│   └── main.py                     # FastAPI application & endpoints
+│   └── main.py                     # Hardened FastAPI application & endpoints
 ├── src/
+│   ├── config.py                   # Centralized runtime configuration
 │   ├── features/
 │   │   ├── behavioral.py           # Point-in-time behavioral engine
 │   │   ├── graph.py                # Point-in-time incremental graph engine
@@ -245,39 +263,30 @@ abuse-ring-sentinel/
 │   │   ├── reason_codes.py         # Reason code registry
 │   │   └── explainer.py            # Explainer & reason ranking engine
 │   ├── audit/
-│   │   └── logger.py               # Structured JSON audit logging
+│   │   └── logger.py               # Hardened structured audit logging
 │   └── monitoring/
 │       └── summary.py              # Operational inference batch summary
-├── scripts/
-│   ├── generate_dataset.py         # Dataset generation CLI
-│   ├── build_features.py           # Feature extraction CLI
-│   ├── run_phase3_experiments.py   # Ablation study & model comparison CLI
-│   ├── predict_batch.py            # Batch prediction CLI
-│   └── generate_demo_dataset.py    # Demonstration dataset builder
+├── frontend/                       # Angular 19 Enterprise Merchant Console
+│   ├── src/app/                    # Standalone components, services, and routes
+│   ├── package.json
+│   └── angular.json
 ├── data/
 │   ├── raw/                        # Raw synthetic benchmark
 │   ├── processed/                  # Point-in-time features (Train, Val, Test)
 │   └── demo/                       # Curated demonstration scenarios
-├── models/                         # Serialized trained model artifacts
-├── reports/
-│   ├── phase3_model_comparison.csv # Ablation comparison table
-│   ├── phase3_results.json         # Complete machine-readable metrics
-│   ├── phase3_ablation.md          # Formal research ablation report
-│   ├── phase4_architecture.md      # Decision engine architecture specification
-│   ├── phase4_demo_results.json    # Demonstration scenario evaluation outputs
-│   └── predictions.csv             # Batch prediction output
-└── tests/
-    ├── test_generator.py           # Invariant & topology tests
-    ├── test_features.py            # Feature extractor tests
-    ├── test_temporal_leakage.py    # Lookahead leakage prevention tests
-    ├── test_graph_temporal.py      # Point-in-time graph edge tests
-    ├── test_ablation.py            # Model ablation isolation tests
-    ├── test_decision.py            # Decision policy & boundary tests
-    ├── test_explainer.py           # Explainability & reason ranking tests
-    └── test_api.py                 # FastAPI integration & contract tests
+├── models/
+│   └── model_f.joblib              # Frozen production GBDT artifact
+├── reports/                        # Audit logs, benchmarks, and research reports
+├── tests/                          # 54 comprehensive automated test suites
+├── Dockerfile                      # Production container image
+├── .dockerignore
+└── requirements.txt                # Python dependencies
 ```
 
 ---
 
-## 🛡️ Defensive Guarantee
-*This system is strictly defensive. It contains no tools for fraud generation, credential stuffing, account takeover, or detection evasion.*
+## 15. Defensive Guarantee & Limitations
+
+- **Strictly Defensive**: Abuse-Ring Sentinel is designed exclusively for merchant fraud prevention and risk management. It contains no tools for fraud generation, credential testing, or evasion.
+- **Controlled Scope**: Evaluated on synthetic benchmark simulations designed to replicate real-world multi-account collusion patterns.
+- **Model Transparency**: The production model is frozen (`models/model_f.joblib`) with deterministic behavior and strict point-in-time causality.

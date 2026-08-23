@@ -10,6 +10,7 @@ export interface ReasonCodeItem {
 export interface TransactionEvidence {
   account_age_days?: number;
   user_tx_count_24h?: number;
+  user_tx_count_1h?: number;
   device_prior_user_count?: number;
   ip_prior_user_count?: number;
   payment_prior_user_count?: number;
@@ -18,6 +19,8 @@ export interface TransactionEvidence {
   number_of_prior_connected_users?: number;
   max_shared_entity_user_count?: number;
   shared_entity_types_count?: number;
+  connected_component_user_count?: number;
+  connected_component_density?: number;
   is_promo_used?: number;
   amount?: number;
   user_promo_rate?: number;
@@ -41,6 +44,8 @@ export interface PredictResponse {
   feature_version: string;
   policy_version: string;
   evaluated_at: string;
+  request_id?: string;
+  latency_ms?: number;
 }
 
 export interface HealthResponse {
@@ -50,6 +55,24 @@ export interface HealthResponse {
   model_version: string;
   feature_version: string;
   policy_version: string;
+  environment?: string;
+  error?: string;
+}
+
+export interface MetricsSummary {
+  total_inference_requests: number;
+  decision_breakdown: {
+    approvals: number;
+    reviews: number;
+    blocks: number;
+  };
+  error_count: number;
+  performance: {
+    avg_latency_ms: number;
+    p95_latency_ms: number;
+    sample_window_size: number;
+  };
+  server_environment: string;
 }
 
 export interface TransactionListItem {
@@ -65,9 +88,12 @@ export interface TransactionListItem {
   is_promo_used?: number;
   connected_users?: number;
   features?: Record<string, any>;
+  request_id?: string;
+  latency_ms?: number;
 }
 
 export interface AuditRecord {
+  request_id?: string;
   transaction_id: string;
   timestamp: string;
   risk_score: number;
@@ -77,6 +103,7 @@ export interface AuditRecord {
   model_version: string;
   feature_version: string;
   policy_version: string;
+  latency_ms?: number;
 }
 
 export interface DemoScenario {

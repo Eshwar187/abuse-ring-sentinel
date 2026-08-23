@@ -17,7 +17,6 @@ import { TransactionListItem } from '../../core/models/risk.models';
     CommonModule,
     RouterLink,
     MetricCardComponent,
-    RiskBadgeComponent,
     DecisionBadgeComponent,
     ScoreMeterComponent,
   ],
