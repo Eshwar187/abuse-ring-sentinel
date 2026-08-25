@@ -22,6 +22,18 @@ export class ApiService {
     );
   }
 
+  put<T>(endpoint: string, body: any, options?: { headers?: Record<string, string> }): Observable<T> {
+    return this.http.put<T>(`${this.baseUrl}${endpoint}`, body, options).pipe(
+      catchError(this.handleError)
+    );
+  }
+
+  delete<T>(endpoint: string, options?: { headers?: Record<string, string> }): Observable<T> {
+    return this.http.delete<T>(`${this.baseUrl}${endpoint}`, options).pipe(
+      catchError(this.handleError)
+    );
+  }
+
   private handleError(error: HttpErrorResponse) {
     let errorMessage = 'An unknown network error occurred';
     if (error.error instanceof ErrorEvent) {

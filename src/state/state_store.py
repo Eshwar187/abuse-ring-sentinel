@@ -17,7 +17,7 @@ from __future__ import annotations
 import os
 import json
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Any, List, Set, Tuple, Optional
 from collections import defaultdict
 import networkx as nx
@@ -187,6 +187,46 @@ class RuntimeStateStore:
                     FOREIGN KEY (merchant_id) REFERENCES merchants(merchant_id)
                 )
             """)
+
+            # 10. Merchant Integrations table
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS merchant_integrations (
+                    merchant_id TEXT PRIMARY KEY,
+                    action_endpoint_url TEXT,
+                    auth_header_name TEXT NOT NULL DEFAULT 'Authorization',
+                    auth_token TEXT,
+                    webhook_secret TEXT,
+                    timeout_seconds REAL NOT NULL DEFAULT 3.0,
+                    max_retries INTEGER NOT NULL DEFAULT 2,
+                    is_active INTEGER NOT NULL DEFAULT 1,
+                    updated_at TEXT NOT NULL,
+                    FOREIGN KEY (merchant_id) REFERENCES merchants(merchant_id)
+                )
+            """)
+
+            # 11. Merchant Actions table
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS merchant_actions (
+                    action_id TEXT PRIMARY KEY,
+                    merchant_id TEXT NOT NULL,
+                    transaction_id TEXT NOT NULL,
+                    decision TEXT NOT NULL,
+                    action TEXT NOT NULL,
+                    attempt_number INTEGER NOT NULL DEFAULT 1,
+                    status TEXT NOT NULL,
+                    http_status INTEGER,
+                    merchant_reference TEXT,
+                    merchant_message TEXT,
+                    latency_ms REAL,
+                    payload_json TEXT,
+                    response_json TEXT,
+                    created_at TEXT NOT NULL,
+                    completed_at TEXT,
+                    FOREIGN KEY (merchant_id) REFERENCES merchants(merchant_id)
+                )
+            """)
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_actions_tx ON merchant_actions(merchant_id, transaction_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_actions_status ON merchant_actions(merchant_id, status)")
 
             conn.commit()
 
@@ -846,3 +886,200 @@ class RuntimeStateStore:
             "total_edges": len(edges),
             "zero_data_state": len(nodes) == 0,
         }
+
+    # -------------------------------------------------------------------------
+    # Merchant Outbound Action & Integration Configuration Subsystem
+    # -------------------------------------------------------------------------
+    def save_merchant_integration(
+        self,
+        merchant_id: str,
+        action_endpoint_url: Optional[str] = None,
+        auth_header_name: str = "Authorization",
+        auth_token: Optional[str] = None,
+        webhook_secret: Optional[str] = None,
+        timeout_seconds: float = 3.0,
+        max_retries: int = 2,
+        is_active: bool = True,
+    ) -> None:
+        """Saves or updates merchant outbound webhook and action execution config."""
+        now_str = datetime.now(timezone.utc).isoformat()
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            # Fetch existing to preserve tokens if not passed
+            cursor.execute("SELECT * FROM merchant_integrations WHERE merchant_id = ?", (merchant_id,))
+            existing = cursor.fetchone()
+
+            final_auth_token = auth_token if auth_token is not None else (existing["auth_token"] if existing else None)
+            final_secret = webhook_secret if webhook_secret is not None else (existing["webhook_secret"] if existing else None)
+            final_url = action_endpoint_url if action_endpoint_url is not None else (existing["action_endpoint_url"] if existing else None)
+
+            cursor.execute(
+                """
+                INSERT INTO merchant_integrations (
+                    merchant_id, action_endpoint_url, auth_header_name, auth_token,
+                    webhook_secret, timeout_seconds, max_retries, is_active, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(merchant_id) DO UPDATE SET
+                    action_endpoint_url = excluded.action_endpoint_url,
+                    auth_header_name = excluded.auth_header_name,
+                    auth_token = excluded.auth_token,
+                    webhook_secret = excluded.webhook_secret,
+                    timeout_seconds = excluded.timeout_seconds,
+                    max_retries = excluded.max_retries,
+                    is_active = excluded.is_active,
+                    updated_at = excluded.updated_at
+                """,
+                (
+                    merchant_id,
+                    final_url,
+                    auth_header_name,
+                    final_auth_token,
+                    final_secret,
+                    timeout_seconds,
+                    max_retries,
+                    1 if is_active else 0,
+                    now_str,
+                ),
+            )
+            conn.commit()
+
+    def get_merchant_integration(self, merchant_id: str, include_secrets: bool = False) -> Optional[Dict[str, Any]]:
+        """Retrieves merchant integration config with masked secrets for safe serialization."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM merchant_integrations WHERE merchant_id = ?", (merchant_id,))
+            row = cursor.fetchone()
+            if not row:
+                return {
+                    "merchant_id": merchant_id,
+                    "action_endpoint_url": None,
+                    "auth_header_name": "Authorization",
+                    "auth_token": None,
+                    "auth_token_masked": None,
+                    "webhook_secret": None,
+                    "webhook_secret_masked": None,
+                    "timeout_seconds": 3.0,
+                    "max_retries": 2,
+                    "is_active": False,
+                    "updated_at": None,
+                }
+
+            d = dict(row)
+            d["is_active"] = bool(d["is_active"])
+            raw_token = d.get("auth_token")
+            raw_secret = d.get("webhook_secret")
+            d["auth_token_masked"] = f"••••••••{raw_token[-4:]}" if raw_token and len(raw_token) > 4 else ("••••" if raw_token else None)
+            d["webhook_secret_masked"] = f"••••••••{raw_secret[-4:]}" if raw_secret and len(raw_secret) > 4 else ("••••" if raw_secret else None)
+            if not include_secrets:
+                d["auth_token"] = None
+                d["webhook_secret"] = None
+            return d
+
+    def record_action_attempt(
+        self,
+        action_id: str,
+        merchant_id: str,
+        transaction_id: str,
+        decision: str,
+        action: str,
+        attempt_number: int,
+        status: str,
+        http_status: Optional[int] = None,
+        merchant_reference: Optional[str] = None,
+        merchant_message: Optional[str] = None,
+        latency_ms: Optional[float] = None,
+        payload_json: Optional[str] = None,
+        response_json: Optional[str] = None,
+        created_at: Optional[str] = None,
+        completed_at: Optional[str] = None,
+    ) -> None:
+        """Inserts or updates an action execution attempt."""
+        now_str = created_at or datetime.now(timezone.utc).isoformat()
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                INSERT INTO merchant_actions (
+                    action_id, merchant_id, transaction_id, decision, action,
+                    attempt_number, status, http_status, merchant_reference, merchant_message,
+                    latency_ms, payload_json, response_json, created_at, completed_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(action_id) DO UPDATE SET
+                    attempt_number = excluded.attempt_number,
+                    status = excluded.status,
+                    http_status = excluded.http_status,
+                    merchant_reference = excluded.merchant_reference,
+                    merchant_message = excluded.merchant_message,
+                    latency_ms = excluded.latency_ms,
+                    payload_json = excluded.payload_json,
+                    response_json = excluded.response_json,
+                    completed_at = excluded.completed_at
+                """,
+                (
+                    action_id,
+                    merchant_id,
+                    transaction_id,
+                    decision,
+                    action,
+                    attempt_number,
+                    status,
+                    http_status,
+                    merchant_reference,
+                    merchant_message,
+                    latency_ms,
+                    payload_json,
+                    response_json,
+                    now_str,
+                    completed_at,
+                ),
+            )
+            conn.commit()
+
+    def get_action_by_id(self, action_id: str) -> Optional[Dict[str, Any]]:
+        """Retrieves action record by its deterministic action_id."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM merchant_actions WHERE action_id = ?", (action_id,))
+            row = cursor.fetchone()
+            return dict(row) if row else None
+
+    def get_action_by_tx(self, merchant_id: str, transaction_id: str) -> Optional[Dict[str, Any]]:
+        """Retrieves latest action record for a transaction."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT * FROM merchant_actions WHERE merchant_id = ? AND transaction_id = ? ORDER BY created_at DESC LIMIT 1",
+                (merchant_id, transaction_id),
+            )
+            row = cursor.fetchone()
+            return dict(row) if row else None
+
+    def get_merchant_actions(
+        self,
+        merchant_id: str,
+        status: Optional[str] = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> Tuple[List[Dict[str, Any]], int]:
+        """Queries historical merchant actions with optional status filter."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            query = "SELECT * FROM merchant_actions WHERE merchant_id = ?"
+            params: List[Any] = [merchant_id]
+
+            if status:
+                query += " AND status = ?"
+                params.append(status.upper())
+
+            # Count total
+            count_query = query.replace("SELECT *", "SELECT COUNT(*)")
+            cursor.execute(count_query, params)
+            total_count = cursor.fetchone()[0]
+
+            # Fetch page
+            query += " ORDER BY created_at DESC LIMIT ? OFFSET ?"
+            params.extend([limit, offset])
+            cursor.execute(query, params)
+            rows = cursor.fetchall()
+            return [dict(r) for r in rows], total_count
+

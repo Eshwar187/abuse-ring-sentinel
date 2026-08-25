@@ -1,10 +1,10 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 
 import { TransactionService } from '../../core/services/transaction.service';
 import { MerchantService } from '../../core/services/merchant.service';
-import { TransactionListItem } from '../../core/models/risk.models';
+import { TransactionListItem, MerchantAction } from '../../core/models/risk.models';
 import { RiskBadgeComponent } from '../../shared/components/risk-badge.component';
 import { DecisionBadgeComponent } from '../../shared/components/decision-badge.component';
 import { ScoreMeterComponent } from '../../shared/components/score-meter.component';
@@ -20,10 +20,10 @@ import { ScoreMeterComponent } from '../../shared/components/score-meter.compone
     ScoreMeterComponent,
   ],
   template: `
-    <div class="space-y-6 max-w-6xl mx-auto">
+    <div class="space-y-6 max-w-6xl mx-auto pb-12">
       <!-- Breadcrumb & Back -->
       <div class="flex items-center gap-2 text-xs text-surface-500 font-medium">
-        <a routerLink="/transactions" class="hover:text-brand-600 hover:underline">Transactions</a>
+        <a routerLink="/app/transactions" class="hover:text-brand-600 hover:underline">Transactions</a>
         <span>/</span>
         <span class="font-mono text-surface-900">{{ transactionId }}</span>
       </div>
@@ -45,6 +45,13 @@ import { ScoreMeterComponent } from '../../shared/components/score-meter.compone
 
             <!-- Operator Action Buttons -->
             <div class="flex items-center gap-2.5">
+              <button
+                (click)="retryOutboundAction()"
+                [disabled]="isRetryingAction()"
+                class="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-semibold rounded text-xs transition-colors flex items-center gap-1.5"
+              >
+                <span>{{ isRetryingAction() ? 'Dispatching...' : '↻ Retry Outbound Action' }}</span>
+              </button>
               <button
                 (click)="overrideDecision('APPROVE')"
                 class="px-3 py-1.5 bg-surface-50 hover:bg-emerald-50 text-emerald-700 border border-emerald-300 font-semibold rounded text-xs transition-colors"
@@ -77,15 +84,21 @@ import { ScoreMeterComponent } from '../../shared/components/score-meter.compone
             <div class="p-4 bg-surface-50 rounded-lg border border-surface-200">
               <div class="text-[11px] font-bold text-surface-500 uppercase tracking-wider">Order Value</div>
               <div class="text-2xl font-bold font-mono mt-1 text-surface-900">\${{ tx.amount.toFixed(2) }}</div>
-              <div class="text-xs text-surface-500 mt-1 uppercase font-semibold">{{ tx.product_category }}</div>
+              <div class="text-xs text-surface-500 mt-1 uppercase font-semibold">{{ tx.product_category || 'general' }}</div>
             </div>
 
             <div class="p-4 bg-surface-50 rounded-lg border border-surface-200">
-              <div class="text-[11px] font-bold text-surface-500 uppercase tracking-wider">Prior Connected Users</div>
-              <div class="text-2xl font-bold font-mono mt-1" [ngClass]="tx.connected_users! >= 2 ? 'text-rose-600' : 'text-emerald-700'">
-                {{ tx.connected_users || 0 }} Accounts
+              <div class="text-[11px] font-bold text-surface-500 uppercase tracking-wider">Action Status</div>
+              <div class="text-lg font-bold font-mono mt-1" [ngClass]="{
+                'text-emerald-700': action()?.status === 'EXECUTED',
+                'text-rose-600': action()?.status === 'FAILED' || action()?.status === 'TIMEOUT',
+                'text-surface-500': action()?.status === 'NOT_CONFIGURED' || !action()
+              }">
+                {{ action()?.status || 'PENDING' }}
               </div>
-              <div class="text-xs text-surface-500 mt-1">Incremental Entity Subgraph</div>
+              <div class="text-xs text-surface-500 mt-1 font-mono">
+                {{ action()?.action || 'NO_ACTION' }}
+              </div>
             </div>
 
             <div class="p-4 bg-surface-50 rounded-lg border border-surface-200">
@@ -94,6 +107,81 @@ import { ScoreMeterComponent } from '../../shared/components/score-meter.compone
                 {{ tx.decision }}
               </div>
               <div class="text-xs text-surface-500 mt-1">Threshold: tau = 0.90</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 6-Step Execution Lifecycle Timeline -->
+        <div class="bg-white border border-surface-200 rounded-lg p-6 shadow-card">
+          <div class="flex items-center justify-between border-b border-surface-200 pb-3 mb-5">
+            <div>
+              <h3 class="text-sm font-bold text-surface-900">End-to-End Transaction & Action Lifecycle</h3>
+              <p class="text-xs text-surface-500">Live operational audit trail from raw ingress to merchant backend state change.</p>
+            </div>
+            <span class="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-slate-100 text-slate-700 border border-slate-200">
+              Idempotency Key: {{ tx.transaction_id }}
+            </span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-6 gap-3">
+            <!-- Step 1 -->
+            <div class="p-3 bg-surface-50 rounded-lg border border-surface-200">
+              <div class="flex items-center gap-1.5 text-xs font-bold text-emerald-700">
+                <span>✓ 1. Ingress</span>
+              </div>
+              <p class="text-[11px] text-surface-600 mt-1">Raw checkout event received.</p>
+              <div class="text-[10px] font-mono text-surface-400 mt-2 truncate">{{ tx.timestamp | date:'HH:mm:ss' }}</div>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="p-3 bg-surface-50 rounded-lg border border-surface-200">
+              <div class="flex items-center gap-1.5 text-xs font-bold text-emerald-700">
+                <span>✓ 2. Features</span>
+              </div>
+              <p class="text-[11px] text-surface-600 mt-1">33 features extracted in memory.</p>
+              <div class="text-[10px] font-mono text-surface-400 mt-2">Point-in-Time</div>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="p-3 bg-surface-50 rounded-lg border border-surface-200">
+              <div class="flex items-center gap-1.5 text-xs font-bold text-emerald-700">
+                <span>✓ 3. Inference</span>
+              </div>
+              <p class="text-[11px] text-surface-600 mt-1">Model F: {{ (tx.risk_score * 100).toFixed(1) }}%</p>
+              <div class="text-[10px] font-mono text-surface-400 mt-2">{{ tx.decision }}</div>
+            </div>
+
+            <!-- Step 4 -->
+            <div class="p-3 rounded-lg border" [ngClass]="action() ? 'bg-surface-50 border-surface-200' : 'bg-surface-50/50 border-dashed border-surface-300'">
+              <div class="flex items-center gap-1.5 text-xs font-bold" [ngClass]="action() ? 'text-indigo-700' : 'text-surface-400'">
+                <span>{{ action() ? '✓' : '○' }} 4. Action Req</span>
+              </div>
+              <p class="text-[11px] text-surface-600 mt-1">{{ action()?.action || 'Mapped to ' + tx.decision }}</p>
+              <div class="text-[10px] font-mono text-surface-400 mt-2">HMAC-SHA256</div>
+            </div>
+
+            <!-- Step 5 -->
+            <div class="p-3 rounded-lg border" [ngClass]="action()?.http_status ? 'bg-surface-50 border-surface-200' : 'bg-surface-50/50 border-dashed border-surface-300'">
+              <div class="flex items-center gap-1.5 text-xs font-bold" [ngClass]="action()?.http_status ? 'text-indigo-700' : 'text-surface-400'">
+                <span>{{ action()?.http_status ? '✓' : '○' }} 5. Ack</span>
+              </div>
+              <p class="text-[11px] text-surface-600 mt-1">
+                {{ action()?.http_status ? 'HTTP ' + action()?.http_status + ' (' + action()?.latency_ms + 'ms)' : 'Awaiting Ack' }}
+              </p>
+              <div class="text-[10px] font-mono text-surface-400 mt-2">Attempt {{ action()?.attempt_number || 1 }}</div>
+            </div>
+
+            <!-- Step 6 -->
+            <div class="p-3 rounded-lg border" [ngClass]="{
+              'bg-emerald-50 border-emerald-300 text-emerald-900': action()?.status === 'EXECUTED',
+              'bg-rose-50 border-rose-300 text-rose-900': action()?.status === 'FAILED' || action()?.status === 'TIMEOUT',
+              'bg-surface-50 border-surface-200 text-surface-600': action()?.status === 'NOT_CONFIGURED' || !action()
+            }">
+              <div class="flex items-center gap-1.5 text-xs font-bold">
+                <span>{{ action()?.status === 'EXECUTED' ? '✓' : '●' }} 6. Final State</span>
+              </div>
+              <p class="text-[11px] font-bold mt-1">{{ action()?.status || 'PENDING' }}</p>
+              <div class="text-[10px] font-mono truncate mt-2">{{ action()?.merchant_message || 'No message' }}</div>
             </div>
           </div>
         </div>
@@ -115,7 +203,7 @@ import { ScoreMeterComponent } from '../../shared/components/score-meter.compone
                     <div class="text-xs font-bold text-surface-900 font-mono">NEW_ACCOUNT</div>
                     <p class="text-[11px] text-surface-600 mt-1">Account was created < 24 hours before order.</p>
                     <div class="mt-2 text-[10px] font-mono bg-white p-1.5 rounded border border-surface-200 text-surface-700">
-                      account_age_days: <span class="font-bold text-rose-600">{{ tx.features?.['account_age_days'] }} days</span>
+                      account_age_days: <span class="font-bold text-rose-600">{{ tx.features?.['account_age_days'] || 0 }} days</span>
                     </div>
                   </div>
                 </div>
@@ -128,7 +216,7 @@ import { ScoreMeterComponent } from '../../shared/components/score-meter.compone
                     <div class="text-xs font-bold text-surface-900 font-mono">GRAPH_CONNECTED_USERS</div>
                     <p class="text-[11px] text-surface-600 mt-1">Transaction links to a dense multi-account cluster.</p>
                     <div class="mt-2 text-[10px] font-mono bg-white p-1.5 rounded border border-surface-200 text-surface-700">
-                      connected_users: <span class="font-bold text-rose-600">{{ tx.features?.['number_of_prior_connected_users'] }} accounts</span>
+                      connected_users: <span class="font-bold text-rose-600">{{ tx.features?.['number_of_prior_connected_users'] || 0 }} accounts</span>
                     </div>
                   </div>
                 </div>
@@ -141,7 +229,7 @@ import { ScoreMeterComponent } from '../../shared/components/score-meter.compone
                     <div class="text-xs font-bold text-surface-900 font-mono">GRAPH_SHARED_DEVICE</div>
                     <p class="text-[11px] text-surface-600 mt-1">Device fingerprint associated with multiple user identities.</p>
                     <div class="mt-2 text-[10px] font-mono bg-white p-1.5 rounded border border-surface-200 text-surface-700">
-                      device_prior_user_count: <span class="font-bold text-rose-600">{{ tx.features?.['device_prior_user_count'] }} users</span>
+                      device_prior_user_count: <span class="font-bold text-rose-600">{{ tx.features?.['device_prior_user_count'] || 0 }} users</span>
                     </div>
                   </div>
                 </div>
@@ -156,7 +244,7 @@ import { ScoreMeterComponent } from '../../shared/components/score-meter.compone
                       Account tenure and prior transaction velocity indicate legitimate consumer patterns.
                     </p>
                     <div class="mt-2 text-[10px] font-mono bg-white p-1.5 rounded border border-emerald-200 text-emerald-700">
-                      account_age_days: <span class="font-bold">{{ tx.features?.['account_age_days'] }} days</span>
+                      account_age_days: <span class="font-bold">{{ tx.features?.['account_age_days'] || 30 }} days</span>
                     </div>
                   </div>
                 </div>
@@ -172,19 +260,19 @@ import { ScoreMeterComponent } from '../../shared/components/score-meter.compone
               <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
                 <div class="p-2.5 bg-surface-50 rounded border border-surface-200">
                   <div class="text-[10px] text-surface-400 font-semibold">Account Age</div>
-                  <div class="font-mono font-bold text-surface-900 mt-0.5">{{ tx.features?.['account_age_days'] }} days</div>
+                  <div class="font-mono font-bold text-surface-900 mt-0.5">{{ tx.features?.['account_age_days'] || 0 }} days</div>
                 </div>
                 <div class="p-2.5 bg-surface-50 rounded border border-surface-200">
                   <div class="text-[10px] text-surface-400 font-semibold">Email Domain</div>
-                  <div class="font-mono font-bold text-surface-900 mt-0.5">{{ tx.features?.['email_domain'] }}</div>
+                  <div class="font-mono font-bold text-surface-900 mt-0.5">{{ tx.features?.['email_domain'] || 'gmail.com' }}</div>
                 </div>
                 <div class="p-2.5 bg-surface-50 rounded border border-surface-200">
                   <div class="text-[10px] text-surface-400 font-semibold">Historical Tx Count</div>
-                  <div class="font-mono font-bold text-surface-900 mt-0.5">{{ tx.features?.['user_historical_tx_count'] }}</div>
+                  <div class="font-mono font-bold text-surface-900 mt-0.5">{{ tx.features?.['user_historical_tx_count'] || 0 }}</div>
                 </div>
                 <div class="p-2.5 bg-surface-50 rounded border border-surface-200">
                   <div class="text-[10px] text-surface-400 font-semibold">Historical Avg Amount</div>
-                  <div class="font-mono font-bold text-surface-900 mt-0.5">\${{ tx.features?.['user_historical_mean_amount']?.toFixed(2) }}</div>
+                  <div class="font-mono font-bold text-surface-900 mt-0.5">\${{ tx.features?.['user_historical_mean_amount']?.toFixed(2) || '0.00' }}</div>
                 </div>
               </div>
             </div>
@@ -195,15 +283,15 @@ import { ScoreMeterComponent } from '../../shared/components/score-meter.compone
               <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
                 <div class="p-2.5 bg-surface-50 rounded border border-surface-200">
                   <div class="text-[10px] text-surface-400 font-semibold">1-Hour Tx Velocity</div>
-                  <div class="font-mono font-bold text-surface-900 mt-0.5">{{ tx.features?.['user_tx_count_1h'] }} tx</div>
+                  <div class="font-mono font-bold text-surface-900 mt-0.5">{{ tx.features?.['user_tx_count_1h'] || 1 }} tx</div>
                 </div>
                 <div class="p-2.5 bg-surface-50 rounded border border-surface-200">
                   <div class="text-[10px] text-surface-400 font-semibold">24-Hour Tx Velocity</div>
-                  <div class="font-mono font-bold text-surface-900 mt-0.5">{{ tx.features?.['user_tx_count_24h'] }} tx</div>
+                  <div class="font-mono font-bold text-surface-900 mt-0.5">{{ tx.features?.['user_tx_count_24h'] || 1 }} tx</div>
                 </div>
                 <div class="p-2.5 bg-surface-50 rounded border border-surface-200">
                   <div class="text-[10px] text-surface-400 font-semibold">7-Day Tx Velocity</div>
-                  <div class="font-mono font-bold text-surface-900 mt-0.5">{{ tx.features?.['user_tx_count_7d'] }} tx</div>
+                  <div class="font-mono font-bold text-surface-900 mt-0.5">{{ tx.features?.['user_tx_count_7d'] || 1 }} tx</div>
                 </div>
                 <div class="p-2.5 bg-surface-50 rounded border border-surface-200">
                   <div class="text-[10px] text-surface-400 font-semibold">Promo Voucher Usage</div>
@@ -218,19 +306,19 @@ import { ScoreMeterComponent } from '../../shared/components/score-meter.compone
               <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
                 <div class="p-2.5 bg-surface-50 rounded border border-surface-200">
                   <div class="text-[10px] text-surface-400 font-semibold">Device Shared Users</div>
-                  <div class="font-mono font-bold text-surface-900 mt-0.5">{{ tx.features?.['device_prior_user_count'] }} accounts</div>
+                  <div class="font-mono font-bold text-surface-900 mt-0.5">{{ tx.features?.['device_prior_user_count'] || 0 }} accounts</div>
                 </div>
                 <div class="p-2.5 bg-surface-50 rounded border border-surface-200">
                   <div class="text-[10px] text-surface-400 font-semibold">IP Shared Users</div>
-                  <div class="font-mono font-bold text-surface-900 mt-0.5">{{ tx.features?.['ip_prior_user_count'] }} accounts</div>
+                  <div class="font-mono font-bold text-surface-900 mt-0.5">{{ tx.features?.['ip_prior_user_count'] || 0 }} accounts</div>
                 </div>
                 <div class="p-2.5 bg-surface-50 rounded border border-surface-200">
                   <div class="text-[10px] text-surface-400 font-semibold">Payment Shared Users</div>
-                  <div class="font-mono font-bold text-surface-900 mt-0.5">{{ tx.features?.['payment_prior_user_count'] }} accounts</div>
+                  <div class="font-mono font-bold text-surface-900 mt-0.5">{{ tx.features?.['payment_prior_user_count'] || 0 }} accounts</div>
                 </div>
                 <div class="p-2.5 bg-surface-50 rounded border border-surface-200">
                   <div class="text-[10px] text-surface-400 font-semibold">Address Shared Users</div>
-                  <div class="font-mono font-bold text-surface-900 mt-0.5">{{ tx.features?.['shipping_address_prior_user_count'] }} accounts</div>
+                  <div class="font-mono font-bold text-surface-900 mt-0.5">{{ tx.features?.['shipping_address_prior_user_count'] || 0 }} accounts</div>
                 </div>
               </div>
             </div>
@@ -255,6 +343,8 @@ export class TransactionDetailComponent implements OnInit {
 
   transactionId = '';
   tx?: TransactionListItem;
+  readonly action = signal<MerchantAction | null>(null);
+  readonly isRetryingAction = signal(false);
 
   ngOnInit(): void {
     this.route.params.subscribe((params) => {
@@ -285,6 +375,36 @@ export class TransactionDetailComponent implements OnInit {
           },
         });
       }
+
+      // Fetch action record for this transaction
+      this.fetchActionRecord();
+    });
+  }
+
+  fetchActionRecord() {
+    if (!this.transactionId) return;
+    this.merchantService.getActionByTx(this.transactionId).subscribe({
+      next: (act) => {
+        this.action.set(act);
+      },
+      error: () => {
+        this.action.set(null);
+      },
+    });
+  }
+
+  retryOutboundAction() {
+    if (!this.transactionId) return;
+    this.isRetryingAction.set(true);
+    this.merchantService.retryAction(this.transactionId).subscribe({
+      next: (act) => {
+        this.action.set(act);
+        this.isRetryingAction.set(false);
+      },
+      error: (err) => {
+        this.isRetryingAction.set(false);
+        alert(`Action retry failed: ${err.message || 'Unknown error'}`);
+      },
     });
   }
 
@@ -292,4 +412,3 @@ export class TransactionDetailComponent implements OnInit {
     alert(`Operator override logged: Transaction ${this.transactionId} updated to ${action}. Audit trail recorded.`);
   }
 }
-

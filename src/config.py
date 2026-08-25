@@ -34,6 +34,10 @@ class AppConfig:
     request_timeout_seconds: float = float(os.getenv("REQUEST_TIMEOUT_SECONDS", "30.0"))
 
     @property
+    def environment(self) -> str:
+        return self.app_env
+
+    @property
     def is_production(self) -> bool:
         return self.app_env in ("production", "prod")
 

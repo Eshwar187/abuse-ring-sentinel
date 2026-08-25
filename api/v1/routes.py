@@ -42,6 +42,17 @@ from src.auth.schemas import (
     MerchantMetricsResponse,
     MerchantEntityGraphResponse,
 )
+from src.actions.schemas import (
+    ActionType,
+    ActionStatus,
+    RiskActionRequest,
+    MerchantActionResponse,
+    MerchantIntegrationConfig,
+    MerchantIntegrationUpdateRequest,
+    ActionTestRequest,
+    ActionTestResponse,
+)
+from src.actions.action_service import ActionExecutionService
 from src.integration.normalizer import EventNormalizer
 from src.integration.feature_adapter import FeatureAdapter
 from src.state.state_store import RuntimeStateStore
@@ -121,6 +132,7 @@ def create_v1_router(
     Factory creating the v1 APIRouter injected with runtime singletons.
     """
     v1 = APIRouter(prefix="/api/v1", tags=["Merchant Risk API v1"])
+    action_service = ActionExecutionService(state_store=state_store, environment=config.environment)
 
     @v1.post("/risk/evaluate", response_model=RiskEvaluateResponse, status_code=status.HTTP_200_OK)
     async def evaluate_transaction_risk(
@@ -133,7 +145,7 @@ def create_v1_router(
         """
         Ingests a raw merchant transaction event, normalizes it, derives the 33 point-in-time features,
         executes the frozen HistGradientBoosting model, applies decision policy, generates reason codes,
-        and logs audit records.
+        triggers outbound merchant action execution if configured, and logs audit records.
         """
         merchant_id = authenticate_merchant(x_api_key=x_api_key, authorization=authorization, state_store=state_store)
         start_time = time.perf_counter()
@@ -180,13 +192,25 @@ def create_v1_router(
             evaluated_at=evaluated_at,
         )
 
-        # 6. Append-only Structured Audit Logging
+        # 6. Outbound Merchant Action Execution
+        reason_codes_list = [r["code"] for r in decision_result.get("reason_codes", [])]
+        action_resp = await action_service.execute_action_for_evaluation(
+            merchant_id=merchant_id,
+            transaction_id=canonical_tx.transaction_id,
+            decision=decision_result["decision"],
+            risk_score=decision_result["risk_score"],
+            risk_level=decision_result["risk_level"],
+            reason_codes=reason_codes_list,
+        )
+
+        # 7. Append-only Structured Audit Logging
         decision_payload_for_audit = {
             "transaction_id": canonical_tx.transaction_id,
             "risk_score": decision_result["risk_score"],
             "risk_level": decision_result["risk_level"],
             "decision": decision_result["decision"],
             "reason_codes": decision_result["reason_codes"],
+            "merchant_action": action_resp.model_dump(),
             "evaluated_at": evaluated_at,
             "model_metadata": {
                 "model_version": meta["model_version"],
@@ -226,9 +250,10 @@ def create_v1_router(
             "evaluated_at": evaluated_at,
             "request_id": req_id,
             "latency_ms": elapsed_ms,
+            "merchant_action": action_resp.model_dump(),
         }
 
-        # 7. Save Idempotency Cache if key provided
+        # 8. Save Idempotency Cache if key provided
         if idempotency_key:
             state_store.save_idempotency_result(
                 merchant_id=merchant_id,
@@ -588,6 +613,162 @@ def create_v1_router(
             total_edges=graph_data["total_edges"],
             zero_data_state=graph_data["zero_data_state"],
         )
+
+    # -------------------------------------------------------------------------
+    # Outbound Action Execution & Integration Settings Endpoints
+    # -------------------------------------------------------------------------
+    @v1.get("/merchant/integration", response_model=MerchantIntegrationConfig, status_code=status.HTTP_200_OK)
+    async def get_merchant_integration_settings(
+        x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
+        authorization: Optional[str] = Header(None, alias="Authorization"),
+    ):
+        """Retrieves merchant outbound webhook integration settings with masked credentials."""
+        merchant_id = authenticate_merchant(x_api_key=x_api_key, authorization=authorization, state_store=state_store)
+        cfg = state_store.get_merchant_integration(merchant_id)
+        return MerchantIntegrationConfig(**cfg)
+
+    @v1.put("/merchant/integration", response_model=MerchantIntegrationConfig, status_code=status.HTTP_200_OK)
+    async def update_merchant_integration_settings(
+        payload: MerchantIntegrationUpdateRequest,
+        x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
+        authorization: Optional[str] = Header(None, alias="Authorization"),
+    ):
+        """Updates merchant outbound webhook integration settings."""
+        merchant_id = authenticate_merchant(x_api_key=x_api_key, authorization=authorization, state_store=state_store)
+        state_store.save_merchant_integration(
+            merchant_id=merchant_id,
+            action_endpoint_url=payload.action_endpoint_url,
+            auth_token=payload.auth_token,
+            webhook_secret=payload.webhook_secret,
+            timeout_seconds=payload.timeout_seconds or 3.0,
+            max_retries=payload.max_retries if payload.max_retries is not None else 2,
+            is_active=payload.is_active if payload.is_active is not None else True,
+        )
+        updated = state_store.get_merchant_integration(merchant_id)
+        return MerchantIntegrationConfig(**updated)
+
+    @v1.post("/merchant/action-endpoint/test", response_model=ActionTestResponse, status_code=status.HTTP_200_OK)
+    async def test_action_endpoint_connectivity(
+        payload: Optional[ActionTestRequest] = None,
+        x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
+        authorization: Optional[str] = Header(None, alias="Authorization"),
+    ):
+        """Executes a real outbound HTTP connectivity probe against the merchant endpoint."""
+        merchant_id = authenticate_merchant(x_api_key=x_api_key, authorization=authorization, state_store=state_store)
+        override_url = payload.endpoint_url if payload else None
+        override_token = payload.auth_token if payload else None
+        override_secret = payload.webhook_secret if payload else None
+
+        test_result = await action_service.test_merchant_connection(
+            merchant_id=merchant_id,
+            endpoint_url=override_url,
+            auth_token=override_token,
+            webhook_secret=override_secret,
+        )
+        return test_result
+
+    @v1.post("/actions/{transaction_id}", response_model=MerchantActionResponse, status_code=status.HTTP_200_OK)
+    async def execute_manual_action(
+        transaction_id: str,
+        x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
+        authorization: Optional[str] = Header(None, alias="Authorization"),
+    ):
+        """Manually triggers action execution for a previously evaluated transaction."""
+        merchant_id = authenticate_merchant(x_api_key=x_api_key, authorization=authorization, state_store=state_store)
+        tx = state_store.get_transaction(merchant_id, transaction_id)
+        if not tx:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={"error": True, "code": "TRANSACTION_NOT_FOUND", "message": f"Transaction '{transaction_id}' not found."},
+            )
+
+        resp = await action_service.execute_action_for_evaluation(
+            merchant_id=merchant_id,
+            transaction_id=transaction_id,
+            decision=tx.get("decision", "APPROVE"),
+            risk_score=float(tx.get("risk_score", 0.0)),
+            risk_level="HIGH" if float(tx.get("risk_score", 0.0)) >= 0.90 else "LOW",
+            force_retry=False,
+        )
+        return resp
+
+    @v1.post("/actions/{transaction_id}/retry", response_model=MerchantActionResponse, status_code=status.HTTP_200_OK)
+    async def retry_failed_action(
+        transaction_id: str,
+        x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
+        authorization: Optional[str] = Header(None, alias="Authorization"),
+    ):
+        """Forces a retry attempt for an action, bypassing idempotent cache."""
+        merchant_id = authenticate_merchant(x_api_key=x_api_key, authorization=authorization, state_store=state_store)
+        tx = state_store.get_transaction(merchant_id, transaction_id)
+        if not tx:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={"error": True, "code": "TRANSACTION_NOT_FOUND", "message": f"Transaction '{transaction_id}' not found."},
+            )
+
+        resp = await action_service.execute_action_for_evaluation(
+            merchant_id=merchant_id,
+            transaction_id=transaction_id,
+            decision=tx.get("decision", "APPROVE"),
+            risk_score=float(tx.get("risk_score", 0.0)),
+            risk_level="HIGH" if float(tx.get("risk_score", 0.0)) >= 0.90 else "LOW",
+            force_retry=True,
+        )
+        return resp
+
+    @v1.get("/actions/{transaction_id}", response_model=MerchantActionResponse, status_code=status.HTTP_200_OK)
+    async def get_transaction_action(
+        transaction_id: str,
+        x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
+        authorization: Optional[str] = Header(None, alias="Authorization"),
+    ):
+        """Retrieves latest action execution status for a specific transaction."""
+        merchant_id = authenticate_merchant(x_api_key=x_api_key, authorization=authorization, state_store=state_store)
+        rec = state_store.get_action_by_tx(merchant_id, transaction_id)
+        if not rec:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={"error": True, "code": "ACTION_NOT_FOUND", "message": f"No action record found for transaction '{transaction_id}'."},
+            )
+
+        return MerchantActionResponse(
+            request_id=rec["action_id"],
+            transaction_id=rec["transaction_id"],
+            action=ActionType(rec["action"]),
+            status=ActionStatus(rec["status"]),
+            merchant_reference=rec.get("merchant_reference"),
+            merchant_message=rec.get("merchant_message"),
+            http_status=rec.get("http_status"),
+            latency_ms=rec.get("latency_ms"),
+            attempt_number=rec.get("attempt_number", 1),
+            executed_at=rec.get("completed_at"),
+        )
+
+    @v1.get("/actions", status_code=status.HTTP_200_OK)
+    async def list_merchant_actions(
+        status_filter: Optional[str] = None,
+        page: int = 1,
+        page_size: int = 50,
+        x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
+        authorization: Optional[str] = Header(None, alias="Authorization"),
+    ):
+        """Lists historical merchant action audit records."""
+        merchant_id = authenticate_merchant(x_api_key=x_api_key, authorization=authorization, state_store=state_store)
+        offset = max(0, (page - 1) * page_size)
+        actions, total_count = state_store.get_merchant_actions(
+            merchant_id=merchant_id,
+            status=status_filter,
+            limit=page_size,
+            offset=offset,
+        )
+        return {
+            "merchant_id": merchant_id,
+            "total_count": total_count,
+            "page": page,
+            "page_size": page_size,
+            "actions": actions,
+        }
 
     return v1
 

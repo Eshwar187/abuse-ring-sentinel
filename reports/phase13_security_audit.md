@@ -1,33 +1,32 @@
-# Phase 13 — Security & Key Management Audit Report
+# Phase 13 Security & Isolation Audit
 
-**Project**: Abuse-Ring Sentinel  
-**Track**: Razorpay Buildathon — Track 02: AI Risk Manager  
-**Audit Date**: 2026-08-25T17:59:00Z  
-**Author**: Lead Security Engineer  
+## 1. Threat Modeling & Controls Summary
+
+| Security Domain | Threat Vector | Mitigation Strategy | Test Verification |
+| :--- | :--- | :--- | :--- |
+| **SSRF (Server-Side Request Forgery)** | Malicious webhook target pointing to cloud metadata (169.254.169.254) or local services in production | Strict IP/hostname resolution, protocol scheme restriction (`https://` in prod), and private subnet blocking | `test_ssrf_url_validation` in Pytest |
+| **Webhook Tampering / Spoofing** | Attacker forging risk decision payloads to bypass merchant security | HMAC-SHA256 request signing using `X-Abuse-Sentinel-Signature` header with constant-time verification (`hmac.compare_digest`) | `test_hmac_signature_generation_and_verification` |
+| **Secret Leakage** | API tokens and HMAC secrets exposed in logs, error traces, or UI responses | Automated secret masking (`••••••••1234`), DB secret separation (`include_secrets=False` by default for API endpoints) | `test_integration_settings_crud_and_masking` |
+| **Replay & Duplicate Attacks** | Replaying same webhook multiple times | Deterministic SHA-256 idempotency keying and SQLite unique constraints | `test_idempotency_prevents_duplicate_action_dispatch` |
+| **Multi-Tenant Cross-Access** | Merchant A viewing or triggering actions for Merchant B | Scoped SQL queries with `merchant_id` filter and token authorization checks | `test_cross_tenant_action_isolation` |
 
 ---
 
-## 1. Executive Summary
+## 2. Cryptographic Signing Standard
 
-This report evaluates the cryptographic security, credential lifecycle, and tenant access controls implemented across Abuse-Ring Sentinel's API Gateway and Web Application.
+All outbound webhooks from Sentinel compute the signature:
+$$\text{Signature} = \text{HMAC-SHA256}(\text{UTF-8 encoded JSON body}, \text{webhook\_secret})$$
+
+Sent via:
+```http
+X-Abuse-Sentinel-Signature: sha256=4f8b9e67a1c3d...
+X-Abuse-Sentinel-Request-ID: req_3f9011ab...
+Idempotency-Key: ord_1001_block
+Content-Type: application/json
+```
 
 ---
 
-## 2. Key Findings & Security Controls
-
-### 2.1 Password Security
-- Passwords stored in `users` table are hashed using **PBKDF2-HMAC-SHA256** with 100,000 iterations and a unique 16-byte cryptographic salt.
-- Plaintext passwords are never logged, stored in state, or serialized into responses.
-
-### 2.2 API Key Lifecycle & Rotation
-- API keys are issued with a distinct prefix `ars_live_` followed by 40 hex random bytes generated via `secrets.token_hex(20)`.
-- Raw keys are shown to the merchant **exactly once** upon account creation or explicit rotation.
-- Only the SHA-256 hash and masked prefix (`ars_live_••••••••`) are stored in the database.
-- Key rotation (`POST /api/v1/auth/rotate-key`) immediately sets `is_active = 0` and `revoked_at` on previous keys, invalidating them for all future requests.
-
-### 2.3 Timing Attack Prevention
-- Authentication checks in `authenticate_merchant` and `verify_password` use `hmac.compare_digest` for constant-time evaluation to eliminate timing side-channel vulnerabilities.
-
-### 2.4 PII Scrubbing & Data Sanitization
-- Raw inputs containing PANs, CVVs, full payment numbers, or passwords are explicitly rejected by Pydantic validation before feature extraction.
-- Audit logs scrub and mask sensitive metadata fields before persisting.
+## 3. Multi-Tenant State Isolation
+- Every table in SQLite (`raw_transactions`, `canonical_transactions`, `feature_records`, `evaluation_records`, `merchant_integrations`, `merchant_actions`) contains a required `merchant_id` foreign key.
+- Endpoints enforcing session tokens verify `current_user.merchant_id == resource.merchant_id`. Cross-tenant queries return HTTP 404.

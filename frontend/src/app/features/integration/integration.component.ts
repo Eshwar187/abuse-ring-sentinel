@@ -16,17 +16,25 @@ import {
   Layers,
   Database,
   ArrowRight,
+  Send,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  Settings,
 } from 'lucide-angular';
 import { RiskService } from '../../core/services/risk.service';
+import { MerchantService } from '../../core/services/merchant.service';
+import { AuthService } from '../../core/services/auth.service';
 import {
   RawTransactionEvent,
   RiskEvaluateResponse,
   MerchantConfigResponse,
   MerchantHealthResponse,
+  MerchantIntegrationConfig,
+  ActionTestResponse,
 } from '../../core/models/risk.models';
 import { DecisionBadgeComponent } from '../../shared/components/decision-badge.component';
 import { RiskBadgeComponent } from '../../shared/components/risk-badge.component';
-import { ScoreMeterComponent } from '../../shared/components/score-meter.component';
 
 @Component({
   selector: 'app-integration',
@@ -36,21 +44,20 @@ import { ScoreMeterComponent } from '../../shared/components/score-meter.compone
     FormsModule,
     LucideAngularModule,
     DecisionBadgeComponent,
-    RiskBadgeComponent,
   ],
   template: `
-    <div class="space-y-8 animate-fade-in">
+    <div class="space-y-8 animate-fade-in pb-12">
       <!-- Page Header -->
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800/80 pb-6">
         <div>
           <div class="flex items-center gap-3">
-            <h1 class="text-2xl font-bold text-slate-100 tracking-tight">Merchant Integration & Risk API</h1>
+            <h1 class="text-2xl font-bold text-slate-100 tracking-tight">Merchant Integration & Action Gateway</h1>
             <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
               API v1 Live
             </span>
           </div>
           <p class="text-sm text-slate-400 mt-1">
-            API-first merchant risk evaluation gateway. Submit raw, observable checkout events — the platform derives behavioral and graph features automatically.
+            Configure inbound transaction evaluation and outbound merchant action execution with HMAC-SHA256 signing.
           </p>
         </div>
 
@@ -61,12 +68,12 @@ import { ScoreMeterComponent } from '../../shared/components/score-meter.compone
             class="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-900/60 hover:bg-slate-800 text-xs font-medium text-slate-300 transition-colors"
           >
             <lucide-icon name="refresh-cw" [size]="14" [class.animate-spin]="isLoadingHealth()"></lucide-icon>
-            Check API Status
+            Check Gateway Health
           </button>
         </div>
       </div>
 
-      <!-- Integration Status & API Key Cards -->
+      <!-- Top Cards -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
         <!-- Status Card -->
         <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-5 shadow-sm">
@@ -78,17 +85,17 @@ import { ScoreMeterComponent } from '../../shared/components/score-meter.compone
             </span>
           </div>
           <div class="mt-3 flex items-baseline gap-2">
-            <span class="text-xl font-bold text-slate-100">{{ healthStatus()?.integration_status === 'connected' ? 'Connected & Ready' : 'Connecting...' }}</span>
+            <span class="text-xl font-bold text-slate-100">{{ healthStatus()?.integration_status === 'connected' ? 'Connected & Ready' : 'Online' }}</span>
           </div>
           <p class="text-xs text-slate-400 mt-1">
-            Merchant: <span class="text-indigo-400 font-mono">{{ apiKeyMerchantId() }}</span> ({{ healthStatus()?.environment || 'development' }})
+            Merchant: <span class="text-indigo-400 font-mono">{{ currentMerchantId() }}</span>
           </p>
         </div>
 
-        <!-- Endpoint URL Card -->
+        <!-- Inbound Evaluation Endpoint -->
         <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-5 shadow-sm">
           <div class="flex items-center justify-between">
-            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Evaluation Endpoint</span>
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Inbound Risk API</span>
             <lucide-icon name="server" [size]="16" class="text-slate-400"></lucide-icon>
           </div>
           <div class="mt-3">
@@ -96,48 +103,156 @@ import { ScoreMeterComponent } from '../../shared/components/score-meter.compone
               POST /api/v1/risk/evaluate
             </code>
           </div>
-          <p class="text-xs text-slate-400 mt-1">Accepts raw JSON checkouts with Idempotency-Key</p>
+          <p class="text-xs text-slate-400 mt-1">Inbound transaction payload receiver</p>
         </div>
 
         <!-- API Key Card -->
         <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-5 shadow-sm">
           <div class="flex items-center justify-between">
-            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Merchant API Key</span>
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Active API Key</span>
             <lucide-icon name="key" [size]="16" class="text-amber-400"></lucide-icon>
           </div>
           <div class="mt-2 flex items-center justify-between gap-2 bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5">
             <span class="text-xs font-mono text-slate-300 tracking-wider">
-              {{ showKey() ? activeApiKey : 'ars_live_••••••••••••••••••••' }}
+              {{ currentApiKeyMasked() }}
             </span>
-            <div class="flex items-center gap-1.5">
-              <button
-                (click)="toggleShowKey()"
-                class="text-[11px] text-slate-400 hover:text-slate-200 transition-colors"
-                title="Toggle Visibility"
-              >
-                {{ showKey() ? 'Hide' : 'Show' }}
-              </button>
-              <button
-                (click)="copyApiKey()"
-                class="text-slate-400 hover:text-indigo-400 transition-colors p-1"
-                title="Copy API Key"
-              >
-                <lucide-icon [name]="copiedKey() ? 'check' : 'copy'" [size]="13" [class.text-emerald-400]="copiedKey()"></lucide-icon>
-              </button>
-            </div>
+            <button
+              (click)="copyApiKey()"
+              class="text-slate-400 hover:text-indigo-400 transition-colors p-1"
+              title="Copy API Key"
+            >
+              <lucide-icon [name]="copiedKey() ? 'check' : 'copy'" [size]="13" [class.text-emerald-400]="copiedKey()"></lucide-icon>
+            </button>
           </div>
-          <p class="text-xs text-slate-400 mt-1">Pass in <code class="text-slate-300">X-API-Key</code> or <code class="text-slate-300">Authorization: Bearer</code></p>
+          <p class="text-xs text-slate-400 mt-1">Used in <code class="text-slate-300">X-API-Key</code> request header</p>
         </div>
       </div>
 
-      <!-- Quick Start Snippets & Required Data Grid -->
+      <!-- Outbound Merchant Action Configuration Section -->
+      <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-6 shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center">
+              <lucide-icon name="send" [size]="16"></lucide-icon>
+            </div>
+            <div>
+              <h3 class="text-sm font-semibold text-slate-100">Outbound Merchant Action Execution & Webhooks</h3>
+              <p class="text-xs text-slate-400">Sentinel dispatches real-time signed action webhooks (BLOCK/APPROVE/REVIEW) to your backend.</p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <button
+              (click)="testConnection()"
+              [disabled]="isTestingConnection()"
+              class="flex items-center gap-2 px-3.5 py-1.5 rounded-lg border border-indigo-500/30 bg-indigo-500/10 hover:bg-indigo-500/20 text-xs font-semibold text-indigo-300 transition-all disabled:opacity-50"
+            >
+              <lucide-icon name="refresh-cw" [size]="13" [class.animate-spin]="isTestingConnection()"></lucide-icon>
+              <span>{{ isTestingConnection() ? 'Testing...' : 'Test Merchant Connection' }}</span>
+            </button>
+            <button
+              (click)="saveIntegrationConfig()"
+              [disabled]="isSavingConfig()"
+              class="flex items-center gap-2 px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md shadow-indigo-600/20 transition-all disabled:opacity-50"
+            >
+              <span>{{ isSavingConfig() ? 'Saving...' : 'Save Settings' }}</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Connection Test Result Banner -->
+        <div *ngIf="testResult()" class="mt-4 p-4 rounded-xl border" [ngClass]="{
+          'bg-emerald-950/30 border-emerald-500/30 text-emerald-200': testResult()?.status === 'CONNECTED',
+          'bg-rose-950/30 border-rose-500/30 text-rose-200': testResult()?.status === 'FAILED'
+        }">
+          <div class="flex items-start justify-between gap-4">
+            <div class="flex items-center gap-2.5">
+              <lucide-icon [name]="testResult()?.status === 'CONNECTED' ? 'check-circle-2' : 'x-circle'" [size]="20" [class.text-emerald-400]="testResult()?.status === 'CONNECTED'" [class.text-rose-400]="testResult()?.status === 'FAILED'"></lucide-icon>
+              <div>
+                <span class="text-xs font-bold uppercase tracking-wider">
+                  {{ testResult()?.status === 'CONNECTED' ? 'Connection Successful — Endpoint Active' : 'Connection Failed' }}
+                </span>
+                <p class="text-xs text-slate-300 mt-0.5" *ngIf="testResult()?.status === 'CONNECTED'">
+                  Merchant backend responded with HTTP {{ testResult()?.http_status }} in {{ testResult()?.latency_ms }} ms.
+                </p>
+                <p class="text-xs text-rose-300 mt-0.5" *ngIf="testResult()?.status === 'FAILED'">
+                  Error: {{ testResult()?.error || 'Target endpoint unreachable' }}
+                </p>
+              </div>
+            </div>
+            <span class="text-[10px] font-mono text-slate-400 shrink-0">{{ testResult()?.timestamp | date:'HH:mm:ss' }}</span>
+          </div>
+        </div>
+
+        <!-- Configuration Form -->
+        <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1.5">Action Webhook URL</label>
+            <input
+              type="text"
+              [(ngModel)]="configForm.action_endpoint_url"
+              placeholder="e.g. http://127.0.0.1:8001/api/risk/action or https://api.store.com/risk/action"
+              class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3.5 py-2 text-xs text-slate-200 font-mono focus:border-indigo-500 focus:outline-none"
+            />
+            <p class="text-[11px] text-slate-400 mt-1">Endpoint where Abuse-Ring Sentinel delivers signed action requests.</p>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1.5">Webhook Signing Secret (HMAC-SHA256)</label>
+            <input
+              type="password"
+              [(ngModel)]="configForm.webhook_secret"
+              [placeholder]="configForm.webhook_secret_masked || 'Enter signing secret'"
+              class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3.5 py-2 text-xs text-slate-200 font-mono focus:border-indigo-500 focus:outline-none"
+            />
+            <p class="text-[11px] text-slate-400 mt-1">Used to compute the <code class="text-indigo-300">X-Abuse-Sentinel-Signature</code> header.</p>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1.5">Auth Bearer Token</label>
+            <input
+              type="password"
+              [(ngModel)]="configForm.auth_token"
+              [placeholder]="configForm.auth_token_masked || 'Optional Authorization Token'"
+              class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3.5 py-2 text-xs text-slate-200 font-mono focus:border-indigo-500 focus:outline-none"
+            />
+            <p class="text-[11px] text-slate-400 mt-1">Sent in the <code class="text-indigo-300">Authorization: Bearer</code> header.</p>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1.5">Timeout (Seconds)</label>
+              <input
+                type="number"
+                step="0.5"
+                min="0.5"
+                max="30"
+                [(ngModel)]="configForm.timeout_seconds"
+                class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3.5 py-2 text-xs text-slate-200 font-mono focus:border-indigo-500 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1.5">Max Retries</label>
+              <input
+                type="number"
+                min="0"
+                max="5"
+                [(ngModel)]="configForm.max_retries"
+                class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3.5 py-2 text-xs text-slate-200 font-mono focus:border-indigo-500 focus:outline-none"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Start Snippets -->
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <!-- Integration Code Examples -->
-        <div class="lg:col-span-7 bg-slate-900/60 border border-slate-800 rounded-xl p-6 shadow-sm flex flex-col">
+        <div class="lg:col-span-6 bg-slate-900/60 border border-slate-800 rounded-xl p-6 shadow-sm flex flex-col">
           <div class="flex items-center justify-between border-b border-slate-800 pb-4">
             <div class="flex items-center gap-2">
               <lucide-icon name="code" [size]="18" class="text-indigo-400"></lucide-icon>
-              <h3 class="text-sm font-semibold text-slate-200">Integration Quick Start</h3>
+              <h3 class="text-sm font-semibold text-slate-200">Inbound Risk API Snippets</h3>
             </div>
             <div class="flex bg-slate-950 rounded-lg p-0.5 border border-slate-800 text-xs">
               <button
@@ -154,7 +269,7 @@ import { ScoreMeterComponent } from '../../shared/components/score-meter.compone
                 [class.text-slate-100]="activeCodeTab === 'ts'"
                 class="px-3 py-1 rounded-md text-slate-400 font-medium transition-colors"
               >
-                TypeScript / Node
+                TypeScript
               </button>
             </div>
           </div>
@@ -176,8 +291,7 @@ import { ScoreMeterComponent } from '../../shared/components/score-meter.compone
     "payment_method_id": "pm_tok_card_99",
     "shipping_address_id": "addr_99",
     "billing_address_id": "addr_99",
-    "email_domain": "buyer&#64;gmail.com",
-    "promo_code": "WELCOME10"
+    "email_domain": "buyer&#64;gmail.com"
   &#125;'</code></pre>
 
             <pre *ngIf="activeCodeTab === 'ts'" class="bg-slate-950 p-4 rounded-lg border border-slate-800 text-xs font-mono text-emerald-300 overflow-x-auto whitespace-pre leading-relaxed"><code>import axios from 'axios';
@@ -194,312 +308,117 @@ const riskResponse = await axios.post('http://127.0.0.1:8000/api/v1/risk/evaluat
   payment_method_id: 'pm_tok_card_99',
   shipping_address_id: 'addr_99',
   billing_address_id: 'addr_99',
-  email_domain: 'buyer&#64;gmail.com',
-  promo_code: 'WELCOME10',
+  email_domain: 'buyer&#64;gmail.com'
 &#125;, &#123;
   headers: &#123;
     'X-API-Key': '{{ activeApiKey }}',
-    'Idempotency-Key': 'tx_req_unique_001',
-  &#125;,
-&#125;);
-
-console.log('Risk Decision:', riskResponse.data.decision); // APPROVE | REVIEW | BLOCK</code></pre>
+    'Idempotency-Key': 'idemp_tx_1001',
+    'Content-Type': 'application/json'
+  &#125;
+&#125;);</code></pre>
           </div>
         </div>
 
-        <!-- Required Fields Guide -->
-        <div class="lg:col-span-5 bg-slate-900/60 border border-slate-800 rounded-xl p-6 shadow-sm flex flex-col justify-between">
+        <!-- Interactive Checkout Simulator -->
+        <div class="lg:col-span-6 bg-slate-900/60 border border-slate-800 rounded-xl p-6 shadow-sm flex flex-col justify-between">
           <div>
-            <div class="flex items-center gap-2 border-b border-slate-800 pb-4">
-              <lucide-icon name="layers" [size]="18" class="text-emerald-400"></lucide-icon>
-              <h3 class="text-sm font-semibold text-slate-200">Observable Schema Checklist</h3>
-            </div>
-            <p class="text-xs text-slate-400 mt-3">
-              Merchants only send observable event data. All 33 graph & behavioral ML features are derived in-memory by Abuse-Ring Sentinel.
-            </p>
-            <ul class="mt-4 space-y-2 text-xs">
-              <li class="flex items-center gap-2 text-slate-300">
-                <lucide-icon name="check" [size]="14" class="text-emerald-400 shrink-0"></lucide-icon>
-                <span><strong>Transaction & User ID</strong>: Merchant unique identifiers</span>
-              </li>
-              <li class="flex items-center gap-2 text-slate-300">
-                <lucide-icon name="check" [size]="14" class="text-emerald-400 shrink-0"></lucide-icon>
-                <span><strong>Amount & Currency</strong>: Monetary values in standard format</span>
-              </li>
-              <li class="flex items-center gap-2 text-slate-300">
-                <lucide-icon name="check" [size]="14" class="text-emerald-400 shrink-0"></lucide-icon>
-                <span><strong>Timestamp</strong>: ISO-8601 UTC checkout timestamp</span>
-              </li>
-              <li class="flex items-center gap-2 text-slate-300">
-                <lucide-icon name="check" [size]="14" class="text-emerald-400 shrink-0"></lucide-icon>
-                <span><strong>Entity Fingerprints</strong>: Device ID, IP subnet, Payment token</span>
-              </li>
-              <li class="flex items-center gap-2 text-slate-300">
-                <lucide-icon name="check" [size]="14" class="text-emerald-400 shrink-0"></lucide-icon>
-                <span><strong>Address & Voucher</strong>: Billing/Shipping IDs, promo voucher</span>
-              </li>
-            </ul>
-          </div>
-
-          <div class="mt-6 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-xs text-amber-300 flex items-start gap-2.5">
-            <lucide-icon name="alert-triangle" [size]="16" class="text-amber-400 shrink-0 mt-0.5"></lucide-icon>
-            <div>
-              <strong>Security Guarantee</strong>: Never pass raw card PANs or CVVs. The API strictly rejects un-tokenized payment credentials.
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Live Risk API Tester Studio -->
-      <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-6 shadow-sm">
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-4">
-          <div>
-            <div class="flex items-center gap-2">
-              <lucide-icon name="terminal" [size]="18" class="text-indigo-400"></lucide-icon>
-              <h3 class="text-base font-semibold text-slate-100">Live Risk API Tester</h3>
-            </div>
-            <p class="text-xs text-slate-400 mt-1">
-              Submit raw observable checkout data to <code class="text-indigo-300 font-mono">POST /api/v1/risk/evaluate</code> and observe live GBDT inference.
-            </p>
-          </div>
-
-          <!-- Scenario Presets -->
-          <div class="flex items-center gap-2 flex-wrap">
-            <span class="text-xs text-slate-400 font-medium">Load Preset:</span>
-            <button
-              (click)="loadPreset('new_user')"
-              class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 border border-slate-700 transition-colors"
-            >
-              New Legitimate User
-            </button>
-            <button
-              (click)="loadPreset('sybil_attacker')"
-              class="px-2.5 py-1 rounded bg-rose-950/40 hover:bg-rose-900/40 text-xs font-medium text-rose-300 border border-rose-800/50 transition-colors"
-            >
-              Sybil Ring Collusion
-            </button>
-            <button
-              (click)="loadPreset('household')"
-              class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 border border-slate-700 transition-colors"
-            >
-              Household Shared Wi-Fi
-            </button>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-6">
-          <!-- Raw Transaction Input Form -->
-          <div class="lg:col-span-6 space-y-4">
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="block text-xs font-medium text-slate-400 mb-1">Transaction ID</label>
-                <input
-                  type="text"
-                  [(ngModel)]="testerForm.transaction_id"
-                  class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200 font-mono focus:border-indigo-500 focus:outline-none"
-                />
-              </div>
-              <div>
-                <label class="block text-xs font-medium text-slate-400 mb-1">User / Customer ID</label>
-                <input
-                  type="text"
-                  [(ngModel)]="testerForm.user_id"
-                  class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200 font-mono focus:border-indigo-500 focus:outline-none"
-                />
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 class="text-sm font-semibold text-slate-200">Interactive Checkout & Action Simulator</h3>
+              <div class="flex gap-1.5">
+                <button
+                  (click)="loadPreset('sybil')"
+                  class="px-2 py-0.5 rounded text-[11px] font-medium bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20"
+                >
+                  Sybil Attack
+                </button>
+                <button
+                  (click)="loadPreset('trusted')"
+                  class="px-2 py-0.5 rounded text-[11px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20"
+                >
+                  Legitimate
+                </button>
               </div>
             </div>
 
-            <div class="grid grid-cols-3 gap-3">
-              <div>
-                <label class="block text-xs font-medium text-slate-400 mb-1">Amount</label>
-                <input
-                  type="number"
-                  [(ngModel)]="testerForm.amount"
-                  class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200 font-mono focus:border-indigo-500 focus:outline-none"
-                />
+            <div class="mt-4 space-y-3">
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs text-slate-400 mb-1">Transaction ID</label>
+                  <input
+                    type="text"
+                    [(ngModel)]="testerForm.transaction_id"
+                    class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200 font-mono"
+                  />
+                </div>
+                <div>
+                  <label class="block text-xs text-slate-400 mb-1">Amount (INR)</label>
+                  <input
+                    type="number"
+                    [(ngModel)]="testerForm.amount"
+                    class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200 font-mono"
+                  />
+                </div>
               </div>
-              <div>
-                <label class="block text-xs font-medium text-slate-400 mb-1">Currency</label>
-                <input
-                  type="text"
-                  [(ngModel)]="testerForm.currency"
-                  class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200 font-mono focus:border-indigo-500 focus:outline-none"
-                />
-              </div>
-              <div>
-                <label class="block text-xs font-medium text-slate-400 mb-1">Product Category</label>
-                <input
-                  type="text"
-                  [(ngModel)]="testerForm.product_category"
-                  class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:border-indigo-500 focus:outline-none"
-                />
-              </div>
-            </div>
 
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="block text-xs font-medium text-slate-400 mb-1">Device Fingerprint ID</label>
-                <input
-                  type="text"
-                  [(ngModel)]="testerForm.device_id"
-                  class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200 font-mono focus:border-indigo-500 focus:outline-none"
-                />
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs text-slate-400 mb-1">User ID</label>
+                  <input
+                    type="text"
+                    [(ngModel)]="testerForm.user_id"
+                    class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200 font-mono"
+                  />
+                </div>
+                <div>
+                  <label class="block text-xs text-slate-400 mb-1">Device ID</label>
+                  <input
+                    type="text"
+                    [(ngModel)]="testerForm.device_id"
+                    class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200 font-mono"
+                  />
+                </div>
               </div>
-              <div>
-                <label class="block text-xs font-medium text-slate-400 mb-1">IP Address</label>
-                <input
-                  type="text"
-                  [(ngModel)]="testerForm.ip_address"
-                  class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200 font-mono focus:border-indigo-500 focus:outline-none"
-                />
-              </div>
-            </div>
 
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="block text-xs font-medium text-slate-400 mb-1">Payment Method ID</label>
-                <input
-                  type="text"
-                  [(ngModel)]="testerForm.payment_method_id"
-                  class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200 font-mono focus:border-indigo-500 focus:outline-none"
-                />
-              </div>
-              <div>
-                <label class="block text-xs font-medium text-slate-400 mb-1">Voucher / Promo Code</label>
-                <input
-                  type="text"
-                  [(ngModel)]="testerForm.promo_code"
-                  placeholder="Optional promo code"
-                  class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:border-indigo-500 focus:outline-none"
-                />
-              </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="block text-xs font-medium text-slate-400 mb-1">Shipping Address ID</label>
-                <input
-                  type="text"
-                  [(ngModel)]="testerForm.shipping_address_id"
-                  class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200 font-mono focus:border-indigo-500 focus:outline-none"
-                />
-              </div>
-              <div>
-                <label class="block text-xs font-medium text-slate-400 mb-1">Billing Address ID</label>
-                <input
-                  type="text"
-                  [(ngModel)]="testerForm.billing_address_id"
-                  class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200 font-mono focus:border-indigo-500 focus:outline-none"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label class="block text-xs font-medium text-slate-400 mb-1">Customer Email / Domain</label>
-              <input
-                type="text"
-                [(ngModel)]="testerForm.email_domain"
-                class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:border-indigo-500 focus:outline-none"
-              />
-            </div>
-
-            <div class="pt-2">
               <button
                 (click)="evaluateRawTransaction()"
                 [disabled]="isEvaluating()"
-                class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md shadow-indigo-500/20 transition-all disabled:opacity-50"
+                class="w-full mt-3 flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition-all disabled:opacity-50"
               >
-                <lucide-icon name="zap" [size]="15" [class.animate-pulse]="isEvaluating()"></lucide-icon>
-                {{ isEvaluating() ? 'Evaluating via Model F...' : 'Evaluate Transaction (POST /api/v1/risk/evaluate)' }}
+                <lucide-icon name="zap" [size]="14" [class.animate-pulse]="isEvaluating()"></lucide-icon>
+                <span>{{ isEvaluating() ? 'Evaluating & Dispatching Action...' : 'Submit Evaluation (POST /api/v1/risk/evaluate)' }}</span>
               </button>
             </div>
           </div>
 
-          <!-- Evaluation Results Panel -->
-          <div class="lg:col-span-6 bg-slate-950/80 border border-slate-800 rounded-xl p-5 flex flex-col justify-between">
-            <div *ngIf="lastResult(); else emptyResult">
-              <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-                <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Real-Time Risk Decision</span>
-                <div class="flex items-center gap-2">
-                  <span
-                    class="px-2 py-0.5 rounded text-[11px] font-mono border"
-                    [ngClass]="{
-                      'bg-emerald-500/10 text-emerald-400 border-emerald-500/20': lastResult()?.data_quality?.status === 'cold_start',
-                      'bg-indigo-500/10 text-indigo-400 border-indigo-500/20': lastResult()?.data_quality?.status === 'sufficient_history'
-                    }"
-                  >
-                    {{ lastResult()?.data_quality?.status === 'cold_start' ? '● Cold Start' : '● Sufficient History' }}
-                  </span>
-                  <app-decision-badge [decision]="lastResult()!.decision"></app-decision-badge>
-                </div>
-              </div>
-
-              <!-- Score & Probability -->
-              <div class="mt-5 grid grid-cols-2 gap-4 items-center">
-                <div>
-                  <div class="text-xs text-slate-400 font-medium">Calculated Risk Score</div>
-                  <div class="text-3xl font-black tracking-tight mt-1 text-slate-100 font-mono">
-                    {{ (lastResult()!.risk_score * 100).toFixed(2) }}%
-                  </div>
-                  <div class="mt-1">
-                    <app-risk-badge [level]="lastResult()!.risk_level"></app-risk-badge>
-                  </div>
-                </div>
-
-                <div class="bg-slate-900 border border-slate-800/80 rounded-lg p-3 text-xs space-y-1.5 font-mono text-slate-300">
-                  <div class="flex justify-between">
-                    <span class="text-slate-400">Prior TXs:</span>
-                    <span class="font-bold text-slate-100">{{ lastResult()!.data_quality.historical_transactions }}</span>
-                  </div>
-                  <div class="flex justify-between">
-                    <span class="text-slate-400">Connected Entities:</span>
-                    <span class="font-bold text-slate-100">{{ lastResult()!.data_quality.graph_connected_entities }}</span>
-                  </div>
-                  <div class="flex justify-between">
-                    <span class="text-slate-400">Inference Latency:</span>
-                    <span class="font-bold text-emerald-400">{{ lastResult()!.latency_ms }} ms</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Reason Codes -->
-              <div class="mt-5">
-                <div class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Ranked Decision Drivers</div>
-                <div class="space-y-2">
-                  <div
-                    *ngFor="let reason of lastResult()!.reason_codes"
-                    class="bg-slate-900/90 border border-slate-800 rounded-lg p-2.5 text-xs"
-                  >
-                    <div class="flex items-center gap-2">
-                      <span class="font-mono font-bold text-indigo-300 text-[11px]">{{ reason.code }}</span>
-                    </div>
-                    <p class="text-slate-300 mt-1 text-[11px]">{{ reason.message }}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div class="mt-4 pt-3 border-t border-slate-800 text-[10px] font-mono text-slate-400 flex justify-between">
-                <span>Model: {{ lastResult()!.model_version }}</span>
-                <span>Request: {{ lastResult()!.request_id.slice(0, 8) }}...</span>
-              </div>
+          <!-- Evaluation & Action Result -->
+          <div *ngIf="lastResult()" class="mt-4 p-4 bg-slate-950 border border-slate-800 rounded-xl space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+              <span class="text-xs font-bold text-slate-300">Model Decision:</span>
+              <app-decision-badge [decision]="lastResult()!.decision"></app-decision-badge>
             </div>
 
-            <ng-template #emptyResult>
-              <div class="flex-1 flex flex-col items-center justify-center text-center p-8 text-slate-400">
-                <lucide-icon name="server" [size]="36" class="text-slate-700 mb-3"></lucide-icon>
-                <div class="text-sm font-semibold text-slate-300">Ready to Evaluate</div>
-                <p class="text-xs text-slate-400 max-w-xs mt-1">
-                  Fill in the observable transaction fields on the left and click Evaluate to execute live Model F inference.
-                </p>
-              </div>
-            </ng-template>
+            <div class="grid grid-cols-2 gap-2 text-xs font-mono">
+              <div>Score: <span class="font-bold text-rose-400">{{ (lastResult()!.risk_score * 100).toFixed(2) }}%</span></div>
+              <div>Latency: <span class="text-emerald-400">{{ lastResult()!.latency_ms }} ms</span></div>
+            </div>
 
-            <!-- Error State -->
-            <div *ngIf="evalError()" class="mt-4 p-3 bg-rose-500/10 border border-rose-500/20 rounded-lg text-xs text-rose-300 flex items-start gap-2">
-              <lucide-icon name="shield-alert" [size]="16" class="text-rose-400 shrink-0 mt-0.5"></lucide-icon>
-              <div>
-                <strong>Evaluation Failed</strong>: {{ evalError() }}
+            <!-- Merchant Action Execution Status -->
+            <div *ngIf="lastResult()?.merchant_action" class="p-2.5 rounded-lg border text-xs" [ngClass]="{
+              'bg-emerald-950/20 border-emerald-500/20 text-emerald-300': lastResult()?.merchant_action?.status === 'EXECUTED',
+              'bg-rose-950/20 border-rose-500/20 text-rose-300': lastResult()?.merchant_action?.status === 'FAILED' || lastResult()?.merchant_action?.status === 'TIMEOUT',
+              'bg-slate-900 border-slate-800 text-slate-300': lastResult()?.merchant_action?.status === 'NOT_CONFIGURED'
+            }">
+              <div class="flex items-center justify-between">
+                <span class="font-bold">Merchant Action: {{ lastResult()?.merchant_action?.action || 'NONE' }}</span>
+                <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold" [ngClass]="{
+                  'bg-emerald-500/20 text-emerald-400': lastResult()?.merchant_action?.status === 'EXECUTED',
+                  'bg-rose-500/20 text-rose-400': lastResult()?.merchant_action?.status === 'FAILED',
+                  'bg-slate-800 text-slate-400': lastResult()?.merchant_action?.status === 'NOT_CONFIGURED'
+                }">
+                  {{ lastResult()?.merchant_action?.status }}
+                </span>
               </div>
+              <p class="text-[11px] text-slate-400 mt-1">{{ lastResult()?.merchant_action?.merchant_message }}</p>
             </div>
           </div>
         </div>
@@ -509,24 +428,41 @@ console.log('Risk Decision:', riskResponse.data.decision); // APPROVE | REVIEW |
 })
 export class IntegrationComponent implements OnInit {
   private riskService = inject(RiskService);
+  private merchantService = inject(MerchantService);
+  private authService = inject(AuthService);
 
   readonly activeApiKey = 'ars_live_test_merchant_01';
   activeCodeTab: 'curl' | 'ts' = 'curl';
-  readonly showKey = signal(false);
   readonly copiedKey = signal(false);
   readonly isEvaluating = signal(false);
   readonly isLoadingHealth = signal(false);
+  readonly isSavingConfig = signal(false);
+  readonly isTestingConnection = signal(false);
   readonly evalError = signal<string | null>(null);
 
   readonly healthStatus = signal<MerchantHealthResponse | null>(null);
   readonly lastResult = signal<RiskEvaluateResponse | null>(null);
+  readonly testResult = signal<ActionTestResponse | null>(null);
+
+  configForm: MerchantIntegrationConfig = {
+    merchant_id: 'merchant_dev_01',
+    action_endpoint_url: 'http://127.0.0.1:8001/api/risk/action',
+    auth_header_name: 'Authorization',
+    auth_token: '',
+    auth_token_masked: '••••••••123',
+    webhook_secret: '',
+    webhook_secret_masked: '••••••••_99',
+    timeout_seconds: 3.0,
+    max_retries: 2,
+    is_active: true,
+  };
 
   testerForm: RawTransactionEvent = {
     transaction_id: 'tx_live_manual_001',
     user_id: 'cust_alpha_01',
     amount: 149.99,
     currency: 'INR',
-    timestamp: new Date().toISOString().replace('T', ' ').slice(0, 19),
+    timestamp: new Date().toISOString(),
     product_category: 'electronics',
     device_id: 'dev_fp_alpha_01',
     ip_address: '192.168.1.10',
@@ -539,14 +475,15 @@ export class IntegrationComponent implements OnInit {
 
   ngOnInit() {
     this.refreshHealth();
+    this.loadIntegrationConfig();
   }
 
-  apiKeyMerchantId(): string {
-    return 'merchant_dev_01';
+  currentMerchantId(): string {
+    return this.authService.currentUser()?.merchant_id || 'merchant_dev_01';
   }
 
-  toggleShowKey() {
-    this.showKey.update((v) => !v);
+  currentApiKeyMasked(): string {
+    return this.authService.currentUser()?.api_key_masked || 'ars_live_••••••••';
   }
 
   copyApiKey() {
@@ -568,32 +505,68 @@ export class IntegrationComponent implements OnInit {
     });
   }
 
-  loadPreset(presetType: 'new_user' | 'sybil_attacker' | 'household') {
-    const nowStr = new Date().toISOString().replace('T', ' ').slice(0, 19);
+  loadIntegrationConfig() {
+    this.merchantService.getIntegrationConfig().subscribe({
+      next: (cfg) => {
+        if (cfg) {
+          this.configForm = { ...this.configForm, ...cfg };
+        }
+      },
+      error: () => {},
+    });
+  }
 
-    if (presetType === 'new_user') {
+  saveIntegrationConfig() {
+    this.isSavingConfig.set(true);
+    this.merchantService.updateIntegrationConfig(this.configForm).subscribe({
+      next: (cfg) => {
+        this.configForm = { ...this.configForm, ...cfg };
+        this.isSavingConfig.set(false);
+      },
+      error: () => {
+        this.isSavingConfig.set(false);
+      },
+    });
+  }
+
+  testConnection() {
+    this.isTestingConnection.set(true);
+    this.testResult.set(null);
+    this.merchantService.testActionEndpoint({
+      endpoint_url: this.configForm.action_endpoint_url,
+      auth_token: this.configForm.auth_token,
+      webhook_secret: this.configForm.webhook_secret,
+    }).subscribe({
+      next: (res) => {
+        this.testResult.set(res);
+        this.isTestingConnection.set(false);
+      },
+      error: (err) => {
+        this.testResult.set({
+          status: 'FAILED',
+          http_status: err.status || 500,
+          latency_ms: 0,
+          endpoint_url: this.configForm.action_endpoint_url || '',
+          request_id: 'err_' + Date.now(),
+          timestamp: new Date().toISOString(),
+          error: err.message || 'Connection test failed',
+        });
+        this.isTestingConnection.set(false);
+      },
+    });
+  }
+
+  loadPreset(presetType: 'sybil' | 'trusted') {
+    const timestamp = new Date().toISOString();
+    const count = Date.now().toString().slice(-4);
+
+    if (presetType === 'sybil') {
       this.testerForm = {
-        transaction_id: `tx_new_${Math.floor(Math.random() * 9000 + 1000)}`,
-        user_id: `cust_new_${Math.floor(Math.random() * 9000 + 1000)}`,
-        amount: 89.99,
+        transaction_id: `tx_sybil_${count}`,
+        user_id: `attacker_sybil_${count}`,
+        amount: 4999.00,
         currency: 'INR',
-        timestamp: nowStr,
-        product_category: 'books_and_media',
-        device_id: `dev_clean_${Math.floor(Math.random() * 9000 + 1000)}`,
-        ip_address: '203.0.113.45',
-        payment_method_id: `pm_clean_${Math.floor(Math.random() * 9000 + 1000)}`,
-        shipping_address_id: 'addr_clean_01',
-        billing_address_id: 'addr_clean_01',
-        email_domain: 'customer@gmail.com',
-        promo_code: '',
-      };
-    } else if (presetType === 'sybil_attacker') {
-      this.testerForm = {
-        transaction_id: `tx_sybil_${Math.floor(Math.random() * 9000 + 1000)}`,
-        user_id: `attacker_sybil_${Math.floor(Math.random() * 9000 + 1000)}`,
-        amount: 399.00,
-        currency: 'INR',
-        timestamp: nowStr,
+        timestamp: timestamp,
         product_category: 'electronics',
         device_id: 'dev_sybil_ring_escalate_01',
         ip_address: '198.51.100.22',
@@ -603,20 +576,20 @@ export class IntegrationComponent implements OnInit {
         email_domain: 'burner@tempmail.org',
         promo_code: 'FREE50',
       };
-    } else if (presetType === 'household') {
+    } else {
       this.testerForm = {
-        transaction_id: `tx_house_${Math.floor(Math.random() * 9000 + 1000)}`,
-        user_id: `family_member_${Math.floor(Math.random() * 9000 + 1000)}`,
-        amount: 45.00,
+        transaction_id: `tx_trusted_${count}`,
+        user_id: `cust_trusted_${count}`,
+        amount: 89.99,
         currency: 'INR',
-        timestamp: nowStr,
-        product_category: 'groceries',
-        device_id: `dev_family_phone_${Math.floor(Math.random() * 9000 + 1000)}`,
-        ip_address: '192.168.1.1',
-        payment_method_id: `pm_family_card_${Math.floor(Math.random() * 9000 + 1000)}`,
-        shipping_address_id: 'addr_home_residence',
-        billing_address_id: 'addr_home_residence',
-        email_domain: 'family@yahoo.com',
+        timestamp: timestamp,
+        product_category: 'books_and_media',
+        device_id: `dev_clean_${count}`,
+        ip_address: '203.0.113.45',
+        payment_method_id: `pm_clean_${count}`,
+        shipping_address_id: 'addr_clean_01',
+        billing_address_id: 'addr_clean_01',
+        email_domain: 'customer@gmail.com',
         promo_code: '',
       };
     }
@@ -626,7 +599,7 @@ export class IntegrationComponent implements OnInit {
     this.isEvaluating.set(true);
     this.evalError.set(null);
 
-    this.riskService.evaluateRawTransaction(this.testerForm, this.activeApiKey).subscribe({
+    this.merchantService.evaluateLiveTransaction(this.testerForm).subscribe({
       next: (response) => {
         this.lastResult.set(response);
         this.isEvaluating.set(false);

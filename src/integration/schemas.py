@@ -141,6 +141,7 @@ class RiskEvaluateResponse(BaseModel):
     evaluated_at: str
     request_id: str
     latency_ms: float
+    merchant_action: Optional[Dict[str, Any]] = Field(default=None, description="Outbound action execution status and details")
 
 
 class MerchantEventPayload(BaseModel):

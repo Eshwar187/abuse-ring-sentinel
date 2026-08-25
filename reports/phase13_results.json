@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-08-25T12:28:26.813614+00:00",
+  "timestamp": "2026-08-25T16:44:08.349749+00:00",
   "phase": 13,
   "checks": {
     "model_immutability": {
@@ -12,29 +12,35 @@
       "expected_hash": "be9b9f921948862a9fff52c9d6202bd2f6b1bf9c07a7725844bc2f5dad3a14cd",
       "actual_hash": "be9b9f921948862a9fff52c9d6202bd2f6b1bf9c07a7725844bc2f5dad3a14cd"
     },
-    "angular_routing_architecture": {
+    "hmac_request_signing": {
       "passed": true,
-      "has_landing_page": true,
-      "has_login": true,
-      "has_signup": true,
-      "has_onboarding": true,
-      "has_demo_route": true,
-      "has_auth_guard": true,
-      "has_app_namespace": true
+      "valid_signature_verified": true,
+      "tampered_signature_rejected": true
     },
-    "demo_mode_separation": {
+    "bounded_retry_policy": {
       "passed": true,
-      "explicit_demo_banner": true
+      "retries_500": true,
+      "retries_network": true,
+      "rejects_400": true,
+      "rejects_401": true,
+      "exhausts_limit": true
     },
-    "live_overview_zero_data_state": {
+    "ssrf_protection": {
       "passed": true,
-      "supports_zero_data_state": true,
-      "live_merchant_badge": true
+      "dev_local_allowed": true,
+      "prod_http_rejected": true,
+      "prod_private_ip_rejected": true
     },
-    "cryptographic_auth_security": {
+    "sqlite_action_persistence_and_redaction": {
       "passed": true,
-      "pbkdf2_password_hashing": true,
-      "constant_time_comparison": true
+      "secret_redaction_verified": true,
+      "masking_verified": true,
+      "action_lifecycle_recorded": true
+    },
+    "inference_integrity": {
+      "passed": true,
+      "zero_randomness_in_routes": true,
+      "real_decision_engine_called": true
     }
   },
   "all_passed": true

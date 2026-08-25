@@ -106,6 +106,36 @@ export class MerchantService {
     });
   }
 
+  getIntegrationConfig(): Observable<any> {
+    return this.api.get<any>('/api/v1/merchant/integration', {
+      headers: this.auth.getAuthHeaders(),
+    });
+  }
+
+  updateIntegrationConfig(cfg: any): Observable<any> {
+    return this.api.put<any>('/api/v1/merchant/integration', cfg, {
+      headers: this.auth.getAuthHeaders(),
+    });
+  }
+
+  testActionEndpoint(payload?: any): Observable<any> {
+    return this.api.post<any>('/api/v1/merchant/action-endpoint/test', payload || {}, {
+      headers: this.auth.getAuthHeaders(),
+    });
+  }
+
+  getActionByTx(transactionId: string): Observable<any> {
+    return this.api.get<any>(`/api/v1/actions/${transactionId}`, {
+      headers: this.auth.getAuthHeaders(),
+    });
+  }
+
+  retryAction(transactionId: string): Observable<any> {
+    return this.api.post<any>(`/api/v1/actions/${transactionId}/retry`, {}, {
+      headers: this.auth.getAuthHeaders(),
+    });
+  }
+
   private startUpdateTimer() {
     if (typeof window !== 'undefined') {
       this.timerInterval = setInterval(() => {

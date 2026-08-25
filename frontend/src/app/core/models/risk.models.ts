@@ -163,6 +163,45 @@ export interface DataQualityMetadata {
   graph_connected_entities: number;
 }
 
+export interface MerchantAction {
+  request_id?: string;
+  transaction_id?: string;
+  action?: string;
+  status: 'PENDING' | 'EXECUTED' | 'FAILED' | 'REJECTED' | 'TIMEOUT' | 'NOT_CONFIGURED';
+  merchant_reference?: string | null;
+  merchant_message?: string | null;
+  http_status?: number | null;
+  latency_ms?: number | null;
+  attempt_number?: number;
+  executed_at?: string | null;
+  error_detail?: string | null;
+}
+
+export interface MerchantIntegrationConfig {
+  merchant_id: string;
+  action_endpoint_url?: string | null;
+  auth_header_name: string;
+  auth_token?: string | null;
+  auth_token_masked?: string | null;
+  webhook_secret?: string | null;
+  webhook_secret_masked?: string | null;
+  timeout_seconds: number;
+  max_retries: number;
+  is_active: boolean;
+  updated_at?: string | null;
+}
+
+export interface ActionTestResponse {
+  status: 'CONNECTED' | 'FAILED';
+  http_status?: number | null;
+  latency_ms: number;
+  endpoint_url: string;
+  request_id: string;
+  timestamp: string;
+  response_body?: string | null;
+  error?: string | null;
+}
+
 export interface RiskEvaluateResponse {
   transaction_id: string;
   merchant_id: string;
@@ -178,6 +217,7 @@ export interface RiskEvaluateResponse {
   evaluated_at: string;
   request_id: string;
   latency_ms: number;
+  merchant_action?: MerchantAction | null;
 }
 
 export interface MerchantConfigResponse {
