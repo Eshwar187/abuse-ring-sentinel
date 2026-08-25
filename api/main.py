@@ -27,6 +27,10 @@ from src.config import config
 from src.decision.engine import RiskDecisionEngine
 from src.audit.logger import AuditLogger
 from src.features.groups import METADATA_COLUMNS, COMBINED_FEATURES
+from src.state.state_store import RuntimeStateStore
+from src.integration.normalizer import EventNormalizer
+from src.integration.feature_adapter import FeatureAdapter
+from api.v1.routes import create_v1_router
 
 app = FastAPI(
     title="Abuse-Ring Sentinel Risk API",
@@ -56,6 +60,19 @@ except Exception as e:
     model_load_error = str(e)
 
 audit_logger = AuditLogger(log_path=config.audit_log_path)
+state_store = RuntimeStateStore()
+event_normalizer = EventNormalizer()
+feature_adapter = FeatureAdapter(state_store=state_store)
+
+# Mount Merchant Risk API v1 Router
+v1_router = create_v1_router(
+    decision_engine=decision_engine,
+    state_store=state_store,
+    audit_logger=audit_logger,
+    normalizer=event_normalizer,
+    feature_adapter=feature_adapter,
+)
+app.include_router(v1_router)
 
 
 # ---------------------------------------------------------------------------

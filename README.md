@@ -3,35 +3,36 @@
 **Defensive Coordinated Merchant Abuse Ring & Sybil Network Detector**  
 *Built for the Razorpay Buildathon — Track 02: AI Risk Manager*
 
-[![Automated Tests](https://img.shields.io/badge/Pytest-54%2F54%20Passing%20(100%25)-emerald.svg?style=for-the-badge&logo=pytest)](tests/)
+[![Automated Tests](https://img.shields.io/badge/Pytest-70%2F70%20Passing%20(100%25)-emerald.svg?style=for-the-badge&logo=pytest)](tests/)
 [![Model Engine](https://img.shields.io/badge/Model-HistGradientBoosting%20GBDT-blue.svg?style=for-the-badge&logo=scikitlearn)](models/model_f.joblib)
 [![Benchmark Recall](https://img.shields.io/badge/Benchmark%20Recall-100.0%25-emerald.svg?style=for-the-badge)](reports/phase5_final_report.md)
 [![Precision @ 0.90](https://img.shields.io/badge/Precision%20%40%200.90-89.58%25-blue.svg?style=for-the-badge)](reports/phase5_final_report.md)
+[![Merchant API](https://img.shields.io/badge/API-v1%20Raw%20Merchant%20Gateway-indigo.svg?style=for-the-badge&logo=fastapi)](api/v1/)
 [![Frontend Console](https://img.shields.io/badge/Frontend-Angular%2019%20%2B%20Tailwind-red.svg?style=for-the-badge&logo=angular)](frontend/)
-[![Backend API](https://img.shields.io/badge/Backend-FastAPI%20%2B%20Uvicorn-009688.svg?style=for-the-badge&logo=fastapi)](api/)
 
 ---
 
 ## 📑 Table of Contents
 
 1. [Executive Summary](#-executive-summary)
-2. [The Core Problem: Invisible Sybil Abuse Rings](#-the-core-problem-invisible-sybil-abuse-rings)
-3. [The Abuse-Ring Sentinel Solution](#-the-abuse-ring-sentinel-solution)
-4. [System Architecture & Data Flow](#-system-architecture--data-flow)
-5. [Synthetic Dataset & Topological Simulation](#-synthetic-dataset--topological-simulation)
-6. [Point-in-Time Feature Engineering Contract (33 Features)](#-point-in-time-feature-engineering-contract-33-features)
-7. [Model Selection & Ablation Study](#-model-selection--ablation-study)
-8. [Decision Policy & Operating Thresholds](#-decision-policy--operating-thresholds)
-9. [Final Held-Out Benchmark Performance](#-final-held-out-benchmark-performance)
-10. [Explainability & Ranked Reason Code Engine](#-explainability--ranked-reason-code-engine)
-11. [Merchant Risk Console (Angular 19 Frontend)](#-merchant-risk-console-angular-19-frontend)
-12. [Production Hardening & Security Architecture](#-production-hardening--security-architecture)
-13. [API Endpoint Specifications](#-api-endpoint-specifications)
-14. [Local Quick Start & Execution Guide](#-local-quick-start--execution-guide)
-15. [Docker Container Deployment](#-docker-container-deployment)
-16. [Interactive 3-Minute Judge Demo Guide](#-interactive-3-minute-judge-demo-guide)
-17. [Repository File Inventory](#-repository-file-inventory)
-18. [Disclosed Limitations & Ethical Statement](#-disclosed-limitations--ethical-statement)
+2. [API-First Merchant Integration Platform (API v1)](#-api-first-merchant-integration-platform-api-v1)
+3. [The Core Problem: Invisible Sybil Abuse Rings](#-the-core-problem-invisible-sybil-abuse-rings)
+4. [The Abuse-Ring Sentinel Solution](#-the-abuse-ring-sentinel-solution)
+5. [System Architecture & Data Flow](#-system-architecture--data-flow)
+6. [Synthetic Dataset & Topological Simulation](#-synthetic-dataset--topological-simulation)
+7. [Point-in-Time Feature Engineering Contract (33 Features)](#-point-in-time-feature-engineering-contract-33-features)
+8. [Model Selection & Ablation Study](#-model-selection--ablation-study)
+9. [Decision Policy & Operating Thresholds](#-decision-policy--operating-thresholds)
+10. [Final Held-Out Benchmark Performance](#-final-held-out-benchmark-performance)
+11. [Explainability & Ranked Reason Code Engine](#-explainability--ranked-reason-code-engine)
+12. [Merchant Risk & Integration Console (Angular 19 Frontend)](#-merchant-risk--integration-console-angular-19-frontend)
+13. [Production Hardening & Security Architecture](#-production-hardening--security-architecture)
+14. [API Endpoint Specifications (v1 & Predict)](#-api-endpoint-specifications-v1--predict)
+15. [Local Quick Start & Execution Guide](#-local-quick-start--execution-guide)
+16. [Docker Container Deployment](#-docker-container-deployment)
+17. [Interactive 3-Minute Judge Demo Guide](#-interactive-3-minute-judge-demo-guide)
+18. [Repository File Inventory](#-repository-file-inventory)
+19. [Disclosed Limitations & Ethical Statement](#-disclosed-limitations--ethical-statement)
 
 ---
 
@@ -62,6 +63,94 @@ Unlike single-transaction fraud classifiers that evaluate checkouts in isolation
                        ├──► [Explainability Engine (Ranked Reason Codes)]
                        ├──► [Structured Audit Logger (PII-Scrubbed)]
                        └──► [Angular 19 Merchant Risk Console]
+```
+
+---
+
+## 🚀 API-First Merchant Integration Platform (API v1)
+
+Abuse-Ring Sentinel exposes an enterprise-grade, versioned REST API (`/api/v1/*`) enabling merchants to integrate real-time abuse detection without knowing any internal machine learning features. Merchants simply send observable checkout payloads; Abuse-Ring Sentinel automatically maintains merchant-isolated state, constructs point-in-time entity graphs, extracts 33 behavioral & graph features, executes the frozen GBDT model, and applies the decision policy.
+
+```
+RAW MERCHANT CHECKOUT (JSON)
+  ├── transaction_id, user_id, amount, timestamp
+  └── device_id, ip_address, payment_token, addresses
+            │
+            ▼
+[Event Normalizer & Security Sanitizer]  ──(Rejects PANs, CVVs, Passwords, Target Labels)
+            │
+            ▼
+[Merchant Runtime State Store (SQLite + NetworkX)]
+  ├── Strictly partitioned by merchant_id
+  └── Strictly enforces point-in-time causality (t < T)
+            │
+            ▼
+[Automated Feature Adapter] ──(Generates exact 33 COMBINED_FEATURES)
+            │
+            ▼
+[Frozen HistGradientBoosting Model (model_f.joblib)]
+            │
+            ▼
+[Decision Policy Engine (tau = 0.90)] -> APPROVE | REVIEW | BLOCK
+            │
+            ▼
+[Explainability & PII-Safe Structured Audit Logger]
+```
+
+### Quick Integration Examples
+
+#### 1. Direct cURL (Raw Checkout Evaluation)
+```bash
+curl -X POST http://127.0.0.1:8000/api/v1/risk/evaluate \
+  -H "X-API-Key: ars_live_test_merchant_01" \
+  -H "Idempotency-Key: req_idemp_checkout_9918" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "transaction_id": "tx_live_1001",
+    "user_id": "cust_sarah_connor",
+    "amount": 249.99,
+    "currency": "INR",
+    "timestamp": "2026-08-25T14:30:00Z",
+    "product_category": "electronics",
+    "device_id": "dev_fp_abc123",
+    "ip_address": "203.0.113.195",
+    "payment_method_id": "pm_tok_card_99",
+    "shipping_address_id": "addr_99",
+    "billing_address_id": "addr_99",
+    "email_domain": "sarah.connor@gmail.com",
+    "promo_code": "WELCOME10"
+  }'
+```
+
+#### 2. TypeScript / Node.js Integration
+```typescript
+import axios from 'axios';
+
+const riskEvaluation = await axios.post('http://127.0.0.1:8000/api/v1/risk/evaluate', {
+  transaction_id: 'tx_live_1001',
+  user_id: 'cust_sarah_connor',
+  amount: 249.99,
+  currency: 'INR',
+  timestamp: new Date().toISOString(),
+  product_category: 'electronics',
+  device_id: 'dev_fp_abc123',
+  ip_address: '203.0.113.195',
+  payment_method_id: 'pm_tok_card_99',
+  shipping_address_id: 'addr_99',
+  billing_address_id: 'addr_99',
+  email_domain: 'sarah.connor@gmail.com',
+  promo_code: 'WELCOME10',
+}, {
+  headers: {
+    'X-API-Key': 'ars_live_test_merchant_01',
+    'Idempotency-Key': 'req_idemp_checkout_9918',
+  },
+});
+
+console.log('Automated Risk Action:', riskEvaluation.data.decision); // APPROVE | REVIEW | BLOCK
+console.log('Calculated Risk Score:', riskEvaluation.data.risk_score);
+console.log('Data Quality Status:', riskEvaluation.data.data_quality.status); // cold_start | sufficient_history
+console.log('Primary Decision Drivers:', riskEvaluation.data.reason_codes);
 ```
 
 ---
@@ -255,26 +344,51 @@ The backend implements multi-layered enterprise defensive controls:
 
 ---
 
-## 🔌 API Endpoint Specifications
+## 🔌 API Endpoint Specifications (v1 & Predict)
 
-### 1. `GET /health`
-Returns service availability and model registry metadata.
+### Merchant Gateway Endpoints (`/api/v1/*`)
+
+#### 1. `POST /api/v1/risk/evaluate`
+Accepts raw merchant checkout events and returns a live risk decision.
+- **Headers**: `X-API-Key: <key>`, `Idempotency-Key: <key>` (optional)
+- **Response**: `RiskEvaluateResponse` (contains `decision`, `risk_score`, `reason_codes`, `data_quality`, `latency_ms`).
+
+#### 2. `GET /api/v1/risk/{transaction_id}`
+Retrieves a previously evaluated transaction within the merchant's isolated tenant scope.
+- **Headers**: `X-API-Key: <key>`
+
+#### 3. `POST /api/v1/events`
+Records transaction lifecycle updates (e.g. `transaction.completed`, `transaction.chargeback`).
+- **Headers**: `X-API-Key: <key>`
+
+#### 4. `POST /api/v1/outcomes`
+Records post-decision feedback (`CONFIRMED_FRAUD`, `LEGITIMATE`, `CHARGEBACK`) without altering the frozen model.
+- **Headers**: `X-API-Key: <key>`
+
+#### 5. `GET /api/v1/merchant/config`
+Fetches merchant-specific model registry metadata, supported event types, and policy thresholds.
+- **Headers**: `X-API-Key: <key>`
+
+#### 6. `GET /api/v1/merchant/health`
+Returns gateway connection status, state store readiness, and model health.
+- **Headers**: `X-API-Key: <key>`
+
+---
+
+### Core Inference & Telemetry Endpoints
+
+#### 7. `POST /predict` (Precomputed 33 Features)
+Direct low-level inference endpoint accepting precomputed feature vectors.
 ```bash
-curl -X GET http://localhost:8000/health
-```
-```json
-{
-  "status": "ok",
-  "model_name": "abuse_ring_sentinel",
-  "model_type": "hist_gradient_boosting",
-  "model_version": "phase3-v1",
-  "feature_version": "features-v2",
-  "policy_version": "val-opt-v1",
-  "environment": "development"
-}
+curl -X POST http://localhost:8000/predict \
+  -H "Content-Type: application/json" \
+  -d '{"transaction_id": "tx_demo_01", "features": {"amount": 50.0, "user_tx_count_24h": 1, ...}}'
 ```
 
-### 2. `GET /metrics/summary`
+#### 8. `GET /health`
+Returns overall service availability and model registry metadata.
+
+#### 9. `GET /metrics/summary`
 Returns live operational telemetry computed from active inference requests.
 ```bash
 curl -X GET http://localhost:8000/metrics/summary
@@ -441,9 +555,19 @@ curl http://localhost:8000/health
 abuse-ring-sentinel/
 ├── api/
 │   ├── __init__.py
-│   └── main.py                     # FastAPI application & hardened endpoints
+│   ├── main.py                     # FastAPI application & hardened endpoints
+│   └── v1/
+│       ├── __init__.py
+│       └── routes.py               # Versioned merchant risk routes (/api/v1/*)
 ├── src/
 │   ├── config.py                   # Centralized environment configuration
+│   ├── integration/                # Phase 12 Real Merchant Ingestion Subsystem
+│   │   ├── schemas.py              # Raw event schemas, outcomes & Pydantic models
+│   │   ├── normalizer.py           # Field alias normalizer & sanitization
+│   │   ├── merchant_adapter.py     # Tenant field mapping adapter
+│   │   └── feature_adapter.py      # Automated 33-feature point-in-time adapter
+│   ├── state/
+│   │   └── state_store.py          # SQLite + NetworkX isolated merchant state store
 │   ├── features/
 │   │   ├── behavioral.py           # Point-in-time behavioral engine
 │   │   ├── graph.py                # Point-in-time incremental graph engine
@@ -464,16 +588,19 @@ abuse-ring-sentinel/
 │       └── summary.py              # Operational batch inference aggregator
 ├── frontend/                       # Angular 19 Merchant Risk Management Console
 │   ├── src/app/                    # Standalone components, services, and routes
+│   │   └── features/integration/   # Merchant API v1 Integration Console & Live Tester
 │   ├── package.json
 │   └── angular.json
 ├── data/
 │   ├── raw/                        # Raw synthetic benchmark (27,439 transactions)
 │   ├── processed/                  # Point-in-time feature partitions (Train, Val, Test)
+│   ├── runtime/                    # SQLite runtime state store (runtime_state.db)
 │   └── demo/                       # Curated control scenarios for interactive demo
 ├── models/
 │   └── model_f.joblib              # Frozen production GBDT artifact (HistGradientBoosting)
 ├── reports/                        # Milestone audit reports and research outputs
-├── tests/                          # 54 comprehensive automated pytest test suites
+├── tests/                          # 70 comprehensive automated pytest test suites
+├── scripts/                        # Verification, audit & demo execution scripts
 ├── Dockerfile                      # Production multi-stage Docker container
 ├── .dockerignore
 ├── .env.example                    # Safe environment variable template

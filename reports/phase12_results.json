@@ -1,0 +1,66 @@
+{
+  "timestamp": "2026-08-25T08:47:57.522070+00:00",
+  "audit_version": "phase12-v1",
+  "checks": {
+    "model_f_integrity": {
+      "passed": true,
+      "hash": "a288f019a2693c04c5d6a2c454da4e9c9f7c54f1298b5777ab276cbca9a6dd9c"
+    },
+    "test_dataset_integrity": {
+      "passed": true,
+      "hash": "be9b9f921948862a9fff52c9d6202bd2f6b1bf9c07a7725844bc2f5dad3a14cd"
+    },
+    "static_anti_fake": {
+      "passed": true,
+      "files_scanned": 35,
+      "violations": []
+    },
+    "feature_contract": {
+      "passed": true,
+      "features": [
+        "amount",
+        "product_category",
+        "is_promo_used",
+        "hour_of_day",
+        "day_of_week",
+        "is_weekend",
+        "billing_shipping_match",
+        "account_age_days",
+        "email_domain",
+        "user_tx_count_1h",
+        "user_tx_count_24h",
+        "user_tx_count_7d",
+        "user_historical_tx_count",
+        "user_historical_mean_amount",
+        "user_historical_std_amount",
+        "amount_to_user_mean_ratio",
+        "user_promo_rate",
+        "user_unique_device_count",
+        "user_unique_ip_count",
+        "user_unique_payment_count",
+        "user_unique_address_count",
+        "device_prior_user_count",
+        "ip_prior_user_count",
+        "payment_prior_user_count",
+        "shipping_address_prior_user_count",
+        "billing_address_prior_user_count",
+        "max_shared_entity_user_count",
+        "number_of_prior_connected_users",
+        "shared_entity_types_count",
+        "connected_component_user_count",
+        "connected_component_total_nodes",
+        "connected_component_edge_count",
+        "connected_component_density"
+      ]
+    },
+    "multi_tenant_isolation": {
+      "passed": true,
+      "merchant_a_decision": "BLOCK",
+      "merchant_b_device_sharing": 0
+    },
+    "model_immutability_post_outcome": {
+      "passed": true
+    }
+  },
+  "status": "PASSED"
+}

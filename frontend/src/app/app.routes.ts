@@ -60,6 +60,13 @@ export const routes: Routes = [
             (m) => m.AuditComponent
           ),
       },
+      {
+        path: 'integration',
+        loadComponent: () =>
+          import('./features/integration/integration.component').then(
+            (m) => m.IntegrationComponent
+          ),
+      },
     ],
   },
   {

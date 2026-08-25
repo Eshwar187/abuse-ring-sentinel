@@ -10,14 +10,14 @@ export class ApiService {
   private http = inject(HttpClient);
   readonly baseUrl = environment.apiBaseUrl;
 
-  get<T>(endpoint: string): Observable<T> {
-    return this.http.get<T>(`${this.baseUrl}${endpoint}`).pipe(
+  get<T>(endpoint: string, options?: { headers?: Record<string, string> }): Observable<T> {
+    return this.http.get<T>(`${this.baseUrl}${endpoint}`, options).pipe(
       catchError(this.handleError)
     );
   }
 
-  post<T>(endpoint: string, body: any): Observable<T> {
-    return this.http.post<T>(`${this.baseUrl}${endpoint}`, body).pipe(
+  post<T>(endpoint: string, body: any, options?: { headers?: Record<string, string> }): Observable<T> {
+    return this.http.post<T>(`${this.baseUrl}${endpoint}`, body, options).pipe(
       catchError(this.handleError)
     );
   }

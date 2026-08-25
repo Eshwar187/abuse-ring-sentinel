@@ -84,6 +84,20 @@ import { HealthService } from '../../core/services/health.service';
           <span class="text-base">📝</span>
           <span>Audit Log</span>
         </a>
+
+        <div class="pt-4 px-3 pb-2 text-[10px] font-bold text-surface-400 tracking-wider uppercase">
+          Developer & API
+        </div>
+
+        <a
+          routerLink="/integration"
+          routerLinkActive="bg-brand-50 text-brand-600 font-semibold border-l-2 border-brand-500"
+          class="flex items-center gap-3 px-3 py-2 rounded-md text-surface-600 hover:text-surface-900 hover:bg-surface-50 transition-colors text-xs"
+        >
+          <span class="text-base">🔌</span>
+          <span>Integration API</span>
+          <span class="ml-auto px-1.5 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded">v1</span>
+        </a>
       </nav>
 
       <!-- Bottom System Status Card -->
