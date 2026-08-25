@@ -26,9 +26,7 @@ import {
       <header class="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div class="flex items-center gap-3">
-            <div class="w-9 h-9 rounded-lg bg-rose-600 flex items-center justify-center text-white shadow-lg shadow-rose-600/30">
-              <lucide-icon name="shield" [size]="20"></lucide-icon>
-            </div>
+            <img src="logo.svg" alt="Abuse-Ring Sentinel Logo" class="w-10 h-10 rounded-xl shadow-lg shadow-rose-600/30 object-contain" />
             <div>
               <span class="text-base font-bold tracking-tight text-white">Abuse-Ring Sentinel</span>
               <span class="ml-2 text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">

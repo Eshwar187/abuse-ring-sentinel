@@ -30,9 +30,7 @@ import { RawTransactionEvent, RiskEvaluateResponse } from '../../core/models/ris
       <!-- Header -->
       <header class="border-b border-slate-800 bg-slate-950/80 px-6 py-4 flex items-center justify-between">
         <div class="flex items-center gap-3">
-          <div class="w-8 h-8 rounded-lg bg-rose-600 flex items-center justify-center text-white">
-            <lucide-icon name="shield" [size]="18"></lucide-icon>
-          </div>
+          <img src="logo.svg" alt="Abuse-Ring Sentinel Logo" class="w-9 h-9 rounded-lg shadow-md shadow-rose-600/30 object-contain" />
           <div>
             <div class="text-sm font-bold text-white">Abuse-Ring Sentinel</div>
             <div class="text-[10px] text-slate-400">Merchant Onboarding & Integration Setup</div>

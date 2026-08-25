@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="reports/logo.jpg" alt="Abuse-Ring Sentinel Logo" width="220" style="border-radius: 24px; box-shadow: 0 10px 30px rgba(244, 63, 94, 0.25);" />
+</p>
+
 # Abuse-Ring Sentinel 🛡️
 
 **Enterprise AI Risk Manager & Coordinated Sybil Abuse Ring Detector**  

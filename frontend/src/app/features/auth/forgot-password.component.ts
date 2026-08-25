@@ -12,9 +12,7 @@ import { LucideAngularModule, Shield, Mail, CheckCircle2, ArrowLeft } from 'luci
     <div class="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans">
       <div class="sm:mx-auto sm:w-full sm:max-w-md text-center">
         <a routerLink="/" class="inline-flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl bg-rose-600 flex items-center justify-center text-white shadow-lg shadow-rose-600/30">
-            <lucide-icon name="shield" [size]="22"></lucide-icon>
-          </div>
+          <img src="logo.svg" alt="Abuse-Ring Sentinel Logo" class="w-11 h-11 rounded-xl shadow-lg shadow-rose-600/30 object-contain" />
           <span class="text-xl font-bold tracking-tight text-white">Abuse-Ring Sentinel</span>
         </a>
         <h2 class="mt-6 text-2xl font-bold tracking-tight text-white">

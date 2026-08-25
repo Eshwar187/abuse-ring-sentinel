@@ -14,9 +14,7 @@ import { HealthService } from '../../core/services/health.service';
       <!-- Brand Header -->
       <div class="p-4 border-b border-slate-800 flex items-center justify-between">
         <div class="flex items-center gap-2.5">
-          <div class="w-8 h-8 rounded-lg bg-rose-600 text-white flex items-center justify-center font-bold text-sm shadow-md shadow-rose-600/30">
-            <lucide-icon name="shield" [size]="18"></lucide-icon>
-          </div>
+          <img src="logo.svg" alt="Abuse-Ring Sentinel Logo" class="w-8 h-8 rounded-lg shadow-md shadow-rose-600/30 object-contain" />
           <div>
             <h1 class="text-xs font-bold text-white tracking-tight leading-tight">Abuse-Ring Sentinel</h1>
             <p class="text-[10px] text-slate-400 font-mono">Merchant Risk Console</p>
