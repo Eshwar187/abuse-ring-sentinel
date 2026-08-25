@@ -287,7 +287,7 @@ async def generic_exception_handler(request: Request, exc: Exception):
 # ---------------------------------------------------------------------------
 @app.get("/health", status_code=200)
 def health_check():
-    """Returns system status, readiness, and frozen model metadata."""
+    """Returns system status, readiness, database connectivity, and frozen model metadata."""
     if not model_loaded or decision_engine is None:
         return JSONResponse(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -298,15 +298,25 @@ def health_check():
             },
         )
 
+    try:
+        from src.db.database import check_db_connection
+        db_health = check_db_connection() if config.db_engine == "mysql" else {"status": "connected", "engine": "sqlite"}
+    except Exception as e:
+        db_health = {"status": "disconnected", "engine": config.db_engine, "error": str(e)}
+
     meta = decision_engine.model_service.metadata
+    overall_status = "ok" if db_health.get("status") == "connected" else "degraded"
+
     return {
-        "status": "ok",
+        "status": overall_status,
+        "model_status": "loaded",
         "model_name": meta["model_name"],
         "model_type": meta["model_type"],
         "model_version": meta["model_version"],
         "feature_version": meta["feature_version"],
         "policy_version": decision_engine.policy.policy_version,
         "environment": config.app_env,
+        "database": db_health,
     }
 
 

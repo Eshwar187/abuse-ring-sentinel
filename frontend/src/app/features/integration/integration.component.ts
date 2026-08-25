@@ -128,6 +128,71 @@ import { RiskBadgeComponent } from '../../shared/components/risk-badge.component
         </div>
       </div>
 
+      <!-- Real Database Architecture & MySQL Persistence Section -->
+      <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-6 shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center">
+              <lucide-icon name="database" [size]="16"></lucide-icon>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h3 class="text-sm font-semibold text-slate-100">MySQL Database Architecture & Persistence Layer</h3>
+                <span
+                  class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider"
+                  [ngClass]="{
+                    'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40': dbSummary()?.status === 'connected',
+                    'bg-rose-500/20 text-rose-300 border border-rose-500/40': dbSummary()?.status !== 'connected'
+                  }"
+                >
+                  {{ dbSummary()?.status === 'connected' ? 'MYSQL CONNECTED' : 'DATABASE DEGRADED' }}
+                </span>
+              </div>
+              <p class="text-xs text-slate-400">Real operational database metrics verified directly from MySQL backend.</p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <button
+              (click)="refreshDatabaseSummary()"
+              [disabled]="isLoadingDb()"
+              class="flex items-center gap-2 px-3.5 py-1.5 rounded-lg border border-slate-700 bg-slate-900/80 hover:bg-slate-800 text-xs font-semibold text-slate-300 transition-all disabled:opacity-50"
+            >
+              <lucide-icon name="refresh-cw" [size]="13" [class.animate-spin]="isLoadingDb()"></lucide-icon>
+              <span>Refresh DB Counts</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Database Metrics Grid -->
+        <div class="mt-5 grid grid-cols-2 md:grid-cols-6 gap-3.5 font-mono text-xs">
+          <div class="bg-slate-950 p-3 rounded-lg border border-slate-800">
+            <span class="text-[10px] text-slate-400 uppercase tracking-wider font-sans block mb-1">Engine</span>
+            <span class="text-white font-bold">{{ dbSummary()?.engine?.toUpperCase() || 'MYSQL' }}</span>
+          </div>
+          <div class="bg-slate-950 p-3 rounded-lg border border-slate-800">
+            <span class="text-[10px] text-slate-400 uppercase tracking-wider font-sans block mb-1">Transactions</span>
+            <span class="text-emerald-400 font-bold">{{ dbSummary()?.counts?.transactions || 0 }}</span>
+          </div>
+          <div class="bg-slate-950 p-3 rounded-lg border border-slate-800">
+            <span class="text-[10px] text-slate-400 uppercase tracking-wider font-sans block mb-1">Evaluations</span>
+            <span class="text-indigo-400 font-bold">{{ dbSummary()?.counts?.risk_evaluations || 0 }}</span>
+          </div>
+          <div class="bg-slate-950 p-3 rounded-lg border border-slate-800">
+            <span class="text-[10px] text-slate-400 uppercase tracking-wider font-sans block mb-1">Actions</span>
+            <span class="text-amber-400 font-bold">{{ dbSummary()?.counts?.merchant_actions || 0 }}</span>
+          </div>
+          <div class="bg-slate-950 p-3 rounded-lg border border-slate-800">
+            <span class="text-[10px] text-slate-400 uppercase tracking-wider font-sans block mb-1">Graph Edges</span>
+            <span class="text-rose-400 font-bold">{{ dbSummary()?.counts?.entity_relationships || 0 }}</span>
+          </div>
+          <div class="bg-slate-950 p-3 rounded-lg border border-slate-800">
+            <span class="text-[10px] text-slate-400 uppercase tracking-wider font-sans block mb-1">DB Latency</span>
+            <span class="text-slate-200 font-bold">{{ dbSummary()?.latency_ms ? dbSummary()?.latency_ms + 'ms' : '<1ms' }}</span>
+          </div>
+        </div>
+      </div>
+
       <!-- Outbound Merchant Action Configuration Section -->
       <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-6 shadow-sm">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
@@ -473,8 +538,12 @@ export class IntegrationComponent implements OnInit {
     promo_code: '',
   };
 
+  readonly dbSummary = signal<any | null>(null);
+  readonly isLoadingDb = signal(false);
+
   ngOnInit() {
     this.refreshHealth();
+    this.refreshDatabaseSummary();
     this.loadIntegrationConfig();
   }
 
@@ -490,6 +559,25 @@ export class IntegrationComponent implements OnInit {
     navigator.clipboard.writeText(this.activeApiKey);
     this.copiedKey.set(true);
     setTimeout(() => this.copiedKey.set(false), 2000);
+  }
+
+  refreshDatabaseSummary() {
+    this.isLoadingDb.set(true);
+    this.merchantService.getDatabaseSummary().subscribe({
+      next: (summary) => {
+        this.dbSummary.set(summary);
+        this.isLoadingDb.set(false);
+      },
+      error: (err) => {
+        this.dbSummary.set({
+          engine: 'mysql',
+          status: 'disconnected',
+          error: err.message || 'Database unreachable',
+          counts: {},
+        });
+        this.isLoadingDb.set(false);
+      },
+    });
   }
 
   refreshHealth() {

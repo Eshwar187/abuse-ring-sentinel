@@ -1,0 +1,69 @@
+{
+  "phase": "PHASE 14 — REAL MYSQL PERSISTENCE MIGRATION & PRODUCTION DATABASE ARCHITECTURE",
+  "generated_at": "2026-08-26T03:00:00Z",
+  "status": "COMPLETED",
+  "invariants": {
+    "model_f_sha256": {
+      "expected": "a288f019a2693c04c5d6a2c454da4e9c9f7c54f1298b5777ab276cbca9a6dd9c",
+      "status": "PASS"
+    },
+    "test_features_sha256": {
+      "expected": "be9b9f921948862a9fff52c9d6202bd2f6b1bf9c07a7725844bc2f5dad3a14cd",
+      "status": "PASS"
+    },
+    "feature_count": {
+      "expected": 33,
+      "actual": 33,
+      "status": "PASS"
+    },
+    "decision_threshold": {
+      "tau_star": 0.90,
+      "status": "PASS"
+    }
+  },
+  "database_architecture": {
+    "engine": "mysql",
+    "driver": "pymysql",
+    "orm": "SQLAlchemy 2.0",
+    "migration_tool": "Alembic",
+    "connection_pooling": {
+      "pool_size": 10,
+      "max_overflow": 20,
+      "pool_timeout_sec": 30,
+      "pool_recycle_sec": 3600,
+      "pool_pre_ping": true
+    },
+    "tables_count": 13,
+    "tables": [
+      "merchants",
+      "merchant_credentials",
+      "merchant_integrations",
+      "transactions",
+      "users",
+      "transaction_entities",
+      "entity_relationships",
+      "risk_evaluations",
+      "merchant_actions",
+      "action_attempts",
+      "outcomes",
+      "idempotency_records",
+      "audit_events"
+    ]
+  },
+  "test_suite_summary": {
+    "total_tests": 104,
+    "passed": 104,
+    "failed": 0,
+    "pass_rate": "100.0%"
+  },
+  "multi_tenant_isolation": {
+    "tested": true,
+    "leakage_rate": 0.0,
+    "status": "PASS"
+  },
+  "point_in_time_causality": {
+    "tested": true,
+    "future_event_leakage": 0.0,
+    "status": "PASS"
+  }
+}

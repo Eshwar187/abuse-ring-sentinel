@@ -33,6 +33,19 @@ class AppConfig:
     max_payload_size_bytes: int = int(os.getenv("MAX_PAYLOAD_SIZE_BYTES", "1048576"))  # 1MB
     request_timeout_seconds: float = float(os.getenv("REQUEST_TIMEOUT_SECONDS", "30.0"))
 
+    # Database Configuration (MySQL 8.x + PyMySQL)
+    db_engine: str = os.getenv("DB_ENGINE", "mysql").lower()
+    mysql_host: str = os.getenv("MYSQL_HOST", "127.0.0.1")
+    mysql_port: int = int(os.getenv("MYSQL_PORT", "3306"))
+    mysql_database: str = os.getenv("MYSQL_DATABASE", "abuse_ring_sentinel")
+    mysql_user: str = os.getenv("MYSQL_USER", "root")
+    mysql_password: str = os.getenv("MYSQL_PASSWORD", "")
+    mysql_pool_size: int = int(os.getenv("MYSQL_POOL_SIZE", "10"))
+    mysql_max_overflow: int = int(os.getenv("MYSQL_MAX_OVERFLOW", "20"))
+    mysql_pool_timeout: int = int(os.getenv("MYSQL_POOL_TIMEOUT", "30"))
+    mysql_pool_recycle: int = int(os.getenv("MYSQL_POOL_RECYCLE", "3600"))
+    mysql_test_database: str = os.getenv("MYSQL_TEST_DATABASE", "abuse_ring_sentinel_test")
+
     @property
     def environment(self) -> str:
         return self.app_env
@@ -47,6 +60,18 @@ class AppConfig:
             return ["*"]
         origins = [o.strip() for o in self.cors_origins_raw.split(",") if o.strip()]
         return origins if origins else ["http://localhost:4200", "http://localhost:8000"]
+
+    def get_mysql_url(self, database: str = None) -> str:
+        """Constructs full SQLAlchemy connection URL for MySQL."""
+        db_name = database or self.mysql_database
+        pwd = f":{self.mysql_password}" if self.mysql_password else ""
+        return f"mysql+pymysql://{self.mysql_user}{pwd}@{self.mysql_host}:{self.mysql_port}/{db_name}?charset=utf8mb4"
+
+    def get_masked_mysql_url(self, database: str = None) -> str:
+        """Returns safe masked connection URL for logging."""
+        db_name = database or self.mysql_database
+        pwd = ":••••••••" if self.mysql_password else ""
+        return f"mysql+pymysql://{self.mysql_user}{pwd}@{self.mysql_host}:{self.mysql_port}/{db_name}"
 
 
 # Global default configuration instance

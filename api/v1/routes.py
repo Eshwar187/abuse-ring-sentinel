@@ -381,6 +381,7 @@ def create_v1_router(
             integration_status="connected",
             model_status="ready" if decision_engine and decision_engine.model_service.model else "degraded",
             state_store_status="ready",
+            database=state_store.get_database_summary(),
             last_processed_event=last_event,
             environment=config.app_env,
             timestamp=now_str,
@@ -769,6 +770,11 @@ def create_v1_router(
             "page_size": page_size,
             "actions": actions,
         }
+
+    @v1.get("/admin/database/summary", status_code=status.HTTP_200_OK)
+    async def get_admin_database_summary():
+        """Developer and inspection endpoint returning actual MySQL table counts."""
+        return state_store.get_database_summary()
 
     return v1
 

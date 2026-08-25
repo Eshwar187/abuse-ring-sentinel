@@ -48,6 +48,24 @@ export interface PredictResponse {
   latency_ms?: number;
 }
 
+export interface DatabaseSummaryInfo {
+  engine: string;
+  status: string;
+  database?: string;
+  latency_ms?: number;
+  error?: string | null;
+  counts?: {
+    merchants?: number;
+    transactions?: number;
+    risk_evaluations?: number;
+    merchant_actions?: number;
+    outcomes?: number;
+    entity_relationships?: number;
+    idempotency_records?: number;
+  };
+  latest_transaction_timestamp?: string | null;
+}
+
 export interface HealthResponse {
   status: string;
   model_name: string;
@@ -57,6 +75,7 @@ export interface HealthResponse {
   policy_version: string;
   environment?: string;
   error?: string;
+  database?: DatabaseSummaryInfo;
 }
 
 export interface MetricsSummary {
@@ -101,10 +120,14 @@ export interface AuditRecord {
   risk_level: RiskLevel;
   decision: RiskDecision;
   reason_codes: string[];
-  model_version: string;
-  feature_version: string;
-  policy_version: string;
+  top_features?: Record<string, any>;
+  client_ip?: string;
   latency_ms?: number;
+  model_version: string;
+  feature_version?: string;
+  policy_version: string;
+  status_code?: number;
+  data_quality?: string;
 }
 
 export interface DemoScenario {
@@ -136,14 +159,14 @@ export interface NetworkEdge {
 }
 
 // ---------------------------------------------------------------------------
-// Phase 12 — Real Merchant Integration (API v1) Models
+// Phase 12 / 13 / 14 — Merchant Integration & Persistence Models
 // ---------------------------------------------------------------------------
 
 export interface RawTransactionEvent {
   transaction_id: string;
   user_id: string;
   amount: number;
-  currency: string;
+  currency?: string;
   timestamp: string;
   product_category?: string;
   device_id?: string;
@@ -158,16 +181,24 @@ export interface RawTransactionEvent {
 }
 
 export interface DataQualityMetadata {
-  status: 'cold_start' | 'sufficient_history';
-  historical_transactions: number;
-  graph_connected_entities: number;
+  status: 'PASS' | 'FALLBACK_DEGRADED' | 'INVALID_DROPPED' | 'cold_start' | 'sufficient_history';
+  imputed_features_count?: number;
+  clamped_features_count?: number;
+  historical_transactions?: number;
+  graph_connected_entities?: number;
+  imputed_fields?: string[];
+  clamped_fields?: string[];
+  quality_notes?: string[];
 }
+
+export type ActionType = 'APPROVE_TRANSACTION' | 'REVIEW_TRANSACTION' | 'BLOCK_TRANSACTION';
+export type ActionStatus = 'PENDING' | 'EXECUTED' | 'FAILED' | 'REJECTED' | 'TIMEOUT' | 'NOT_CONFIGURED';
 
 export interface MerchantAction {
   request_id?: string;
   transaction_id?: string;
-  action?: string;
-  status: 'PENDING' | 'EXECUTED' | 'FAILED' | 'REJECTED' | 'TIMEOUT' | 'NOT_CONFIGURED';
+  action?: string | ActionType;
+  status: ActionStatus;
   merchant_reference?: string | null;
   merchant_message?: string | null;
   http_status?: number | null;
@@ -192,11 +223,20 @@ export interface MerchantIntegrationConfig {
 }
 
 export interface ActionTestResponse {
-  status: 'CONNECTED' | 'FAILED';
+  status: 'CONNECTED' | 'FAILED' | 'SUCCESS' | 'REJECTED';
   http_status?: number | null;
   latency_ms: number;
-  endpoint_url: string;
-  request_id: string;
+  endpoint_url?: string;
+  request_id?: string;
+  timestamp: string;
+  response_body?: string | null;
+  error?: string | null;
+}
+
+export interface ActionTestResult {
+  status: 'SUCCESS' | 'FAILED' | 'REJECTED' | 'CONNECTED';
+  http_status?: number | null;
+  latency_ms: number;
   timestamp: string;
   response_body?: string | null;
   error?: string | null;
@@ -240,6 +280,7 @@ export interface MerchantHealthResponse {
   integration_status: string;
   model_status: string;
   state_store_status: string;
+  database?: DatabaseSummaryInfo;
   last_processed_event?: string;
   environment: string;
   timestamp: string;

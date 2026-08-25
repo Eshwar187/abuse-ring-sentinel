@@ -136,6 +136,16 @@ export class MerchantService {
     });
   }
 
+  getDatabaseSummary(): Observable<any> {
+    return this.api.get<any>('/api/v1/admin/database/summary');
+  }
+
+  getMerchantHealth(): Observable<any> {
+    return this.api.get<any>('/api/v1/merchant/health', {
+      headers: this.auth.getAuthHeaders(),
+    });
+  }
+
   private startUpdateTimer() {
     if (typeof window !== 'undefined') {
       this.timerInterval = setInterval(() => {

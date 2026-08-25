@@ -194,6 +194,7 @@ class MerchantHealthResponse(BaseModel):
     integration_status: str = "connected"
     model_status: str = "ready"
     state_store_status: str = "ready"
+    database: Optional[Dict[str, Any]] = None
     last_processed_event: Optional[str] = None
     environment: str
     timestamp: str
