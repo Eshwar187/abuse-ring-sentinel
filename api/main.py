@@ -242,6 +242,17 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 async def http_exception_handler(request: Request, exc: HTTPException):
     metrics_tracker.record_error()
     req_id = str(uuid.uuid4())
+    if isinstance(exc.detail, dict):
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={
+                "error": True,
+                "code": exc.detail.get("code", f"HTTP_{exc.status_code}"),
+                "message": exc.detail.get("message", "An error occurred"),
+                "detail": exc.detail,
+                "request_id": req_id,
+            },
+        )
     return JSONResponse(
         status_code=exc.status_code,
         content={

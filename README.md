@@ -1,38 +1,40 @@
 # Abuse-Ring Sentinel 🛡️
 
-**Defensive Coordinated Merchant Abuse Ring & Sybil Network Detector**  
+**Enterprise AI Risk Manager & Coordinated Sybil Abuse Ring Detector**  
 *Built for the Razorpay Buildathon — Track 02: AI Risk Manager*
 
-[![Automated Tests](https://img.shields.io/badge/Pytest-70%2F70%20Passing%20(100%25)-emerald.svg?style=for-the-badge&logo=pytest)](tests/)
+[![Automated Tests](https://img.shields.io/badge/Pytest-80%2F80%20Passing%20(100%25)-emerald.svg?style=for-the-badge&logo=pytest)](tests/)
 [![Model Engine](https://img.shields.io/badge/Model-HistGradientBoosting%20GBDT-blue.svg?style=for-the-badge&logo=scikitlearn)](models/model_f.joblib)
 [![Benchmark Recall](https://img.shields.io/badge/Benchmark%20Recall-100.0%25-emerald.svg?style=for-the-badge)](reports/phase5_final_report.md)
 [![Precision @ 0.90](https://img.shields.io/badge/Precision%20%40%200.90-89.58%25-blue.svg?style=for-the-badge)](reports/phase5_final_report.md)
 [![Merchant API](https://img.shields.io/badge/API-v1%20Raw%20Merchant%20Gateway-indigo.svg?style=for-the-badge&logo=fastapi)](api/v1/)
-[![Frontend Console](https://img.shields.io/badge/Frontend-Angular%2019%20%2B%20Tailwind-red.svg?style=for-the-badge&logo=angular)](frontend/)
+[![Product UX](https://img.shields.io/badge/Frontend-Angular%2019%20SaaS%20Console-red.svg?style=for-the-badge&logo=angular)](frontend/)
+[![Auth Security](https://img.shields.io/badge/Auth-PBKDF2%20%2B%20Key%20Rotation-teal.svg?style=for-the-badge)](src/auth/)
 
 ---
 
 ## 📑 Table of Contents
 
 1. [Executive Summary](#-executive-summary)
-2. [API-First Merchant Integration Platform (API v1)](#-api-first-merchant-integration-platform-api-v1)
-3. [The Core Problem: Invisible Sybil Abuse Rings](#-the-core-problem-invisible-sybil-abuse-rings)
-4. [The Abuse-Ring Sentinel Solution](#-the-abuse-ring-sentinel-solution)
-5. [System Architecture & Data Flow](#-system-architecture--data-flow)
-6. [Synthetic Dataset & Topological Simulation](#-synthetic-dataset--topological-simulation)
-7. [Point-in-Time Feature Engineering Contract (33 Features)](#-point-in-time-feature-engineering-contract-33-features)
-8. [Model Selection & Ablation Study](#-model-selection--ablation-study)
-9. [Decision Policy & Operating Thresholds](#-decision-policy--operating-thresholds)
-10. [Final Held-Out Benchmark Performance](#-final-held-out-benchmark-performance)
-11. [Explainability & Ranked Reason Code Engine](#-explainability--ranked-reason-code-engine)
-12. [Merchant Risk & Integration Console (Angular 19 Frontend)](#-merchant-risk--integration-console-angular-19-frontend)
-13. [Production Hardening & Security Architecture](#-production-hardening--security-architecture)
-14. [API Endpoint Specifications (v1 & Predict)](#-api-endpoint-specifications-v1--predict)
-15. [Local Quick Start & Execution Guide](#-local-quick-start--execution-guide)
-16. [Docker Container Deployment](#-docker-container-deployment)
-17. [Interactive 3-Minute Judge Demo Guide](#-interactive-3-minute-judge-demo-guide)
-18. [Repository File Inventory](#-repository-file-inventory)
-19. [Disclosed Limitations & Ethical Statement](#-disclosed-limitations--ethical-statement)
+2. [Product UX, Authentication & Demo vs. Live Separation (Phase 13)](#-product-ux-authentication--demo-vs-live-separation-phase-13)
+3. [API-First Merchant Integration Platform (API v1)](#-api-first-merchant-integration-platform-api-v1)
+4. [The Core Problem: Invisible Sybil Abuse Rings](#-the-core-problem-invisible-sybil-abuse-rings)
+5. [The Abuse-Ring Sentinel Solution](#-the-abuse-ring-sentinel-solution)
+6. [System Architecture & Data Flow](#-system-architecture--data-flow)
+7. [Synthetic Dataset & Topological Simulation](#-synthetic-dataset--topological-simulation)
+8. [Point-in-Time Feature Engineering Contract (33 Features)](#-point-in-time-feature-engineering-contract-33-features)
+9. [Model Selection & Ablation Study](#-model-selection--ablation-study)
+10. [Decision Policy & Operating Thresholds](#-decision-policy--operating-thresholds)
+11. [Final Held-Out Benchmark Performance](#-final-held-out-benchmark-performance)
+12. [Explainability & Ranked Reason Code Engine](#-explainability--ranked-reason-code-engine)
+13. [Merchant Risk & Integration Console (Angular 19 Frontend)](#-merchant-risk--integration-console-angular-19-frontend)
+14. [Production Hardening & Security Architecture](#-production-hardening--security-architecture)
+15. [API Endpoint Specifications (v1 & Predict)](#-api-endpoint-specifications-v1--predict)
+16. [Local Quick Start & Execution Guide](#-local-quick-start--execution-guide)
+17. [Docker Container Deployment](#-docker-container-deployment)
+18. [Interactive 3-Minute Judge Demo Guide](#-interactive-3-minute-judge-demo-guide)
+19. [Repository File Inventory](#-repository-file-inventory)
+20. [Disclosed Limitations & Ethical Statement](#-disclosed-limitations--ethical-statement)
 
 ---
 
@@ -64,6 +66,43 @@ Unlike single-transaction fraud classifiers that evaluate checkouts in isolation
                        ├──► [Structured Audit Logger (PII-Scrubbed)]
                        └──► [Angular 19 Merchant Risk Console]
 ```
+
+---
+
+## 💎 Product UX, Authentication & Demo vs. Live Separation (Phase 13)
+
+Phase 13 establishes Abuse-Ring Sentinel as an enterprise-ready, merchant-facing SaaS risk platform with complete separation between the historical evaluation benchmark and live runtime merchant traffic.
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                        ABUSE-RING SENTINEL UX                          │
+├───────────────────────────────────┬────────────────────────────────────┤
+│           LIVE MERCHANT           │           DEMO MODE                │
+│             (/app/*)              │            (/demo)                 │
+├───────────────────────────────────┼────────────────────────────────────┤
+│ • Zero-data state for new users   │ • 6,929 historical test benchmark  │
+│ • State source: SQLite database   │ • Benchmark recall: 100.0%         │
+│ • Evaluation: POST /api/v1/risk/  │ • Benchmark precision: 89.58%      │
+│ • Real-time runtime entity graphs │ • Fixed Sybil ring cluster demo    │
+│ • Badge: "● LIVE MERCHANT"        │ • Badge: "⚠️ DEMO ENVIRONMENT"     │
+└───────────────────────────────────┴────────────────────────────────────┘
+```
+
+### Core Product Experiences:
+1. **Public Enterprise SaaS Landing Page (`/`)**:
+   - Modern dark fintech aesthetic explaining single-transaction classifier failures vs multi-hop relational graph intelligence.
+   - Dual CTAs: **"Start Free"** (navigates to `/signup`) and **"View Live Demo"** (navigates to `/demo`).
+2. **Authentication & Identity (`/login`, `/signup`, `/forgot-password`)**:
+   - Built-in PBKDF2 password hashing (100,000 rounds) and 256-bit cryptographically secure session tokens.
+   - Generated API keys (`ars_live_...`) are revealed securely to merchants **once** upon registration or rotation.
+   - Angular `AuthGuard` protects all authenticated application routes (`/app/*`).
+3. **5-Step Merchant Onboarding Wizard (`/onboarding`)**:
+   - Guides merchants through business vertical setup, credential retrieval, multi-language SDK configuration (cURL, TypeScript, Python), and executes a live test checkout via `POST /api/v1/risk/evaluate`.
+4. **Live Merchant Console (`/app/*`) with Zero-Data State**:
+   - Newly registered merchants start with a clean **Zero-Data State** (*"Waiting for your first transaction"*).
+   - Dynamically updates counts, approval rates, risk score distributions, and recent evaluations as live transactions arrive.
+5. **API Key Management & Rotation (`/app/settings`)**:
+   - Merchants can rotate their production API key on-demand. Key rotation immediately revokes the previous key and issues a new active key.
 
 ---
 

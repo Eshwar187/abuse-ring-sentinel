@@ -30,6 +30,18 @@ from src.integration.schemas import (
     MerchantConfigResponse,
     MerchantHealthResponse,
 )
+from src.auth.schemas import (
+    SignupRequest,
+    SignupResponse,
+    LoginRequest,
+    LoginResponse,
+    UserSessionResponse,
+    RotateKeyResponse,
+    MerchantTransactionItem,
+    MerchantTransactionsResponse,
+    MerchantMetricsResponse,
+    MerchantEntityGraphResponse,
+)
 from src.integration.normalizer import EventNormalizer
 from src.integration.feature_adapter import FeatureAdapter
 from src.state.state_store import RuntimeStateStore
@@ -51,9 +63,10 @@ API_KEY_REGISTRY: Dict[str, str] = {
 def authenticate_merchant(
     x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
     authorization: Optional[str] = Header(None, alias="Authorization"),
+    state_store: Optional[RuntimeStateStore] = None,
 ) -> str:
     """
-    Authenticates incoming merchant requests using X-API-Key or Bearer token.
+    Authenticates incoming merchant requests using X-API-Key or Bearer token/session.
     Uses constant-time comparison to prevent timing side-channel leaks.
     """
     token = None
@@ -68,20 +81,31 @@ def authenticate_merchant(
             detail={
                 "error": True,
                 "code": "UNAUTHORIZED",
-                "message": "Missing merchant API key. Provide via 'X-API-Key' or 'Authorization: Bearer <key>'.",
+                "message": "Missing merchant credentials. Provide via 'X-API-Key' or 'Authorization: Bearer <key_or_token>'.",
             },
         )
 
+    # 1. Fast-path constant-time lookup in registered test keys
     for registered_key, merchant_id in API_KEY_REGISTRY.items():
         if hmac.compare_digest(token, registered_key):
             return merchant_id
+
+    # 2. Dynamic lookup in state_store (API keys or browser sessions)
+    if state_store is not None:
+        db_merchant_id = state_store.validate_api_key(token)
+        if db_merchant_id:
+            return db_merchant_id
+
+        session = state_store.get_session(token)
+        if session:
+            return session["merchant_id"]
 
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail={
             "error": True,
             "code": "INVALID_API_KEY",
-            "message": "Invalid merchant API key provided.",
+            "message": "Invalid merchant API key or session token provided.",
         },
     )
 
@@ -111,7 +135,7 @@ def create_v1_router(
         executes the frozen HistGradientBoosting model, applies decision policy, generates reason codes,
         and logs audit records.
         """
-        merchant_id = authenticate_merchant(x_api_key=x_api_key, authorization=authorization)
+        merchant_id = authenticate_merchant(x_api_key=x_api_key, authorization=authorization, state_store=state_store)
         start_time = time.perf_counter()
         req_id = str(uuid.uuid4())
 
@@ -222,7 +246,7 @@ def create_v1_router(
         authorization: Optional[str] = Header(None, alias="Authorization"),
     ):
         """Retrieves a previously evaluated transaction record for the authenticated merchant."""
-        merchant_id = authenticate_merchant(x_api_key=x_api_key, authorization=authorization)
+        merchant_id = authenticate_merchant(x_api_key=x_api_key, authorization=authorization, state_store=state_store)
         record = state_store.get_transaction(merchant_id, transaction_id)
         if not record:
             raise HTTPException(
@@ -252,7 +276,7 @@ def create_v1_router(
         authorization: Optional[str] = Header(None, alias="Authorization"),
     ):
         """Records asynchronous merchant transaction lifecycle events (e.g. completed, cancelled, refunded)."""
-        merchant_id = authenticate_merchant(x_api_key=x_api_key, authorization=authorization)
+        merchant_id = authenticate_merchant(x_api_key=x_api_key, authorization=authorization, state_store=state_store)
         state_store.record_merchant_event(merchant_id, payload)
         return {
             "status": "recorded",
@@ -272,7 +296,7 @@ def create_v1_router(
         Records merchant chargeback or fraud outcome feedback.
         NOTE: Does NOT trigger automated online model retraining.
         """
-        merchant_id = authenticate_merchant(x_api_key=x_api_key, authorization=authorization)
+        merchant_id = authenticate_merchant(x_api_key=x_api_key, authorization=authorization, state_store=state_store)
         state_store.record_outcome(merchant_id, payload)
         return {
             "status": "recorded",
@@ -288,7 +312,7 @@ def create_v1_router(
         authorization: Optional[str] = Header(None, alias="Authorization"),
     ):
         """Returns safe integration configuration and required transaction fields."""
-        merchant_id = authenticate_merchant(x_api_key=x_api_key, authorization=authorization)
+        merchant_id = authenticate_merchant(x_api_key=x_api_key, authorization=authorization, state_store=state_store)
         meta = decision_engine.model_service.metadata
         return MerchantConfigResponse(
             merchant_id=merchant_id,
@@ -322,9 +346,9 @@ def create_v1_router(
         authorization: Optional[str] = Header(None, alias="Authorization"),
     ):
         """Returns live merchant integration health and runtime state status."""
-        merchant_id = authenticate_merchant(x_api_key=x_api_key, authorization=authorization)
+        merchant_id = authenticate_merchant(x_api_key=x_api_key, authorization=authorization, state_store=state_store)
         last_event = state_store.get_last_processed_timestamp(merchant_id)
-        now_str = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+        now_str = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
         return MerchantHealthResponse(
             status="ok",
@@ -337,4 +361,233 @@ def create_v1_router(
             timestamp=now_str,
         )
 
+    # -------------------------------------------------------------------------
+    # Authentication & Session Endpoints
+    # -------------------------------------------------------------------------
+    @v1.post("/auth/signup", response_model=SignupResponse, status_code=status.HTTP_201_CREATED)
+    async def signup_merchant(payload: SignupRequest):
+        """Creates a new merchant account, admin user, and initial API key."""
+        from src.auth.security import hash_password
+
+        existing = state_store.get_user_by_email(payload.email)
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={
+                    "error": True,
+                    "code": "EMAIL_ALREADY_EXISTS",
+                    "message": "An account with this email already exists.",
+                },
+            )
+
+        pwd_hash, pwd_salt = hash_password(payload.password)
+        merchant_id, user_id, raw_api_key, key_prefix = state_store.create_merchant_user(
+            company_name=payload.company_name,
+            full_name=payload.full_name,
+            email=payload.email.lower(),
+            password_hash=pwd_hash,
+            password_salt=pwd_salt,
+        )
+
+        session_token = state_store.create_session(user_id=user_id, merchant_id=merchant_id)
+        now_str = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+        return SignupResponse(
+            merchant_id=merchant_id,
+            user_id=user_id,
+            full_name=payload.full_name,
+            email=payload.email.lower(),
+            company_name=payload.company_name,
+            api_key=raw_api_key,
+            session_token=session_token,
+            created_at=now_str,
+        )
+
+    @v1.post("/auth/login", response_model=LoginResponse, status_code=status.HTTP_200_OK)
+    async def login_merchant(payload: LoginRequest):
+        """Authenticates merchant user and returns active session token."""
+        from src.auth.security import verify_password
+
+        user = state_store.get_user_by_email(payload.email)
+        if not user or not verify_password(payload.password, user["password_hash"], user["password_salt"]):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail={
+                    "error": True,
+                    "code": "INVALID_CREDENTIALS",
+                    "message": "Invalid email or password provided.",
+                },
+            )
+
+        merchant = state_store.get_merchant_by_id(user["merchant_id"])
+        company_name = merchant["company_name"] if merchant else "Merchant"
+        session_token = state_store.create_session(user_id=user["user_id"], merchant_id=user["merchant_id"])
+        api_key_masked = state_store.get_active_api_key_prefix(user["merchant_id"])
+
+        return LoginResponse(
+            merchant_id=user["merchant_id"],
+            user_id=user["user_id"],
+            full_name=user["full_name"],
+            email=user["email"],
+            company_name=company_name,
+            session_token=session_token,
+            api_key_masked=api_key_masked,
+        )
+
+    @v1.get("/auth/me", response_model=UserSessionResponse, status_code=status.HTTP_200_OK)
+    async def get_current_user(
+        authorization: Optional[str] = Header(None, alias="Authorization"),
+        x_session_token: Optional[str] = Header(None, alias="X-Session-Token"),
+    ):
+        """Returns the authenticated user and merchant context."""
+        token = None
+        if x_session_token:
+            token = x_session_token.strip()
+        elif authorization and authorization.startswith("Bearer "):
+            token = authorization[7:].strip()
+
+        session = state_store.get_session(token) if token else None
+        if not session:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail={"error": True, "code": "UNAUTHORIZED", "message": "Invalid or expired session token."},
+            )
+
+        return UserSessionResponse(
+            user_id=session["user_id"],
+            merchant_id=session["merchant_id"],
+            full_name=session["full_name"],
+            email=session["email"],
+            company_name=session["company_name"],
+            api_key_masked=state_store.get_active_api_key_prefix(session["merchant_id"]),
+        )
+
+    @v1.post("/auth/rotate-key", response_model=RotateKeyResponse, status_code=status.HTTP_200_OK)
+    async def rotate_merchant_api_key(
+        x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
+        authorization: Optional[str] = Header(None, alias="Authorization"),
+    ):
+        """Rotates the merchant's API key. The new key is returned once."""
+        merchant_id = authenticate_merchant(x_api_key=x_api_key, authorization=authorization, state_store=state_store)
+        new_raw_key, new_prefix, created_at = state_store.rotate_api_key(merchant_id)
+        return RotateKeyResponse(
+            new_api_key=new_raw_key,
+            key_prefix=new_prefix,
+            created_at=created_at,
+        )
+
+    # -------------------------------------------------------------------------
+    # Live Merchant Data Query Endpoints (for Live Dashboard & UI)
+    # -------------------------------------------------------------------------
+    @v1.get("/merchant/transactions", response_model=MerchantTransactionsResponse, status_code=status.HTTP_200_OK)
+    async def list_merchant_transactions(
+        search: Optional[str] = None,
+        risk_level: Optional[str] = None,
+        decision: Optional[str] = None,
+        page: int = 1,
+        page_size: int = 50,
+        x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
+        authorization: Optional[str] = Header(None, alias="Authorization"),
+    ):
+        """Returns paginated, searchable runtime transactions evaluated for this merchant."""
+        merchant_id = authenticate_merchant(x_api_key=x_api_key, authorization=authorization, state_store=state_store)
+        offset = max(0, (page - 1) * page_size)
+        tx_rows, total_count = state_store.get_merchant_transactions(
+            merchant_id=merchant_id,
+            search=search,
+            risk_level=risk_level,
+            decision=decision,
+            limit=page_size,
+            offset=offset,
+        )
+
+        formatted_items = [
+            MerchantTransactionItem(
+                transaction_id=r["transaction_id"],
+                user_id=r["user_id"],
+                amount=float(r["amount"]),
+                currency=r["currency"],
+                timestamp=r["timestamp"],
+                product_category=r.get("product_category"),
+                device_id=r.get("device_id"),
+                ip_address=r.get("ip_address"),
+                payment_method_id=r.get("payment_method_id"),
+                risk_score=r.get("risk_score"),
+                risk_level=r.get("risk_level"),
+                decision=r.get("decision"),
+                primary_reason=r.get("decision"),
+                is_promo_used=r.get("is_promo_used", 0),
+                evaluated_at=r.get("evaluated_at"),
+            )
+            for r in tx_rows
+        ]
+
+        return MerchantTransactionsResponse(
+            merchant_id=merchant_id,
+            total_count=total_count,
+            page=page,
+            page_size=page_size,
+            transactions=formatted_items,
+            zero_data_state=total_count == 0,
+        )
+
+    @v1.get("/merchant/metrics", response_model=MerchantMetricsResponse, status_code=status.HTTP_200_OK)
+    async def get_merchant_metrics(
+        x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
+        authorization: Optional[str] = Header(None, alias="Authorization"),
+    ):
+        """Returns live operational metrics computed from the merchant's real evaluations."""
+        merchant_id = authenticate_merchant(x_api_key=x_api_key, authorization=authorization, state_store=state_store)
+        metrics = state_store.get_merchant_live_metrics(merchant_id)
+
+        recent_items = [
+            MerchantTransactionItem(
+                transaction_id=r["transaction_id"],
+                user_id=r["user_id"],
+                amount=float(r["amount"]),
+                currency=r["currency"],
+                timestamp=r["timestamp"],
+                product_category=r.get("product_category"),
+                risk_score=r.get("risk_score"),
+                risk_level=r.get("risk_level"),
+                decision=r.get("decision"),
+                is_promo_used=r.get("is_promo_used", 0),
+                evaluated_at=r.get("evaluated_at"),
+            )
+            for r in metrics["recent_transactions"]
+        ]
+
+        return MerchantMetricsResponse(
+            merchant_id=metrics["merchant_id"],
+            total_transactions=metrics["total_transactions"],
+            approvals=metrics["approvals"],
+            reviews=metrics["reviews"],
+            blocks=metrics["blocks"],
+            approval_rate=metrics["approval_rate"],
+            review_rate=metrics["review_rate"],
+            block_rate=metrics["block_rate"],
+            average_risk_score=metrics["average_risk_score"],
+            recent_transactions=recent_items,
+            zero_data_state=metrics["zero_data_state"],
+            last_evaluated_at=metrics["last_evaluated_at"],
+        )
+
+    @v1.get("/merchant/graph", response_model=MerchantEntityGraphResponse, status_code=status.HTTP_200_OK)
+    async def get_merchant_entity_graph_data(
+        x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
+        authorization: Optional[str] = Header(None, alias="Authorization"),
+    ):
+        """Returns live Cytoscape-formatted entity graph for the merchant's runtime network."""
+        merchant_id = authenticate_merchant(x_api_key=x_api_key, authorization=authorization, state_store=state_store)
+        graph_data = state_store.get_merchant_entity_graph(merchant_id)
+        return MerchantEntityGraphResponse(
+            merchant_id=graph_data["merchant_id"],
+            nodes=graph_data["nodes"],
+            edges=graph_data["edges"],
+            total_nodes=graph_data["total_nodes"],
+            total_edges=graph_data["total_edges"],
+            zero_data_state=graph_data["zero_data_state"],
+        )
+
     return v1
+

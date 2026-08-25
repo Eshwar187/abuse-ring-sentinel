@@ -135,7 +135,62 @@ class RuntimeStateStore:
                     PRIMARY KEY (merchant_id, event_id)
                 )
             """)
+
+            # 6. Merchants table
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS merchants (
+                    merchant_id TEXT PRIMARY KEY,
+                    company_name TEXT NOT NULL,
+                    email TEXT NOT NULL,
+                    created_at TEXT NOT NULL
+                )
+            """)
+
+            # 7. Users table
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS users (
+                    user_id TEXT PRIMARY KEY,
+                    merchant_id TEXT NOT NULL,
+                    full_name TEXT NOT NULL,
+                    email TEXT NOT NULL UNIQUE,
+                    password_hash TEXT NOT NULL,
+                    password_salt TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    FOREIGN KEY (merchant_id) REFERENCES merchants(merchant_id)
+                )
+            """)
+
+            # 8. API Keys table
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS api_keys (
+                    key_id TEXT PRIMARY KEY,
+                    merchant_id TEXT NOT NULL,
+                    key_hash TEXT NOT NULL UNIQUE,
+                    key_prefix TEXT NOT NULL,
+                    label TEXT,
+                    is_active INTEGER NOT NULL DEFAULT 1,
+                    created_at TEXT NOT NULL,
+                    revoked_at TEXT,
+                    FOREIGN KEY (merchant_id) REFERENCES merchants(merchant_id)
+                )
+            """)
+
+            # 9. Auth Sessions table
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS auth_sessions (
+                    session_token TEXT PRIMARY KEY,
+                    user_id TEXT NOT NULL,
+                    merchant_id TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    expires_at TEXT NOT NULL,
+                    FOREIGN KEY (user_id) REFERENCES users(user_id),
+                    FOREIGN KEY (merchant_id) REFERENCES merchants(merchant_id)
+                )
+            """)
+
             conn.commit()
+
+        self._seed_default_merchants()
 
     def _hydrate_graphs_from_db(self):
         """Hydrates in-memory merchant entity graphs from stored transactions."""
@@ -430,7 +485,364 @@ class RuntimeStateStore:
                 "SELECT timestamp FROM runtime_transactions WHERE merchant_id = ? ORDER BY timestamp DESC LIMIT 1",
                 (merchant_id,),
             )
+    def _seed_default_merchants(self):
+        """Seeds default merchant accounts, dev users, and active API keys if not present."""
+        from src.auth.security import hash_password, hash_api_key
+
+        now_str = datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
+        default_seed = [
+            {
+                "merchant_id": "merchant_dev_01",
+                "company_name": "Apex Retail Global",
+                "email": "dev@apexretail.com",
+                "user_id": "usr_dev_01",
+                "full_name": "Eshwar (Admin)",
+                "password": "Password123!",
+                "raw_api_key": "ars_live_test_merchant_01",
+            },
+            {
+                "merchant_id": "merchant_dev_02",
+                "company_name": "Nova Digital Goods",
+                "email": "admin@novadigital.io",
+                "user_id": "usr_dev_02",
+                "full_name": "Sarah Connor",
+                "password": "Password123!",
+                "raw_api_key": "ars_live_demo_merchant_02",
+            },
+            {
+                "merchant_id": "merchant_sandbox",
+                "company_name": "Sandbox Merchant",
+                "email": "sandbox@merchant.in",
+                "user_id": "usr_dev_sandbox",
+                "full_name": "Sandbox Tester",
+                "password": "Password123!",
+                "raw_api_key": "ars_live_sandbox_key",
+            },
+        ]
+
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            for m in default_seed:
+                cursor.execute(
+                    "INSERT OR IGNORE INTO merchants (merchant_id, company_name, email, created_at) VALUES (?, ?, ?, ?)",
+                    (m["merchant_id"], m["company_name"], m["email"], now_str),
+                )
+                pwd_hash, pwd_salt = hash_password(m["password"])
+                cursor.execute(
+                    "INSERT OR IGNORE INTO users (user_id, merchant_id, full_name, email, password_hash, password_salt, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    (m["user_id"], m["merchant_id"], m["full_name"], m["email"], pwd_hash, pwd_salt, now_str),
+                )
+                k_hash = hash_api_key(m["raw_api_key"])
+                k_prefix = m["raw_api_key"][:12] + "..."
+                cursor.execute(
+                    "INSERT OR IGNORE INTO api_keys (key_id, merchant_id, key_hash, key_prefix, label, is_active, created_at) VALUES (?, ?, ?, ?, ?, 1, ?)",
+                    (f"key_{m['merchant_id']}_init", m["merchant_id"], k_hash, k_prefix, "Initial Dev Key", now_str),
+                )
+            conn.commit()
+
+    # -------------------------------------------------------------------------
+    # Authentication & User State Operations
+    # -------------------------------------------------------------------------
+    def create_merchant_user(
+        self,
+        company_name: str,
+        full_name: str,
+        email: str,
+        password_hash: str,
+        password_salt: str,
+    ) -> Tuple[str, str, str, str]:
+        """
+        Creates a new merchant tenant, initial user, and first API key.
+        Returns (merchant_id, user_id, raw_api_key, key_prefix).
+        """
+        import uuid
+        from src.auth.security import generate_api_key
+
+        now_str = datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
+        merchant_id = f"m_{uuid.uuid4().hex[:10]}"
+        user_id = f"usr_{uuid.uuid4().hex[:10]}"
+        raw_key, key_hash, key_prefix = generate_api_key()
+        key_id = f"key_{uuid.uuid4().hex[:8]}"
+
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "INSERT INTO merchants (merchant_id, company_name, email, created_at) VALUES (?, ?, ?, ?)",
+                (merchant_id, company_name, email, now_str),
+            )
+            cursor.execute(
+                "INSERT INTO users (user_id, merchant_id, full_name, email, password_hash, password_salt, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (user_id, merchant_id, full_name, email, password_hash, password_salt, now_str),
+            )
+            cursor.execute(
+                "INSERT INTO api_keys (key_id, merchant_id, key_hash, key_prefix, label, is_active, created_at) VALUES (?, ?, ?, ?, ?, 1, ?)",
+                (key_id, merchant_id, key_hash, key_prefix, "Primary Production Key", now_str),
+            )
+            conn.commit()
+
+        return merchant_id, user_id, raw_key, key_prefix
+
+    def get_user_by_email(self, email: str) -> Optional[Dict[str, Any]]:
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM users WHERE email = ?", (email.strip().lower(),))
             row = cursor.fetchone()
             if row:
-                return row["timestamp"]
+                return dict(row)
         return None
+
+    def get_user_by_id(self, user_id: str) -> Optional[Dict[str, Any]]:
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM users WHERE user_id = ?", (user_id,))
+            row = cursor.fetchone()
+            if row:
+                return dict(row)
+        return None
+
+    def get_merchant_by_id(self, merchant_id: str) -> Optional[Dict[str, Any]]:
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM merchants WHERE merchant_id = ?", (merchant_id,))
+            row = cursor.fetchone()
+            if row:
+                return dict(row)
+        return None
+
+    def create_session(self, user_id: str, merchant_id: str) -> str:
+        from src.auth.security import generate_session_token
+        from datetime import timedelta
+
+        token = generate_session_token()
+        now = datetime.now()
+        now_str = now.strftime("%Y-%m-%dT%H:%M:%SZ")
+        expires_str = (now + timedelta(days=7)).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "INSERT INTO auth_sessions (session_token, user_id, merchant_id, created_at, expires_at) VALUES (?, ?, ?, ?, ?)",
+                (token, user_id, merchant_id, now_str, expires_str),
+            )
+            conn.commit()
+        return token
+
+    def get_session(self, session_token: str) -> Optional[Dict[str, Any]]:
+        if not session_token:
+            return None
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT s.session_token, s.user_id, s.merchant_id, s.created_at, s.expires_at,
+                       u.full_name, u.email, m.company_name
+                FROM auth_sessions s
+                JOIN users u ON s.user_id = u.user_id
+                JOIN merchants m ON s.merchant_id = m.merchant_id
+                WHERE s.session_token = ?
+                """,
+                (session_token.strip(),),
+            )
+            row = cursor.fetchone()
+            if row:
+                return dict(row)
+        return None
+
+    def validate_api_key(self, raw_key: str) -> Optional[str]:
+        """Validates raw API key and returns merchant_id if valid and active."""
+        from src.auth.security import hash_api_key
+
+        k_hash = hash_api_key(raw_key)
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT merchant_id FROM api_keys WHERE key_hash = ? AND is_active = 1",
+                (k_hash,),
+            )
+            row = cursor.fetchone()
+            if row:
+                return row["merchant_id"]
+        return None
+
+    def get_active_api_key_prefix(self, merchant_id: str) -> str:
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT key_prefix FROM api_keys WHERE merchant_id = ? AND is_active = 1 ORDER BY created_at DESC LIMIT 1",
+                (merchant_id,),
+            )
+            row = cursor.fetchone()
+            if row:
+                return row["key_prefix"]
+        return "ars_live_••••••••••••"
+
+    def rotate_api_key(self, merchant_id: str) -> Tuple[str, str, str]:
+        """Revokes old API keys and issues a new active API key. Returns (raw_key, key_prefix, created_at)."""
+        import uuid
+        from src.auth.security import generate_api_key
+
+        now_str = datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
+        raw_key, key_hash, key_prefix = generate_api_key()
+        key_id = f"key_{uuid.uuid4().hex[:8]}"
+
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "UPDATE api_keys SET is_active = 0, revoked_at = ? WHERE merchant_id = ?",
+                (now_str, merchant_id),
+            )
+            cursor.execute(
+                "INSERT INTO api_keys (key_id, merchant_id, key_hash, key_prefix, label, is_active, created_at) VALUES (?, ?, ?, ?, ?, 1, ?)",
+                (key_id, merchant_id, key_hash, key_prefix, "Rotated API Key", now_str),
+            )
+            conn.commit()
+
+        return raw_key, key_prefix, now_str
+
+    # -------------------------------------------------------------------------
+    # Live Merchant Data & Query Operations
+    # -------------------------------------------------------------------------
+    def get_merchant_transactions(
+        self,
+        merchant_id: str,
+        search: Optional[str] = None,
+        risk_level: Optional[str] = None,
+        decision: Optional[str] = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> Tuple[List[Dict[str, Any]], int]:
+        """Queries runtime transactions for a specific merchant with search and filters."""
+        query = "SELECT * FROM runtime_transactions WHERE merchant_id = ?"
+        count_query = "SELECT COUNT(*) as count FROM runtime_transactions WHERE merchant_id = ?"
+        params: List[Any] = [merchant_id]
+        count_params: List[Any] = [merchant_id]
+
+        if search:
+            s = f"%{search.strip()}%"
+            filter_clause = " AND (transaction_id LIKE ? OR user_id LIKE ? OR promo_code LIKE ? OR email_domain LIKE ?)"
+            query += filter_clause
+            count_query += filter_clause
+            params.extend([s, s, s, s])
+            count_params.extend([s, s, s, s])
+
+        if risk_level:
+            query += " AND risk_level = ?"
+            count_query += " AND risk_level = ?"
+            params.append(risk_level.upper())
+            count_params.append(risk_level.upper())
+
+        if decision:
+            query += " AND decision = ?"
+            count_query += " AND decision = ?"
+            params.append(decision.upper())
+            count_params.append(decision.upper())
+
+        query += " ORDER BY timestamp DESC LIMIT ? OFFSET ?"
+        params.extend([limit, offset])
+
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(count_query, count_params)
+            total_count = cursor.fetchone()["count"]
+
+            cursor.execute(query, params)
+            rows = cursor.fetchall()
+            transactions = [dict(r) for r in rows]
+
+        return transactions, total_count
+
+    def get_merchant_live_metrics(self, merchant_id: str) -> Dict[str, Any]:
+        """Calculates live operational telemetry for the merchant from runtime transactions."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT 
+                    COUNT(*) as total,
+                    SUM(CASE WHEN decision = 'APPROVE' THEN 1 ELSE 0 END) as approvals,
+                    SUM(CASE WHEN decision = 'REVIEW' THEN 1 ELSE 0 END) as reviews,
+                    SUM(CASE WHEN decision = 'BLOCK' THEN 1 ELSE 0 END) as blocks,
+                    AVG(risk_score) as avg_risk,
+                    MAX(evaluated_at) as last_evaluated_at
+                FROM runtime_transactions
+                WHERE merchant_id = ?
+                """,
+                (merchant_id,),
+            )
+            agg = cursor.fetchone()
+
+            total = agg["total"] or 0
+            approvals = agg["approvals"] or 0
+            reviews = agg["reviews"] or 0
+            blocks = agg["blocks"] or 0
+            avg_risk = round(float(agg["avg_risk"] or 0.0), 4)
+            last_evaluated_at = agg["last_evaluated_at"]
+
+            # Recent transactions
+            cursor.execute(
+                "SELECT * FROM runtime_transactions WHERE merchant_id = ? ORDER BY timestamp DESC LIMIT 10",
+                (merchant_id,),
+            )
+            recent_rows = [dict(r) for r in cursor.fetchall()]
+
+        return {
+            "merchant_id": merchant_id,
+            "total_transactions": total,
+            "approvals": approvals,
+            "reviews": reviews,
+            "blocks": blocks,
+            "approval_rate": round(approvals / total, 4) if total > 0 else 0.0,
+            "review_rate": round(reviews / total, 4) if total > 0 else 0.0,
+            "block_rate": round(blocks / total, 4) if total > 0 else 0.0,
+            "average_risk_score": avg_risk,
+            "recent_transactions": recent_rows,
+            "zero_data_state": total == 0,
+            "last_evaluated_at": last_evaluated_at,
+        }
+
+    def get_merchant_entity_graph(self, merchant_id: str) -> Dict[str, Any]:
+        """Returns Cytoscape-formatted nodes and edges for the merchant's live entity graph."""
+        g = self.merchant_graphs.get(merchant_id)
+        if not g or g.number_of_nodes() == 0:
+            return {
+                "merchant_id": merchant_id,
+                "nodes": [],
+                "edges": [],
+                "total_nodes": 0,
+                "total_edges": 0,
+                "zero_data_state": True,
+            }
+
+        nodes = []
+        for n, d in g.nodes(data=True):
+            node_type = d.get("entity_type", "USER")
+            label = n.split(":")[-1] if ":" in n else n
+            nodes.append({
+                "data": {
+                    "id": n,
+                    "label": label,
+                    "type": node_type,
+                }
+            })
+
+        edges = []
+        for u, v, d in g.edges(data=True):
+            edge_id = f"e_{u}_{v}"
+            edge_type = d.get("entity_type", "SHARED_ENTITY")
+            edges.append({
+                "data": {
+                    "id": edge_id,
+                    "source": u,
+                    "target": v,
+                    "type": edge_type,
+                }
+            })
+
+        return {
+            "merchant_id": merchant_id,
+            "nodes": nodes,
+            "edges": edges,
+            "total_nodes": len(nodes),
+            "total_edges": len(edges),
+            "zero_data_state": len(nodes) == 0,
+        }

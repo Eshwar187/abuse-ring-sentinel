@@ -1,29 +1,87 @@
 import { Routes } from '@angular/router';
 import { ShellComponent } from './layout/shell/shell.component';
+import { authGuard, unauthGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
+  // Public Landing Page
   {
     path: '',
+    loadComponent: () =>
+      import('./features/landing/landing.component').then(
+        (m) => m.LandingPageComponent
+      ),
+    pathMatch: 'full',
+  },
+
+  // Public Demo Environment (Historical Evaluation Benchmark)
+  {
+    path: 'demo',
     component: ShellComponent,
     children: [
       {
         path: '',
-        redirectTo: 'dashboard',
+        loadComponent: () =>
+          import('./features/demo/demo.component').then(
+            (m) => m.DemoComponent
+          ),
+      },
+    ],
+  },
+
+  // Authentication Flows
+  {
+    path: 'login',
+    canActivate: [unauthGuard],
+    loadComponent: () =>
+      import('./features/auth/login.component').then((m) => m.LoginComponent),
+  },
+  {
+    path: 'signup',
+    canActivate: [unauthGuard],
+    loadComponent: () =>
+      import('./features/auth/signup.component').then(
+        (m) => m.SignupComponent
+      ),
+  },
+  {
+    path: 'forgot-password',
+    loadComponent: () =>
+      import('./features/auth/forgot-password.component').then(
+        (m) => m.ForgotPasswordComponent
+      ),
+  },
+  {
+    path: 'onboarding',
+    loadComponent: () =>
+      import('./features/onboarding/onboarding.component').then(
+        (m) => m.OnboardingComponent
+      ),
+  },
+
+  // Authenticated Merchant App Routes (/app/*)
+  {
+    path: 'app',
+    component: ShellComponent,
+    canActivate: [authGuard],
+    children: [
+      {
+        path: '',
+        redirectTo: 'overview',
         pathMatch: 'full',
       },
       {
-        path: 'dashboard',
+        path: 'overview',
         loadComponent: () =>
-          import('./features/dashboard/dashboard.component').then(
-            (m) => m.DashboardComponent
+          import('./features/overview/overview.component').then(
+            (m) => m.LiveOverviewComponent
           ),
       },
       {
         path: 'transactions',
         loadComponent: () =>
-          import('./features/transactions/transactions.component').then(
-            (m) => m.TransactionsComponent
-          ),
+          import(
+            './features/transactions/live-transactions.component'
+          ).then((m) => m.LiveTransactionsComponent),
       },
       {
         path: 'transactions/:id',
@@ -67,10 +125,28 @@ export const routes: Routes = [
             (m) => m.IntegrationComponent
           ),
       },
+      {
+        path: 'settings',
+        loadComponent: () =>
+          import('./features/settings/settings.component').then(
+            (m) => m.SettingsComponent
+          ),
+      },
     ],
   },
+
+  // Legacy route compatibility redirects
+  { path: 'dashboard', redirectTo: 'app/overview' },
+  { path: 'transactions', redirectTo: 'app/transactions' },
+  { path: 'risk-analyzer', redirectTo: 'app/risk-analyzer' },
+  { path: 'risk-networks', redirectTo: 'app/risk-networks' },
+  { path: 'monitoring', redirectTo: 'app/monitoring' },
+  { path: 'audit', redirectTo: 'app/audit' },
+  { path: 'integration', redirectTo: 'app/integration' },
+
+  // Fallback
   {
     path: '**',
-    redirectTo: 'dashboard',
+    redirectTo: '',
   },
 ];

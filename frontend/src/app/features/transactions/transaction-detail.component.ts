@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 
 import { TransactionService } from '../../core/services/transaction.service';
+import { MerchantService } from '../../core/services/merchant.service';
 import { TransactionListItem } from '../../core/models/risk.models';
 import { RiskBadgeComponent } from '../../shared/components/risk-badge.component';
 import { DecisionBadgeComponent } from '../../shared/components/decision-badge.component';
@@ -239,8 +240,8 @@ import { ScoreMeterComponent } from '../../shared/components/score-meter.compone
         <div class="bg-white border border-surface-200 rounded-lg p-8 text-center text-surface-500">
           <p class="text-sm font-semibold">Transaction not found</p>
           <p class="text-xs text-surface-400 mt-1">Transaction ID: {{ transactionId }}</p>
-          <a routerLink="/transactions" class="inline-block mt-4 text-xs text-brand-600 font-semibold hover:underline">
-            ← Return to transactions list
+          <a routerLink="/app/transactions" class="inline-block mt-4 text-xs text-brand-600 font-semibold hover:underline">
+            ← Return to live transactions list
           </a>
         </div>
       }
@@ -250,6 +251,7 @@ import { ScoreMeterComponent } from '../../shared/components/score-meter.compone
 export class TransactionDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private txService = inject(TransactionService);
+  private merchantService = inject(MerchantService);
 
   transactionId = '';
   tx?: TransactionListItem;
@@ -257,7 +259,32 @@ export class TransactionDetailComponent implements OnInit {
   ngOnInit(): void {
     this.route.params.subscribe((params) => {
       this.transactionId = params['id'];
-      this.tx = this.txService.getTransactionById(this.transactionId);
+      const demoTx = this.txService.getTransactionById(this.transactionId);
+      if (demoTx) {
+        this.tx = demoTx;
+      } else {
+        this.merchantService.getTransactionDetail(this.transactionId).subscribe({
+          next: (res) => {
+            this.tx = {
+              transaction_id: res.transaction_id,
+              timestamp: res.timestamp,
+              amount: res.amount,
+              currency: res.currency,
+              product_category: res.product_category,
+              risk_score: res.risk_score,
+              risk_level: res.risk_level,
+              decision: res.decision,
+              primary_reason: res.decision,
+              user_id: res.user_id,
+              is_promo_used: res.is_promo_used,
+              connected_users: 1,
+            };
+          },
+          error: () => {
+            this.tx = undefined;
+          },
+        });
+      }
     });
   }
 
@@ -265,3 +292,4 @@ export class TransactionDetailComponent implements OnInit {
     alert(`Operator override logged: Transaction ${this.transactionId} updated to ${action}. Audit trail recorded.`);
   }
 }
+

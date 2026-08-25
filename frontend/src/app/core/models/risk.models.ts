@@ -79,7 +79,8 @@ export interface TransactionListItem {
   transaction_id: string;
   timestamp: string;
   amount: number;
-  product_category: string;
+  currency?: string;
+  product_category?: string;
   risk_score: number;
   risk_level: RiskLevel;
   decision: RiskDecision;
@@ -152,6 +153,7 @@ export interface RawTransactionEvent {
   shipping_address_id?: string;
   email_domain?: string;
   promo_code?: string;
+  is_promo_used?: number;
   custom_fields?: Record<string, any>;
 }
 
