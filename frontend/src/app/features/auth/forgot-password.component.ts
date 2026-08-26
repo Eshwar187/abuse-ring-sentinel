@@ -12,8 +12,8 @@ import { LucideAngularModule, Shield, Mail, CheckCircle2, ArrowLeft } from 'luci
     <div class="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans">
       <div class="sm:mx-auto sm:w-full sm:max-w-md text-center">
         <a routerLink="/" class="inline-flex items-center gap-3">
-          <img src="logo.svg" alt="Abuse-Ring Sentinel Logo" class="w-11 h-11 rounded-xl shadow-lg shadow-rose-600/30 object-contain" />
-          <span class="text-xl font-bold tracking-tight text-white">Abuse-Ring Sentinel</span>
+          <img src="vigilai_logo.jpg" alt="VigilAI Logo" class="w-11 h-11 rounded-xl shadow-lg shadow-cyan-500/25 object-cover border border-cyan-500/30" />
+          <span class="text-xl font-bold tracking-tight text-white">VigilAI</span>
         </a>
         <h2 class="mt-6 text-2xl font-bold tracking-tight text-white">
           Reset Merchant Password

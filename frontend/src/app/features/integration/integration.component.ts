@@ -259,7 +259,7 @@ import { RiskBadgeComponent } from '../../shared/components/risk-badge.component
               placeholder="e.g. http://127.0.0.1:8001/api/risk/action or https://api.store.com/risk/action"
               class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3.5 py-2 text-xs text-slate-200 font-mono focus:border-indigo-500 focus:outline-none"
             />
-            <p class="text-[11px] text-slate-400 mt-1">Endpoint where Abuse-Ring Sentinel delivers signed action requests.</p>
+            <p class="text-[11px] text-slate-400 mt-1">Endpoint where VigilAI delivers signed action requests.</p>
           </div>
 
           <div>

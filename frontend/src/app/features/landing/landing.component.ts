@@ -26,10 +26,10 @@ import {
       <header class="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div class="flex items-center gap-3">
-            <img src="logo.svg" alt="Abuse-Ring Sentinel Logo" class="w-10 h-10 rounded-xl shadow-lg shadow-rose-600/30 object-contain" />
+            <img src="vigilai_logo.jpg" alt="VigilAI Logo" class="w-10 h-10 rounded-xl shadow-lg shadow-cyan-500/25 object-cover border border-cyan-500/30" />
             <div>
-              <span class="text-base font-bold tracking-tight text-white">Abuse-Ring Sentinel</span>
-              <span class="ml-2 text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+              <span class="text-base font-bold tracking-tight text-white">VigilAI</span>
+              <span class="ml-2 text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-cyan-950/60 text-cyan-300 border border-cyan-500/30">
                 Risk Engine
               </span>
             </div>
@@ -84,7 +84,7 @@ import {
         </h1>
 
         <p class="mt-6 text-base sm:text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed">
-          Abuse-Ring Sentinel detects distributed Sybil syndicates, card testing rings, and voucher harvesting using 
+          VigilAI detects distributed Sybil syndicates, card testing rings, and voucher harvesting using 
           point-in-time behavioral velocity fused with heterogeneous entity relationship graphs.
         </p>
 
@@ -301,12 +301,12 @@ console.log(risk.data.risk_score); // 0.0124 (1.24%)</code></pre>
       <footer class="mt-auto border-t border-slate-800/80 bg-slate-950 py-8 px-4 sm:px-6 lg:px-8 text-center text-xs text-slate-400">
         <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div class="flex items-center gap-2">
-            <span class="font-bold text-slate-300">Abuse-Ring Sentinel</span>
+            <span class="font-bold text-cyan-400">VigilAI</span>
             <span>—</span>
-            <span>Razorpay Buildathon Track 02 (AI Risk Manager)</span>
+            <span>Autonomous Fraud Defense & Coordinated Ring Detection</span>
           </div>
           <div>
-            Built with Scikit-Learn GBDT, FastAPI, and Angular 19.
+            Built with Scikit-Learn GBDT, FastAPI, and Angular 20.
           </div>
         </div>
       </footer>

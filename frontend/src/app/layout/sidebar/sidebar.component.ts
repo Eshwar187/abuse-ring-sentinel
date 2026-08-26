@@ -14,10 +14,13 @@ import { HealthService } from '../../core/services/health.service';
       <!-- Brand Header -->
       <div class="p-4 border-b border-slate-800 flex items-center justify-between">
         <div class="flex items-center gap-2.5">
-          <img src="logo.svg" alt="Abuse-Ring Sentinel Logo" class="w-8 h-8 rounded-lg shadow-md shadow-rose-600/30 object-contain" />
+          <img src="vigilai_logo.jpg" alt="VigilAI Logo" class="w-9 h-9 rounded-xl shadow-lg shadow-cyan-500/20 object-cover border border-cyan-500/30" />
           <div>
-            <h1 class="text-xs font-bold text-white tracking-tight leading-tight">Abuse-Ring Sentinel</h1>
-            <p class="text-[10px] text-slate-400 font-mono">Merchant Risk Console</p>
+            <h1 class="text-sm font-bold text-white tracking-tight leading-tight flex items-center gap-1.5">
+              <span>VigilAI</span>
+              <span class="text-[9px] px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 font-mono border border-cyan-500/30">PRO</span>
+            </h1>
+            <p class="text-[10px] text-slate-400 font-mono">Autonomous Fraud Defense</p>
           </div>
         </div>
       </div>

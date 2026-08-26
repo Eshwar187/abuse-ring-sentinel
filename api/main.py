@@ -33,8 +33,8 @@ from src.integration.feature_adapter import FeatureAdapter
 from api.v1.routes import create_v1_router
 
 app = FastAPI(
-    title="Abuse-Ring Sentinel Risk API",
-    description="Defensive AI risk decision and explainability engine for coordinated merchant abuse detection.",
+    title="VigilAI Risk & Fraud Intelligence API",
+    description="Next-generation autonomous AI cybersecurity and coordinated fraud prevention engine.",
     version="1.0.0",
     docs_url="/docs" if not config.is_production else None,
     redoc_url="/redoc" if not config.is_production else None,

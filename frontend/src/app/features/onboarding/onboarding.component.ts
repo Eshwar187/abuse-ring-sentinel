@@ -30,9 +30,9 @@ import { RawTransactionEvent, RiskEvaluateResponse } from '../../core/models/ris
       <!-- Header -->
       <header class="border-b border-slate-800 bg-slate-950/80 px-6 py-4 flex items-center justify-between">
         <div class="flex items-center gap-3">
-          <img src="logo.svg" alt="Abuse-Ring Sentinel Logo" class="w-9 h-9 rounded-lg shadow-md shadow-rose-600/30 object-contain" />
+          <img src="vigilai_logo.jpg" alt="VigilAI Logo" class="w-9 h-9 rounded-xl shadow-md shadow-cyan-500/25 object-cover border border-cyan-500/30" />
           <div>
-            <div class="text-sm font-bold text-white">Abuse-Ring Sentinel</div>
+            <div class="text-sm font-bold text-white">VigilAI</div>
             <div class="text-[10px] text-slate-400">Merchant Onboarding & Integration Setup</div>
           </div>
         </div>
