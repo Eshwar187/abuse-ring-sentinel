@@ -4,22 +4,16 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { ApiService } from '../../core/services/api.service';
+import { CyberBackgroundComponent } from '../../shared/components/cyber-background.component';
 
 @Component({
   selector: 'app-signup',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, CyberBackgroundComponent],
   template: `
-    <div class="min-h-screen bg-[#030712] text-slate-100 flex flex-col justify-center items-center py-10 px-4 sm:px-6 lg:px-8 font-sans selection:bg-cyan-500 selection:text-black relative overflow-hidden">
-      <!-- Background Cyber Ambient Glow & Waves -->
-      <div class="absolute inset-0 pointer-events-none z-0">
-        <div class="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-cyan-600/10 rounded-full blur-[160px]"></div>
-        <div class="absolute bottom-1/4 right-1/4 w-[700px] h-[700px] bg-purple-600/10 rounded-full blur-[160px]"></div>
-        <div class="absolute inset-0 bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:24px_24px] opacity-20"></div>
-
-        <!-- Glowing Neon Waves at bottom -->
-        <div class="absolute bottom-0 left-0 right-0 h-80 bg-gradient-to-t from-cyan-500/10 via-purple-500/5 to-transparent pointer-events-none"></div>
-      </div>
+    <div class="min-h-screen text-slate-100 flex flex-col justify-center items-center py-10 px-4 sm:px-6 lg:px-8 font-sans selection:bg-cyan-500 selection:text-black relative overflow-hidden">
+      <!-- Dynamic 3D Cyber Animated Video & Neural Particle Canvas -->
+      <app-cyber-background></app-cyber-background>
 
       <!-- Top Header Brand Emblem -->
       <div class="relative z-20 text-center mb-8">
@@ -57,53 +51,53 @@ import { ApiService } from '../../core/services/api.service';
             <div class="space-y-6">
               <!-- Feature 1 -->
               <div class="flex items-start gap-4">
-                <div class="w-11 h-11 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(6,182,212,0.15)]">
+                <div class="w-11 h-11 rounded-2xl bg-cyan-500/15 border border-cyan-500/40 text-cyan-300 flex items-center justify-center shrink-0 shadow-[0_0_20px_rgba(6,182,212,0.2)] backdrop-blur-md">
                   <svg class="w-5 h-5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
                 </div>
                 <div>
                   <h4 class="text-sm font-bold text-white">Real-time fraud detection</h4>
-                  <p class="text-xs text-slate-400 mt-0.5 leading-relaxed">AI-powered sub-millisecond risk assessment.</p>
+                  <p class="text-xs text-slate-300 mt-0.5 leading-relaxed">AI-powered sub-millisecond risk assessment.</p>
                 </div>
               </div>
 
               <!-- Feature 2 -->
               <div class="flex items-start gap-4">
-                <div class="w-11 h-11 rounded-2xl bg-blue-500/10 border border-blue-500/30 text-blue-300 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(59,130,246,0.15)]">
+                <div class="w-11 h-11 rounded-2xl bg-blue-500/15 border border-blue-500/40 text-blue-300 flex items-center justify-center shrink-0 shadow-[0_0_20px_rgba(59,130,246,0.2)] backdrop-blur-md">
                   <svg class="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
                   </svg>
                 </div>
                 <div>
                   <h4 class="text-sm font-bold text-white">Advanced entity intelligence</h4>
-                  <p class="text-xs text-slate-400 mt-0.5 leading-relaxed">Graph-based relationship and collusion analysis.</p>
+                  <p class="text-xs text-slate-300 mt-0.5 leading-relaxed">Graph-based relationship and collusion analysis.</p>
                 </div>
               </div>
 
               <!-- Feature 3 -->
               <div class="flex items-start gap-4">
-                <div class="w-11 h-11 rounded-2xl bg-purple-500/10 border border-purple-500/30 text-purple-300 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(168,85,247,0.15)]">
+                <div class="w-11 h-11 rounded-2xl bg-purple-500/15 border border-purple-500/40 text-purple-300 flex items-center justify-center shrink-0 shadow-[0_0_20px_rgba(168,85,247,0.2)] backdrop-blur-md">
                   <svg class="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                   </svg>
                 </div>
                 <div>
                   <h4 class="text-sm font-bold text-white">Enterprise-grade security</h4>
-                  <p class="text-xs text-slate-400 mt-0.5 leading-relaxed">HMAC authentication, tenant isolation & audit logs.</p>
+                  <p class="text-xs text-slate-300 mt-0.5 leading-relaxed">HMAC authentication, tenant isolation & audit logs.</p>
                 </div>
               </div>
 
               <!-- Feature 4 -->
               <div class="flex items-start gap-4">
-                <div class="w-11 h-11 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(16,185,129,0.15)]">
+                <div class="w-11 h-11 rounded-2xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 flex items-center justify-center shrink-0 shadow-[0_0_20px_rgba(16,185,129,0.2)] backdrop-blur-md">
                   <svg class="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                 </div>
                 <div>
                   <h4 class="text-sm font-bold text-white">Seamless integration</h4>
-                  <p class="text-xs text-slate-400 mt-0.5 leading-relaxed">REST API & webhook support ready in under 5 minutes.</p>
+                  <p class="text-xs text-slate-300 mt-0.5 leading-relaxed">REST API & webhook support ready in under 5 minutes.</p>
                 </div>
               </div>
             </div>
@@ -115,7 +109,7 @@ import { ApiService } from '../../core/services/api.service';
 
           <!-- Right Column: Registration Card -->
           <div class="lg:col-span-7">
-            <div class="bg-[#0B132B]/90 border border-slate-800/90 rounded-3xl p-8 sm:p-10 shadow-2xl backdrop-blur-2xl relative overflow-hidden">
+            <div class="bg-[#0B132B]/80 border border-slate-800/90 hover:border-cyan-500/30 rounded-3xl p-8 sm:p-10 shadow-[0_0_50px_rgba(0,0,0,0.6)] backdrop-blur-2xl relative overflow-hidden transition-all">
               <div class="mb-6">
                 <h3 class="text-2xl font-extrabold text-white tracking-tight">Create Merchant Account</h3>
                 <p class="text-xs text-slate-400 mt-1">Get started in minutes</p>
@@ -138,7 +132,7 @@ import { ApiService } from '../../core/services/api.service';
                     name="fullName"
                     required
                     placeholder="Eshwar J"
-                    class="w-full bg-[#030712] border border-slate-800 hover:border-slate-700 rounded-xl px-4 py-3 text-xs text-slate-100 placeholder-slate-500 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 focus:outline-none transition-all font-sans"
+                    class="w-full bg-[#030712]/90 border border-slate-800 hover:border-slate-700 rounded-xl px-4 py-3 text-xs text-slate-100 placeholder-slate-500 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 focus:outline-none transition-all font-sans shadow-inner"
                   />
                 </div>
 
@@ -150,7 +144,7 @@ import { ApiService } from '../../core/services/api.service';
                     name="email"
                     required
                     placeholder="eshwar@enterprise.com"
-                    class="w-full bg-[#030712] border border-slate-800 hover:border-slate-700 rounded-xl px-4 py-3 text-xs text-slate-100 placeholder-slate-500 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 focus:outline-none transition-all font-sans"
+                    class="w-full bg-[#030712]/90 border border-slate-800 hover:border-slate-700 rounded-xl px-4 py-3 text-xs text-slate-100 placeholder-slate-500 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 focus:outline-none transition-all font-sans shadow-inner"
                   />
                 </div>
 
@@ -162,7 +156,7 @@ import { ApiService } from '../../core/services/api.service';
                     name="companyName"
                     required
                     placeholder="Acme Payments"
-                    class="w-full bg-[#030712] border border-slate-800 hover:border-slate-700 rounded-xl px-4 py-3 text-xs text-slate-100 placeholder-slate-500 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 focus:outline-none transition-all font-sans"
+                    class="w-full bg-[#030712]/90 border border-slate-800 hover:border-slate-700 rounded-xl px-4 py-3 text-xs text-slate-100 placeholder-slate-500 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 focus:outline-none transition-all font-sans shadow-inner"
                   />
                 </div>
 
@@ -176,7 +170,7 @@ import { ApiService } from '../../core/services/api.service';
                       required
                       minlength="8"
                       placeholder="••••••••••••"
-                      class="w-full bg-[#030712] border border-slate-800 hover:border-slate-700 rounded-xl px-4 py-3 text-xs text-slate-100 placeholder-slate-500 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 focus:outline-none transition-all font-sans pr-10"
+                      class="w-full bg-[#030712]/90 border border-slate-800 hover:border-slate-700 rounded-xl px-4 py-3 text-xs text-slate-100 placeholder-slate-500 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 focus:outline-none transition-all font-sans pr-10 shadow-inner"
                     />
                     <button
                       type="button"
@@ -261,7 +255,7 @@ import { ApiService } from '../../core/services/api.service';
 
         <!-- Success API Key Presentation State -->
         <ng-template #apiKeySuccessState>
-          <div class="max-w-xl mx-auto bg-[#0B132B]/90 border border-emerald-500/40 py-8 px-6 sm:px-10 shadow-2xl rounded-3xl space-y-6 animate-fade-in backdrop-blur-xl">
+          <div class="max-w-xl mx-auto bg-[#0B132B]/80 border border-emerald-500/40 py-8 px-6 sm:px-10 shadow-[0_0_50px_rgba(0,0,0,0.6)] rounded-3xl space-y-6 animate-fade-in backdrop-blur-2xl">
             <div class="text-center space-y-2">
               <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center mx-auto shadow-[0_0_20px_rgba(16,185,129,0.2)]">
                 <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">

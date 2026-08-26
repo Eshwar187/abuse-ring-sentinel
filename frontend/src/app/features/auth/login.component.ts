@@ -4,23 +4,16 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { ApiService } from '../../core/services/api.service';
+import { CyberBackgroundComponent } from '../../shared/components/cyber-background.component';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, CyberBackgroundComponent],
   template: `
-    <div class="min-h-screen bg-[#030712] text-slate-100 flex flex-col justify-center items-center py-10 px-4 sm:px-6 lg:px-8 font-sans selection:bg-cyan-500 selection:text-black relative overflow-hidden">
-      <!-- Background Cyber Waves & Grid -->
-      <div class="absolute inset-0 pointer-events-none z-0">
-        <!-- Ambient glows -->
-        <div class="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-cyan-600/10 rounded-full blur-[140px]"></div>
-        <div class="absolute bottom-1/4 right-1/4 w-[600px] h-[600px] bg-purple-600/10 rounded-full blur-[140px]"></div>
-        <div class="absolute inset-0 bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:24px_24px] opacity-20"></div>
-
-        <!-- Glowing Neon Waves at bottom -->
-        <div class="absolute bottom-0 left-0 right-0 h-72 bg-gradient-to-t from-cyan-500/10 via-purple-500/5 to-transparent pointer-events-none"></div>
-      </div>
+    <div class="min-h-screen text-slate-100 flex flex-col justify-center items-center py-10 px-4 sm:px-6 lg:px-8 font-sans selection:bg-cyan-500 selection:text-black relative overflow-hidden">
+      <!-- Dynamic 3D Cyber Animated Video & Neural Particle Canvas -->
+      <app-cyber-background></app-cyber-background>
 
       <!-- Left Holographic Decorative Shield (Visible on large screens) -->
       <div class="hidden lg:flex flex-col items-center justify-center absolute left-12 xl:left-24 top-1/2 -translate-y-1/2 pointer-events-none z-10 select-none animate-pulse-slow">
@@ -31,7 +24,6 @@ import { ApiService } from '../../core/services/api.service';
         <div class="relative w-44 h-52 flex items-center justify-center">
           <div class="absolute inset-0 bg-gradient-to-b from-cyan-500/20 via-purple-500/20 to-transparent rounded-3xl blur-xl"></div>
           <div class="relative w-40 h-48 border-2 border-cyan-400/60 rounded-3xl bg-[#080D1A]/80 backdrop-blur-md flex items-center justify-center shadow-[0_0_35px_rgba(6,182,212,0.3)]">
-            <!-- Shield SVG Emblem -->
             <svg class="w-24 h-24 text-cyan-400 filter drop-shadow-[0_0_12px_rgba(6,182,212,0.6)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
             </svg>
@@ -71,9 +63,9 @@ import { ApiService } from '../../core/services/api.service';
         </a>
       </div>
 
-      <!-- Main Login Glassmorphic Container -->
+      <!-- Main Login Floating Glassmorphic Container -->
       <div class="relative z-20 w-full max-w-md">
-        <div class="bg-[#0B132B]/85 border border-slate-800/90 rounded-3xl p-8 sm:p-10 shadow-2xl backdrop-blur-2xl relative overflow-hidden">
+        <div class="bg-[#0B132B]/80 border border-slate-800/90 hover:border-cyan-500/30 rounded-3xl p-8 sm:p-10 shadow-[0_0_50px_rgba(0,0,0,0.6)] backdrop-blur-2xl relative overflow-hidden transition-all">
           <div class="text-center mb-7">
             <h2 class="text-2xl font-extrabold text-white tracking-tight">Welcome Back</h2>
             <p class="text-xs text-slate-400 mt-1">Sign in to your merchant risk console</p>
@@ -96,7 +88,7 @@ import { ApiService } from '../../core/services/api.service';
                 name="email"
                 required
                 placeholder="admin@enterprise.com"
-                class="w-full bg-[#030712] border border-slate-800 hover:border-slate-700 rounded-xl px-4 py-3 text-xs text-slate-100 placeholder-slate-500 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 focus:outline-none transition-all font-sans"
+                class="w-full bg-[#030712]/90 border border-slate-800 hover:border-slate-700 rounded-xl px-4 py-3 text-xs text-slate-100 placeholder-slate-500 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 focus:outline-none transition-all font-sans shadow-inner"
               />
             </div>
 
@@ -111,7 +103,7 @@ import { ApiService } from '../../core/services/api.service';
                 name="password"
                 required
                 placeholder="••••••••••••"
-                class="w-full bg-[#030712] border border-slate-800 hover:border-slate-700 rounded-xl px-4 py-3 text-xs text-slate-100 placeholder-slate-500 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 focus:outline-none transition-all font-sans"
+                class="w-full bg-[#030712]/90 border border-slate-800 hover:border-slate-700 rounded-xl px-4 py-3 text-xs text-slate-100 placeholder-slate-500 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 focus:outline-none transition-all font-sans shadow-inner"
               />
             </div>
 
