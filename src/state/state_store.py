@@ -687,7 +687,7 @@ class RuntimeStateStore:
                     billing_address_id=tx.billing_address_id,
                     email_domain=tx.email_domain,
                     promo_code=tx.promo_code,
-                    raw_payload_json=json.dumps(tx.raw_payload or {}),
+                    raw_payload_json=json.dumps(getattr(tx, "custom_fields", {}) or {}),
                 )
 
                 # 2. Record entity relationships in MySQL
@@ -1163,9 +1163,8 @@ class RuntimeStateStore:
                     api_key_hash=key_hash,
                     api_key_masked=f"{raw_key[:12]}••••••••",
                 )
-            return raw_key, f"{raw_key[:12]}••••••••", now_str
-
-        key_id = f"key_{uuid.uuid4().hex[:8]}" if 'uuid' in dir() else "key_rot"
+        import uuid
+        key_id = f"key_{uuid.uuid4().hex[:12]}"
         with self._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(

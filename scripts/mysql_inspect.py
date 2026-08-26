@@ -82,7 +82,7 @@ def main():
             print(f"Latest Transaction ID: {latest_tx.transaction_id}")
             print(f"Merchant ID:           {latest_tx.merchant_id}")
             print(f"User ID:               {latest_tx.user_id}")
-            print(f"Amount:                ₹{latest_tx.amount:,.2f}")
+            print(f"Amount:                INR {latest_tx.amount:,.2f}")
             print(f"Timestamp:             {latest_tx.timestamp}")
         else:
             print("-" * 65)
