@@ -1,10 +1,9 @@
-import { Component, inject, signal, HostListener } from '@angular/core';
+import { Component, inject, signal, HostListener, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { HealthService } from '../../core/services/health.service';
 import { ApiService } from '../../core/services/api.service';
-
 import { FormsModule } from '@angular/forms';
 
 interface NotificationItem {
@@ -162,29 +161,63 @@ interface NotificationItem {
           <div
             *ngIf="showThemeMenu()"
             (click)="$event.stopPropagation()"
-            class="absolute right-0 mt-3 w-48 bg-[#0B132B] border border-slate-800 rounded-2xl shadow-2xl p-3 z-50 animate-fade-in backdrop-blur-2xl space-y-2"
+            class="absolute right-0 mt-3 w-52 bg-[#0B132B] border border-slate-800 rounded-2xl shadow-2xl p-3 z-50 animate-fade-in backdrop-blur-2xl space-y-1.5"
           >
-            <div class="text-[11px] font-mono text-slate-400 font-bold uppercase tracking-wider px-1">Cyber Accent Mode</div>
+            <div class="text-[10px] font-mono text-slate-400 font-bold uppercase tracking-wider px-2 py-1 flex items-center justify-between">
+              <span>Cyber Accent</span>
+              <span class="text-cyan-400 font-normal">Active: {{ currentTheme() }}</span>
+            </div>
+
+            <!-- Cyber Cyan -->
             <div
               (click)="setTheme('cyber')"
-              class="p-2 rounded-xl hover:bg-slate-900 cursor-pointer flex items-center gap-2.5 text-xs text-slate-200 transition-colors"
+              class="p-2 rounded-xl cursor-pointer flex items-center justify-between text-xs transition-all"
+              [ngClass]="currentTheme() === 'cyber' ? 'bg-cyan-950/50 border border-cyan-500/40 text-white font-bold' : 'hover:bg-slate-900 text-slate-300 border border-transparent'"
             >
-              <span class="w-3 h-3 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.8)]"></span>
-              <span>Cyber Cyan</span>
+              <div class="flex items-center gap-2.5">
+                <span class="w-3 h-3 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.8)]"></span>
+                <span>Cyber Cyan</span>
+              </div>
+              <span *ngIf="currentTheme() === 'cyber'" class="text-cyan-400 text-xs font-mono">✓</span>
             </div>
+
+            <!-- Electric Purple -->
             <div
               (click)="setTheme('purple')"
-              class="p-2 rounded-xl hover:bg-slate-900 cursor-pointer flex items-center gap-2.5 text-xs text-slate-200 transition-colors"
+              class="p-2 rounded-xl cursor-pointer flex items-center justify-between text-xs transition-all"
+              [ngClass]="currentTheme() === 'purple' ? 'bg-purple-950/50 border border-purple-500/40 text-white font-bold' : 'hover:bg-slate-900 text-slate-300 border border-transparent'"
             >
-              <span class="w-3 h-3 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.8)]"></span>
-              <span>Electric Purple</span>
+              <div class="flex items-center gap-2.5">
+                <span class="w-3 h-3 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.8)]"></span>
+                <span>Electric Purple</span>
+              </div>
+              <span *ngIf="currentTheme() === 'purple'" class="text-purple-400 text-xs font-mono">✓</span>
             </div>
+
+            <!-- Matrix Emerald -->
             <div
               (click)="setTheme('emerald')"
-              class="p-2 rounded-xl hover:bg-slate-900 cursor-pointer flex items-center gap-2.5 text-xs text-slate-200 transition-colors"
+              class="p-2 rounded-xl cursor-pointer flex items-center justify-between text-xs transition-all"
+              [ngClass]="currentTheme() === 'emerald' ? 'bg-emerald-950/50 border border-emerald-500/40 text-white font-bold' : 'hover:bg-slate-900 text-slate-300 border border-transparent'"
             >
-              <span class="w-3 h-3 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.8)]"></span>
-              <span>Matrix Emerald</span>
+              <div class="flex items-center gap-2.5">
+                <span class="w-3 h-3 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.8)]"></span>
+                <span>Matrix Emerald</span>
+              </div>
+              <span *ngIf="currentTheme() === 'emerald'" class="text-emerald-400 text-xs font-mono">✓</span>
+            </div>
+
+            <!-- Solar Amber -->
+            <div
+              (click)="setTheme('amber')"
+              class="p-2 rounded-xl cursor-pointer flex items-center justify-between text-xs transition-all"
+              [ngClass]="currentTheme() === 'amber' ? 'bg-amber-950/50 border border-amber-500/40 text-white font-bold' : 'hover:bg-slate-900 text-slate-300 border border-transparent'"
+            >
+              <div class="flex items-center gap-2.5">
+                <span class="w-3 h-3 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.8)]"></span>
+                <span>Solar Amber</span>
+              </div>
+              <span *ngIf="currentTheme() === 'amber'" class="text-amber-400 text-xs font-mono">✓</span>
             </div>
           </div>
         </div>
@@ -314,7 +347,7 @@ interface NotificationItem {
     </div>
   `,
 })
-export class HeaderComponent {
+export class HeaderComponent implements OnInit {
   auth = inject(AuthService);
   health = inject(HealthService);
   api = inject(ApiService);
@@ -324,7 +357,14 @@ export class HeaderComponent {
   readonly showProfileMenu = signal(false);
   readonly showThemeMenu = signal(false);
   readonly showCommandPalette = signal(false);
+  readonly currentTheme = signal<string>('cyber');
   searchQuery = '';
+
+  ngOnInit(): void {
+    const saved = localStorage.getItem('vigilai_theme') || 'cyber';
+    this.currentTheme.set(saved);
+    this.applyThemeClass(saved);
+  }
 
   readonly notifications = signal<NotificationItem[]>([
     { id: '1', title: 'Sybil Ring Detected', desc: 'Coordinated cluster of 5 devices sharing masked cards blocked.', time: '1m ago', type: 'danger', read: false },
@@ -402,7 +442,17 @@ export class HeaderComponent {
   }
 
   setTheme(theme: string) {
+    this.currentTheme.set(theme);
+    localStorage.setItem('vigilai_theme', theme);
+    this.applyThemeClass(theme);
     this.showThemeMenu.set(false);
+  }
+
+  private applyThemeClass(theme: string) {
+    document.body.classList.remove('theme-cyber', 'theme-purple', 'theme-emerald', 'theme-amber');
+    if (theme && theme !== 'cyber') {
+      document.body.classList.add('theme-' + theme);
+    }
   }
 
   companyName(): string {
