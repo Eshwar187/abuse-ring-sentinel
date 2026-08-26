@@ -8,14 +8,22 @@ import { RiskDecision } from '../../core/models/risk.models';
   imports: [CommonModule],
   template: `
     <span
-      class="inline-flex items-center justify-center px-2.5 py-1 rounded text-xs font-bold tracking-wider uppercase border font-mono"
+      class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold tracking-wider uppercase border font-mono backdrop-blur-md transition-all"
       [ngClass]="{
-        'bg-emerald-600 text-white border-emerald-700': decision === 'APPROVE',
-        'bg-amber-500 text-white border-amber-600': decision === 'REVIEW',
-        'bg-rose-600 text-white border-rose-700': decision === 'BLOCK'
+        'bg-emerald-950/60 text-emerald-300 border-emerald-500/40 shadow-[0_0_14px_rgba(16,185,129,0.25)]': decision === 'APPROVE',
+        'bg-amber-950/60 text-amber-300 border-amber-500/40 shadow-[0_0_14px_rgba(245,158,11,0.25)]': decision === 'REVIEW',
+        'bg-rose-950/60 text-rose-300 border-rose-500/50 shadow-[0_0_16px_rgba(239,68,68,0.35)]': decision === 'BLOCK'
       }"
     >
-      {{ decision || 'APPROVE' }}
+      <span
+        class="w-1.5 h-1.5 rounded-full"
+        [ngClass]="{
+          'bg-emerald-400': decision === 'APPROVE',
+          'bg-amber-400': decision === 'REVIEW',
+          'bg-rose-400 animate-ping': decision === 'BLOCK'
+        }"
+      ></span>
+      <span>{{ decision || 'APPROVE' }}</span>
     </span>
   `,
 })
