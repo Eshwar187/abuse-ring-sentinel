@@ -57,6 +57,18 @@ export const routes: Routes = [
         (m) => m.OnboardingComponent
       ),
   },
+  {
+    path: 'terms',
+    loadComponent: () =>
+      import('./features/legal/terms.component').then((m) => m.TermsComponent),
+  },
+  {
+    path: 'privacy',
+    loadComponent: () =>
+      import('./features/legal/privacy.component').then(
+        (m) => m.PrivacyComponent
+      ),
+  },
 
   // Authenticated Merchant App Routes (/app/*)
   {

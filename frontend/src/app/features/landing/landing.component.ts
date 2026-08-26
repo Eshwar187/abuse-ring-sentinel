@@ -391,17 +391,72 @@ console.log(response.data.reasons);    // ['LOW_RISK_ESTABLISHED_ACCOUNT']</code
         </div>
       </section>
 
-      <!-- Footer -->
-      <footer class="mt-auto border-t border-slate-800/80 bg-[#060A14] py-10 px-4 sm:px-6 lg:px-8 text-center text-xs text-slate-400 z-10">
-        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div class="flex items-center gap-3">
-            <img src="vigilai_logo.jpg" alt="VigilAI Logo" class="w-6 h-6 rounded-md object-cover border border-cyan-500/30" />
-            <span class="font-bold text-cyan-400">VigilAI</span>
-            <span>—</span>
-            <span>Created by <strong class="text-white">Eshwar J</strong> (<a href="https://github.com/Eshwar187" target="_blank" class="text-cyan-300 hover:underline">&#64;Eshwar187</a>)</span>
+      <!-- Enterprise Footer with Terms, Privacy & Compliance -->
+      <footer class="mt-auto border-t border-slate-800/80 bg-[#060A14] pt-14 pb-10 px-4 sm:px-6 lg:px-8 text-xs text-slate-400 z-10">
+        <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 pb-12 border-b border-slate-800/80">
+          
+          <!-- Column 1: Brand & Mission -->
+          <div class="lg:col-span-2 space-y-4">
+            <div class="flex items-center gap-3">
+              <img src="vigilai_logo.jpg" alt="VigilAI Logo" class="w-8 h-8 rounded-xl object-cover border border-cyan-500/40" />
+              <span class="text-base font-extrabold text-white">VigilAI <span class="text-xs text-cyan-400 font-mono font-bold">PRO</span></span>
+            </div>
+            <p class="text-xs text-slate-400 leading-relaxed max-w-sm">
+              Autonomous AI Cybersecurity and Heterogeneous Entity Collusion Defense. Stopping distributed Sybil rings, voucher abuse, and card testing with zero point-in-time leakage.
+            </p>
+            <div class="flex items-center gap-2 text-[11px] font-mono text-emerald-400">
+              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span>All Systems Operational (FastAPI + Model F + Aiven Cloud)</span>
+            </div>
           </div>
-          <div class="font-mono text-slate-500">
-            Powered by Scikit-Learn GBDT, FastAPI, Aiven MySQL & Angular 20.
+
+          <!-- Column 2: Product & Engine -->
+          <div class="space-y-3">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-white font-mono">Platform</h4>
+            <ul class="space-y-2 text-xs">
+              <li><a href="#how-it-works" class="hover:text-cyan-300 transition-colors">How It Works</a></li>
+              <li><a routerLink="/demo" class="hover:text-cyan-300 transition-colors">6.9k Benchmark Demo</a></li>
+              <li><a href="#api" class="hover:text-cyan-300 transition-colors">Developer API</a></li>
+              <li><a routerLink="/login" class="hover:text-cyan-300 transition-colors">Merchant Console</a></li>
+              <li><a href="#about-developer" class="hover:text-cyan-300 transition-colors">Meet the Architect</a></li>
+            </ul>
+          </div>
+
+          <!-- Column 3: Security & Architecture -->
+          <div class="space-y-3">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-white font-mono">Security & AI</h4>
+            <ul class="space-y-2 text-xs">
+              <li><span class="text-slate-400">Model F (&tau;* = 0.90)</span></li>
+              <li><span class="text-slate-400">Heterogeneous Entity Graphs</span></li>
+              <li><span class="text-slate-400">TLS 1.3 Transport Encryption</span></li>
+              <li><span class="text-slate-400">Strict Tenant Data Isolation</span></li>
+              <li><span class="text-slate-400">Zero-Leakage Causality</span></li>
+            </ul>
+          </div>
+
+          <!-- Column 4: Legal & Compliance -->
+          <div class="space-y-3">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-white font-mono">Legal & Policies</h4>
+            <ul class="space-y-2 text-xs">
+              <li><a routerLink="/terms" class="hover:text-cyan-300 transition-colors font-medium">Terms of Service</a></li>
+              <li><a routerLink="/privacy" class="hover:text-cyan-300 transition-colors font-medium">Privacy Policy</a></li>
+              <li><a routerLink="/terms" class="hover:text-cyan-300 transition-colors">Acceptable Use Policy</a></li>
+              <li><a routerLink="/privacy" class="hover:text-cyan-300 transition-colors">GDPR & DPDP Compliance</a></li>
+              <li><a href="mailto:jeshwar.work@gmail.com" class="hover:text-cyan-300 transition-colors">Security Disclosures</a></li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Bottom Copyright Row -->
+        <div class="max-w-7xl mx-auto pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-500 font-mono">
+          <div>
+            &copy; 2026 VigilAI Inc. All rights reserved. Architected by <strong class="text-slate-300">Eshwar J</strong>.
+          </div>
+          <div class="flex items-center gap-6">
+            <a routerLink="/terms" class="hover:text-cyan-300 transition-colors">Terms</a>
+            <a routerLink="/privacy" class="hover:text-cyan-300 transition-colors">Privacy</a>
+            <a href="mailto:jeshwar.work@gmail.com" class="hover:text-cyan-300 transition-colors">Contact Support</a>
+            <a href="https://github.com/Eshwar187/abuse-ring-sentinel" target="_blank" class="hover:text-cyan-300 transition-colors">GitHub</a>
           </div>
         </div>
       </footer>

@@ -203,10 +203,18 @@ import { CyberBackgroundComponent } from '../../shared/components/cyber-backgrou
                     </span>
                   </button>
                 </div>
+
+                <!-- Terms & Privacy Agreement Notice -->
+                <div class="mt-3 text-center text-[11px] text-slate-400 leading-relaxed">
+                  By creating an account, you agree to our 
+                  <a routerLink="/terms" target="_blank" class="text-cyan-400 hover:text-cyan-300 underline underline-offset-2 transition-colors">Terms of Service</a> 
+                  and 
+                  <a routerLink="/privacy" target="_blank" class="text-cyan-400 hover:text-cyan-300 underline underline-offset-2 transition-colors">Privacy Policy</a>.
+                </div>
               </form>
 
               <!-- Sign In Link -->
-              <div class="mt-6 text-center text-xs text-slate-400">
+              <div class="mt-5 text-center text-xs text-slate-400">
                 <span>Already have an account? </span>
                 <a routerLink="/login" class="text-cyan-400 hover:text-cyan-300 font-semibold transition-colors">
                   Sign in

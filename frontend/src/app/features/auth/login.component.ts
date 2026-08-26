@@ -144,7 +144,7 @@ import { CyberBackgroundComponent } from '../../shared/components/cyber-backgrou
           </div>
 
           <!-- Benchmark Demo Link -->
-          <div class="mt-4 pt-4 border-t border-slate-800/80 text-center">
+          <div class="mt-4 pt-4 border-t border-slate-800/80 text-center space-y-2">
             <a
               routerLink="/demo"
               class="inline-flex items-center gap-1.5 text-xs text-cyan-400 hover:text-cyan-300 font-semibold transition-colors"
@@ -152,6 +152,11 @@ import { CyberBackgroundComponent } from '../../shared/components/cyber-backgrou
               <span>▶</span>
               <span>Explore 6.9K Historical Benchmark Demo</span>
             </a>
+            <div class="text-[10px] text-slate-500 font-mono">
+              Protected by Enterprise Shield · 
+              <a routerLink="/terms" target="_blank" class="text-slate-400 hover:text-cyan-300 underline transition-colors">Terms</a> · 
+              <a routerLink="/privacy" target="_blank" class="text-slate-400 hover:text-cyan-300 underline transition-colors">Privacy</a>
+            </div>
           </div>
 
           <!-- Footer Backend API Target Bar -->
