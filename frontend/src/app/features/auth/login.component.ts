@@ -10,30 +10,77 @@ import { ApiService } from '../../core/services/api.service';
   standalone: true,
   imports: [CommonModule, FormsModule, RouterLink],
   template: `
-    <div class="min-h-screen bg-[#030712] text-slate-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans selection:bg-cyan-500 selection:text-black">
-      <div class="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        <a routerLink="/" class="inline-flex items-center gap-3">
-          <img src="vigilai_logo.jpg" alt="VigilAI Logo" class="w-12 h-12 rounded-2xl shadow-xl shadow-cyan-500/25 object-cover border border-cyan-500/40" />
-          <div class="text-left">
-            <span class="text-2xl font-black tracking-tight text-white flex items-center gap-2">
-              <span>VigilAI</span>
-              <span class="text-[9px] px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-mono border border-cyan-500/30">PRO</span>
+    <div class="min-h-screen bg-[#030712] text-slate-100 flex flex-col justify-center items-center py-10 px-4 sm:px-6 lg:px-8 font-sans selection:bg-cyan-500 selection:text-black relative overflow-hidden">
+      <!-- Background Cyber Waves & Grid -->
+      <div class="absolute inset-0 pointer-events-none z-0">
+        <!-- Ambient glows -->
+        <div class="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-cyan-600/10 rounded-full blur-[140px]"></div>
+        <div class="absolute bottom-1/4 right-1/4 w-[600px] h-[600px] bg-purple-600/10 rounded-full blur-[140px]"></div>
+        <div class="absolute inset-0 bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:24px_24px] opacity-20"></div>
+
+        <!-- Glowing Neon Waves at bottom -->
+        <div class="absolute bottom-0 left-0 right-0 h-72 bg-gradient-to-t from-cyan-500/10 via-purple-500/5 to-transparent pointer-events-none"></div>
+      </div>
+
+      <!-- Left Holographic Decorative Shield (Visible on large screens) -->
+      <div class="hidden lg:flex flex-col items-center justify-center absolute left-12 xl:left-24 top-1/2 -translate-y-1/2 pointer-events-none z-10 select-none animate-pulse-slow">
+        <!-- Floating Wireframe Cube Top -->
+        <div class="w-10 h-10 border border-cyan-500/40 rotate-45 rounded-lg mb-6 shadow-[0_0_20px_rgba(6,182,212,0.2)]"></div>
+        
+        <!-- 3D Glowing Shield Hologram -->
+        <div class="relative w-44 h-52 flex items-center justify-center">
+          <div class="absolute inset-0 bg-gradient-to-b from-cyan-500/20 via-purple-500/20 to-transparent rounded-3xl blur-xl"></div>
+          <div class="relative w-40 h-48 border-2 border-cyan-400/60 rounded-3xl bg-[#080D1A]/80 backdrop-blur-md flex items-center justify-center shadow-[0_0_35px_rgba(6,182,212,0.3)]">
+            <!-- Shield SVG Emblem -->
+            <svg class="w-24 h-24 text-cyan-400 filter drop-shadow-[0_0_12px_rgba(6,182,212,0.6)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+          </div>
+        </div>
+
+        <!-- Floating Wireframe Cube Bottom -->
+        <div class="w-8 h-8 border border-purple-500/40 rotate-12 rounded-lg mt-6 shadow-[0_0_15px_rgba(168,85,247,0.2)]"></div>
+      </div>
+
+      <!-- Right Floating Holographic Cubes (Visible on large screens) -->
+      <div class="hidden lg:flex flex-col items-center justify-center absolute right-12 xl:right-24 top-1/2 -translate-y-1/2 pointer-events-none z-10 select-none animate-pulse-slow">
+        <div class="w-12 h-12 border border-blue-500/40 rotate-45 rounded-xl mb-8 shadow-[0_0_20px_rgba(59,130,246,0.2)]"></div>
+        <div class="w-20 h-20 border-2 border-cyan-400/50 rotate-12 rounded-2xl bg-[#0B132B]/40 backdrop-blur-sm flex items-center justify-center shadow-[0_0_30px_rgba(6,182,212,0.25)]">
+          <div class="w-8 h-8 border border-purple-400/60 rotate-45 rounded-lg"></div>
+        </div>
+        <div class="w-10 h-10 border border-purple-500/40 -rotate-12 rounded-lg mt-8 shadow-[0_0_20px_rgba(168,85,247,0.2)]"></div>
+      </div>
+
+      <!-- Top Header Brand Emblem -->
+      <div class="relative z-20 text-center mb-6">
+        <a routerLink="/" class="inline-flex items-center gap-3 group">
+          <div class="relative">
+            <img src="vigilai_logo.jpg" alt="VigilAI Logo" class="w-12 h-12 rounded-2xl shadow-xl shadow-cyan-500/30 object-cover border border-cyan-500/50 group-hover:scale-105 transition-all" />
+            <span class="absolute -bottom-1 -right-1 flex h-3.5 w-3.5">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-cyan-500 border-2 border-[#030712]"></span>
             </span>
+          </div>
+          <div class="text-left">
+            <div class="flex items-center gap-2">
+              <span class="text-2xl font-extrabold tracking-tight text-white group-hover:text-cyan-300 transition-colors">VigilAI</span>
+              <span class="text-[9px] px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 font-mono border border-cyan-500/40 font-bold">PRO</span>
+            </div>
             <p class="text-[10px] text-slate-400 font-mono">Autonomous Fraud Defense</p>
           </div>
         </a>
-        <h2 class="mt-6 text-2xl font-bold tracking-tight text-white">
-          Sign in to Merchant Risk Console
-        </h2>
-        <p class="mt-2 text-xs text-slate-400">
-          Or <a routerLink="/signup" class="font-semibold text-cyan-400 hover:text-cyan-300">create a new merchant account</a>
-        </p>
       </div>
 
-      <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md px-4 sm:px-0">
-        <div class="bg-[#0B132B]/90 border border-slate-800 py-8 px-6 sm:px-10 shadow-2xl rounded-3xl backdrop-blur-xl">
-          <!-- Error Alert -->
-          <div *ngIf="errorMessage()" class="mb-5 p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-xs text-rose-300 flex items-start gap-3 shadow-[0_0_15px_rgba(244,63,94,0.15)]">
+      <!-- Main Login Glassmorphic Container -->
+      <div class="relative z-20 w-full max-w-md">
+        <div class="bg-[#0B132B]/85 border border-slate-800/90 rounded-3xl p-8 sm:p-10 shadow-2xl backdrop-blur-2xl relative overflow-hidden">
+          <div class="text-center mb-7">
+            <h2 class="text-2xl font-extrabold text-white tracking-tight">Welcome Back</h2>
+            <p class="text-xs text-slate-400 mt-1">Sign in to your merchant risk console</p>
+          </div>
+
+          <!-- Error Alert Banner -->
+          <div *ngIf="errorMessage()" class="mb-5 p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-xs text-rose-300 flex items-start gap-3 shadow-[0_0_15px_rgba(244,63,94,0.15)] animate-fade-in">
             <svg class="w-4 h-4 text-rose-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
@@ -42,23 +89,21 @@ import { ApiService } from '../../core/services/api.service';
 
           <form (ngSubmit)="onLogin()" class="space-y-4">
             <div>
-              <label class="block text-xs font-semibold text-slate-300 mb-1">Work Email</label>
-              <div class="relative">
-                <input
-                  type="email"
-                  [(ngModel)]="email"
-                  name="email"
-                  required
-                  placeholder="admin@enterprise.com"
-                  class="w-full bg-[#030712] border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/10 focus:outline-none transition-all font-sans"
-                />
-              </div>
+              <label class="block text-xs font-semibold text-slate-300 mb-1.5 font-sans">Work Email</label>
+              <input
+                type="email"
+                [(ngModel)]="email"
+                name="email"
+                required
+                placeholder="admin@enterprise.com"
+                class="w-full bg-[#030712] border border-slate-800 hover:border-slate-700 rounded-xl px-4 py-3 text-xs text-slate-100 placeholder-slate-500 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 focus:outline-none transition-all font-sans"
+              />
             </div>
 
             <div>
-              <div class="flex items-center justify-between mb-1">
-                <label class="block text-xs font-semibold text-slate-300">Password</label>
-                <a routerLink="/forgot-password" class="text-[11px] text-slate-400 hover:text-cyan-400 transition-colors">Forgot password?</a>
+              <div class="flex items-center justify-between mb-1.5">
+                <label class="block text-xs font-semibold text-slate-300 font-sans">Password</label>
+                <a routerLink="/forgot-password" class="text-[11px] text-slate-400 hover:text-cyan-300 transition-colors">Forgot password?</a>
               </div>
               <input
                 type="password"
@@ -66,68 +111,91 @@ import { ApiService } from '../../core/services/api.service';
                 name="password"
                 required
                 placeholder="••••••••••••"
-                class="w-full bg-[#030712] border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/10 focus:outline-none transition-all font-sans"
+                class="w-full bg-[#030712] border border-slate-800 hover:border-slate-700 rounded-xl px-4 py-3 text-xs text-slate-100 placeholder-slate-500 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 focus:outline-none transition-all font-sans"
               />
             </div>
 
-            <div class="pt-2">
+            <!-- Remember Me Checkbox -->
+            <div class="flex items-center gap-2 pt-1">
+              <input
+                type="checkbox"
+                id="rememberMe"
+                [(ngModel)]="rememberMe"
+                name="rememberMe"
+                class="w-4 h-4 rounded bg-[#030712] border-slate-700 text-cyan-500 focus:ring-cyan-500/20 focus:ring-offset-0 focus:outline-none cursor-pointer"
+              />
+              <label for="rememberMe" class="text-xs text-slate-400 cursor-pointer select-none">Remember me</label>
+            </div>
+
+            <!-- Submit Button (Gradient Cyan to Purple) -->
+            <div class="pt-3">
               <button
                 type="submit"
                 [disabled]="isLoading()"
-                class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black text-xs font-bold shadow-lg shadow-cyan-500/25 transition-all flex items-center justify-center gap-2 disabled:opacity-50 hover:scale-[1.01]"
+                class="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-600 hover:from-cyan-300 hover:via-blue-400 hover:to-indigo-500 text-black font-extrabold text-xs shadow-xl shadow-cyan-500/25 transition-all flex items-center justify-center gap-2 disabled:opacity-50 hover:scale-[1.01] active:scale-[0.99]"
               >
                 <span *ngIf="!isLoading()">Sign In →</span>
-                <span *ngIf="isLoading()" class="flex items-center gap-2">
-                  <span class="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin"></span>
-                  <span>Verifying Credentials...</span>
+                <span *ngIf="isLoading()" class="flex items-center gap-2 text-black">
+                  <span class="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></span>
+                  <span>Signing In...</span>
                 </span>
               </button>
             </div>
           </form>
 
-          <!-- Quick Switcher to Historical Demo -->
-          <div class="mt-6 pt-6 border-t border-slate-800/80 text-center">
-            <a
-              routerLink="/demo"
-              class="inline-flex items-center gap-2 text-xs text-amber-300 hover:text-amber-200 font-semibold transition-colors"
-            >
-              <span>▶ Explore 6.9k Historical Benchmark Demo</span>
+          <!-- New Merchant Link -->
+          <div class="mt-6 text-center text-xs text-slate-400">
+            <span>New to VigilAI? </span>
+            <a routerLink="/signup" class="text-cyan-400 hover:text-cyan-300 font-semibold transition-colors">
+              Create your merchant account
             </a>
           </div>
 
-          <!-- Backend API URL Config Accordion -->
-          <div class="mt-4 pt-4 border-t border-slate-800/60">
+          <!-- Benchmark Demo Link -->
+          <div class="mt-4 pt-4 border-t border-slate-800/80 text-center">
+            <a
+              routerLink="/demo"
+              class="inline-flex items-center gap-1.5 text-xs text-cyan-400 hover:text-cyan-300 font-semibold transition-colors"
+            >
+              <span>▶</span>
+              <span>Explore 6.9K Historical Benchmark Demo</span>
+            </a>
+          </div>
+
+          <!-- Footer Backend API Target Bar -->
+          <div class="mt-4 pt-3 border-t border-slate-800/60 flex items-center justify-between text-[11px] font-mono text-slate-400">
+            <div class="flex items-center gap-1.5">
+              <span>Target Backend API</span>
+              <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                Connected
+              </span>
+            </div>
             <button
               type="button"
               (click)="showApiConfig.set(!showApiConfig())"
-              class="w-full flex items-center justify-between text-[11px] text-slate-400 hover:text-cyan-300 transition-colors font-mono"
+              class="text-cyan-400 hover:text-cyan-300 transition-colors"
             >
-              <span class="flex items-center gap-1.5">
-                <svg class="w-3.5 h-3.5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
-                </svg>
-                <span>Target Backend API</span>
-              </span>
-              <span>{{ showApiConfig() ? '▲ Hide' : '▼ Configure' }}</span>
+              Configure →
             </button>
+          </div>
 
-            <div *ngIf="showApiConfig()" class="mt-3 space-y-2 animate-fade-in">
-              <input
-                type="text"
-                [(ngModel)]="customApiUrl"
-                placeholder="https://vigilai-api.onrender.com"
-                class="w-full bg-[#030712] border border-slate-800 rounded-lg px-3 py-1.5 text-[11px] text-cyan-300 font-mono focus:border-cyan-500 focus:outline-none"
-              />
-              <div class="flex items-center justify-between text-[10px]">
-                <button
-                  type="button"
-                  (click)="saveCustomApiUrl()"
-                  class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 font-mono transition-colors"
-                >
-                  Save Endpoint
-                </button>
-                <span class="text-slate-500 font-mono">Current: {{ currentBaseUrl }}</span>
-              </div>
+          <!-- Hidden Config Input when clicked -->
+          <div *ngIf="showApiConfig()" class="mt-3 pt-3 border-t border-slate-800/40 space-y-2 animate-fade-in">
+            <input
+              type="text"
+              [(ngModel)]="customApiUrl"
+              placeholder="https://vigil-ai-f0ev.onrender.com"
+              class="w-full bg-[#030712] border border-slate-800 rounded-lg px-3 py-1.5 text-[11px] text-cyan-300 font-mono focus:border-cyan-500 focus:outline-none"
+            />
+            <div class="flex items-center justify-between text-[10px]">
+              <button
+                type="button"
+                (click)="saveCustomApiUrl()"
+                class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 font-mono transition-colors"
+              >
+                Save Endpoint
+              </button>
+              <span class="text-slate-500 font-mono truncate max-w-[200px]">{{ currentBaseUrl }}</span>
             </div>
           </div>
         </div>
@@ -143,6 +211,7 @@ export class LoginComponent implements OnInit {
 
   email = '';
   password = '';
+  rememberMe = true;
   customApiUrl = '';
 
   readonly isLoading = signal(false);
@@ -150,7 +219,7 @@ export class LoginComponent implements OnInit {
   readonly showApiConfig = signal(false);
 
   get currentBaseUrl(): string {
-    return this.api.baseUrl || 'https://vigilai-api.onrender.com';
+    return this.api.baseUrl || 'https://vigil-ai-f0ev.onrender.com';
   }
 
   ngOnInit() {
