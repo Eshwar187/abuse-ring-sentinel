@@ -42,7 +42,6 @@ class ModelServingService:
     def _load_model(self):
         """Loads serialized model artifact from disk."""
         if not os.path.exists(self.model_path):
-            # Fallback check for alternate candidate naming
             alt_path = "models/model_candidate.joblib"
             if os.path.exists(alt_path):
                 self.model_path = alt_path
@@ -50,6 +49,18 @@ class ModelServingService:
                 raise FileNotFoundError(
                     f"Model artifact not found at {self.model_path}. Please ensure Phase 3 models are generated."
                 )
+
+        # Register Cython / scikit-learn module aliases to ensure cross-platform unpickling (e.g. Render / Linux)
+        import sys
+        try:
+            import sklearn._loss as skl_loss
+            sys.modules['_loss'] = skl_loss
+        except Exception:
+            try:
+                import sklearn.ensemble._hist_gradient_boosting._loss as hgb_loss
+                sys.modules['_loss'] = hgb_loss
+            except Exception:
+                pass
 
         self.model = joblib.load(self.model_path)
 

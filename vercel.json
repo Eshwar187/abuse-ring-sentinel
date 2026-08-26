@@ -6,11 +6,11 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://vigilai-api.onrender.com/api/:path*"
+      "destination": "https://vigil-ai-f0ev.onrender.com/api/:path*"
     },
     {
       "source": "/health",
-      "destination": "https://vigilai-api.onrender.com/health"
+      "destination": "https://vigil-ai-f0ev.onrender.com/health"
     },
     {
       "source": "/(.*)",

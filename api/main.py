@@ -66,6 +66,18 @@ async def preflight_options_handler(request: Request, full_path: str):
         },
     )
 
+# Register Cython / scikit-learn module aliases to ensure cross-platform unpickling (e.g. Render / Linux)
+import sys
+try:
+    import sklearn._loss as skl_loss
+    sys.modules['_loss'] = skl_loss
+except Exception:
+    try:
+        import sklearn.ensemble._hist_gradient_boosting._loss as hgb_loss
+        sys.modules['_loss'] = hgb_loss
+    except Exception:
+        pass
+
 # Global Singletons
 try:
     decision_engine = RiskDecisionEngine(model_path=config.model_path)
