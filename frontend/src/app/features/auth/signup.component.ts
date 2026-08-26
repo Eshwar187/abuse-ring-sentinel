@@ -2,14 +2,13 @@ import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { LucideAngularModule, Shield, Key, Copy, Check, ArrowRight, AlertTriangle, Lock, Settings, Server } from 'lucide-angular';
 import { AuthService } from '../../core/services/auth.service';
 import { ApiService } from '../../core/services/api.service';
 
 @Component({
   selector: 'app-signup',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, LucideAngularModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   template: `
     <div class="min-h-screen bg-[#030712] text-slate-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans selection:bg-cyan-500 selection:text-black">
       <div class="sm:mx-auto sm:w-full sm:max-w-md text-center">
@@ -36,7 +35,9 @@ import { ApiService } from '../../core/services/api.service';
         <div *ngIf="!createdApiKey(); else apiKeySuccessState" class="bg-[#0B132B]/90 border border-slate-800 py-8 px-6 sm:px-10 shadow-2xl rounded-3xl backdrop-blur-xl">
           <!-- Error Alert -->
           <div *ngIf="errorMessage()" class="mb-5 p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-xs text-rose-300 flex items-start gap-3 shadow-[0_0_15px_rgba(244,63,94,0.15)]">
-            <lucide-icon name="alert-triangle" [size]="16" class="text-rose-400 shrink-0 mt-0.5"></lucide-icon>
+            <svg class="w-4 h-4 text-rose-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
             <div class="leading-relaxed">{{ errorMessage() }}</div>
           </div>
 
@@ -113,7 +114,9 @@ import { ApiService } from '../../core/services/api.service';
               class="w-full flex items-center justify-between text-[11px] text-slate-400 hover:text-cyan-300 transition-colors font-mono"
             >
               <span class="flex items-center gap-1.5">
-                <lucide-icon name="server" [size]="12"></lucide-icon>
+                <svg class="w-3.5 h-3.5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
+                </svg>
                 <span>Target Backend API</span>
               </span>
               <span>{{ showApiConfig() ? '▲ Hide' : '▼ Configure' }}</span>
@@ -145,7 +148,9 @@ import { ApiService } from '../../core/services/api.service';
           <div class="bg-[#0B132B]/90 border border-emerald-500/40 py-8 px-6 sm:px-10 shadow-2xl rounded-3xl space-y-6 animate-fade-in backdrop-blur-xl">
             <div class="text-center space-y-2">
               <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center mx-auto shadow-[0_0_20px_rgba(16,185,129,0.2)]">
-                <lucide-icon name="check" [size]="24"></lucide-icon>
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
               </div>
               <h3 class="text-lg font-bold text-white tracking-tight">Merchant Tenant Provisioned</h3>
               <p class="text-xs text-slate-400">
@@ -157,7 +162,7 @@ import { ApiService } from '../../core/services/api.service';
             <div class="p-4 rounded-xl bg-[#030712] border border-slate-800 space-y-2">
               <div class="flex items-center justify-between text-[10px] text-slate-400 font-mono uppercase tracking-wider">
                 <span>Primary Production API Key</span>
-                <span class="text-emerald-400">ACTIVE</span>
+                <span class="text-emerald-400 font-bold">ACTIVE</span>
               </div>
               <div class="flex items-center gap-2">
                 <code class="text-xs text-cyan-300 font-mono bg-slate-900 px-3 py-2 rounded-lg flex-1 overflow-x-auto select-all border border-slate-800">
@@ -169,8 +174,12 @@ import { ApiService } from '../../core/services/api.service';
                   class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors"
                   title="Copy API Key"
                 >
-                  <lucide-icon *ngIf="!isCopied()" name="copy" [size]="14"></lucide-icon>
-                  <lucide-icon *ngIf="isCopied()" name="check" [size]="14" class="text-emerald-400"></lucide-icon>
+                  <svg *ngIf="!isCopied()" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10a2 2 0 00-2 2v6a2 2 0 002 2h8a2 2 0 002-2v-6a2 2 0 00-2-2z" />
+                  </svg>
+                  <svg *ngIf="isCopied()" class="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
                 </button>
               </div>
             </div>
@@ -181,8 +190,7 @@ import { ApiService } from '../../core/services/api.service';
                 (click)="continueToOnboarding()"
                 class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black text-xs font-bold shadow-lg shadow-cyan-500/25 transition-all flex items-center justify-center gap-2"
               >
-                <span>Continue to Dashboard & Gateway Setup</span>
-                <lucide-icon name="arrow-right" [size]="14"></lucide-icon>
+                <span>Continue to Dashboard & Gateway Setup →</span>
               </button>
             </div>
           </div>

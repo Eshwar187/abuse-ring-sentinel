@@ -1,32 +1,11 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import {
-  LucideAngularModule,
-  Shield,
-  Zap,
-  Activity,
-  Layers,
-  ArrowRight,
-  Lock,
-  Server,
-  Code2,
-  CheckCircle2,
-  AlertTriangle,
-  Play,
-  Cpu,
-  Database,
-  Share2,
-  Terminal,
-  ChevronRight,
-  Flame,
-  Key,
-} from 'lucide-angular';
 
 @Component({
   selector: 'app-landing-page',
   standalone: true,
-  imports: [CommonModule, RouterLink, LucideAngularModule],
+  imports: [CommonModule, RouterLink],
   template: `
     <div class="min-h-screen bg-[#030712] text-slate-100 flex flex-col font-sans selection:bg-cyan-500 selection:text-black overflow-x-hidden">
       <!-- Cyber Ambient Glow Mesh -->
@@ -60,7 +39,6 @@ import {
 
           <nav class="hidden md:flex items-center gap-8 text-xs font-medium text-slate-400">
             <a href="#how-it-works" class="hover:text-cyan-300 transition-colors">How It Works</a>
-            <a href="#graph-intelligence" class="hover:text-cyan-300 transition-colors">Graph Intelligence</a>
             <a href="#api" class="hover:text-cyan-300 transition-colors">Developer API</a>
             <a href="#architecture" class="hover:text-cyan-300 transition-colors">MySQL Architecture</a>
           </nav>
@@ -70,8 +48,7 @@ import {
               routerLink="/demo"
               class="hidden sm:inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-xs font-semibold text-amber-300 transition-all shadow-sm"
             >
-              <lucide-icon name="play" [size]="12" class="text-amber-400"></lucide-icon>
-              <span>6.9k Benchmark Demo</span>
+              <span>▶ 6.9k Benchmark Demo</span>
             </a>
             <a
               routerLink="/login"
@@ -117,15 +94,13 @@ import {
             routerLink="/signup"
             class="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-4 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black text-sm font-bold shadow-2xl shadow-cyan-500/30 transition-all hover:scale-105"
           >
-            <span>Start Free Integration</span>
-            <lucide-icon name="arrow-right" [size]="16"></lucide-icon>
+            <span>Start Free Integration →</span>
           </a>
           <a
             routerLink="/demo"
             class="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-4 rounded-2xl bg-[#0B132B] hover:bg-[#111C38] border border-slate-700 hover:border-slate-600 text-slate-200 text-sm font-semibold transition-all hover:scale-105 shadow-xl"
           >
-            <lucide-icon name="play" [size]="16" class="text-amber-400"></lucide-icon>
-            <span>Launch Benchmark Demo (6.9k)</span>
+            <span>▶ Launch Benchmark Demo (6.9k)</span>
           </a>
         </div>
 
@@ -152,7 +127,9 @@ import {
             <!-- Flawed Legacy Approach -->
             <div class="bg-[#0B132B]/60 border border-rose-500/20 rounded-3xl p-8 backdrop-blur-xl shadow-2xl relative overflow-hidden">
               <div class="flex items-center gap-3 text-rose-400 font-bold text-sm uppercase tracking-wider mb-6 font-mono">
-                <lucide-icon name="alert-triangle" [size]="20"></lucide-icon>
+                <svg class="w-5 h-5 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
                 <span>Traditional Per-Account Rules</span>
               </div>
               <ul class="space-y-4 text-xs text-slate-300">
@@ -177,7 +154,9 @@ import {
             <!-- VigilAI Graph Defense -->
             <div class="bg-gradient-to-br from-[#0B132B] to-[#080D1A] border border-cyan-500/30 rounded-3xl p-8 backdrop-blur-xl shadow-2xl relative overflow-hidden">
               <div class="flex items-center gap-3 text-cyan-300 font-bold text-sm uppercase tracking-wider mb-6 font-mono">
-                <lucide-icon name="shield" [size]="20" class="text-cyan-400"></lucide-icon>
+                <svg class="w-5 h-5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
                 <span>VigilAI Heterogeneous Graph Engine</span>
               </div>
               <ul class="space-y-4 text-xs text-slate-300">
@@ -206,8 +185,7 @@ import {
       <section class="py-20 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto z-10" id="api">
         <div class="text-center max-w-2xl mx-auto mb-12">
           <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 text-xs font-mono mb-4">
-            <lucide-icon name="terminal" [size]="12"></lucide-icon>
-            <span>INTEGRATION IN UNDER 5 MINUTES</span>
+            <span>⚡ INTEGRATION IN UNDER 5 MINUTES</span>
           </div>
           <h2 class="text-3xl font-extrabold text-white tracking-tight">API-First Developer Architecture</h2>
           <p class="text-xs text-slate-400 mt-2">Send a single JSON payload from your checkout backend to receive instantaneous risk decisions.</p>

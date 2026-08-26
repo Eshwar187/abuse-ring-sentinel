@@ -2,14 +2,13 @@ import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
-import { LucideAngularModule, Shield, Lock, Mail, ArrowRight, AlertTriangle, Play, Server, Settings } from 'lucide-angular';
 import { AuthService } from '../../core/services/auth.service';
 import { ApiService } from '../../core/services/api.service';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, LucideAngularModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   template: `
     <div class="min-h-screen bg-[#030712] text-slate-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans selection:bg-cyan-500 selection:text-black">
       <div class="sm:mx-auto sm:w-full sm:max-w-md text-center">
@@ -35,7 +34,9 @@ import { ApiService } from '../../core/services/api.service';
         <div class="bg-[#0B132B]/90 border border-slate-800 py-8 px-6 sm:px-10 shadow-2xl rounded-3xl backdrop-blur-xl">
           <!-- Error Alert -->
           <div *ngIf="errorMessage()" class="mb-5 p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-xs text-rose-300 flex items-start gap-3 shadow-[0_0_15px_rgba(244,63,94,0.15)]">
-            <lucide-icon name="alert-triangle" [size]="16" class="text-rose-400 shrink-0 mt-0.5"></lucide-icon>
+            <svg class="w-4 h-4 text-rose-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
             <div class="leading-relaxed">{{ errorMessage() }}</div>
           </div>
 
@@ -90,8 +91,7 @@ import { ApiService } from '../../core/services/api.service';
               routerLink="/demo"
               class="inline-flex items-center gap-2 text-xs text-amber-300 hover:text-amber-200 font-semibold transition-colors"
             >
-              <lucide-icon name="play" [size]="12" class="text-amber-400"></lucide-icon>
-              <span>Explore 6.9k Historical Benchmark Demo</span>
+              <span>▶ Explore 6.9k Historical Benchmark Demo</span>
             </a>
           </div>
 
@@ -103,7 +103,9 @@ import { ApiService } from '../../core/services/api.service';
               class="w-full flex items-center justify-between text-[11px] text-slate-400 hover:text-cyan-300 transition-colors font-mono"
             >
               <span class="flex items-center gap-1.5">
-                <lucide-icon name="server" [size]="12"></lucide-icon>
+                <svg class="w-3.5 h-3.5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
+                </svg>
                 <span>Target Backend API</span>
               </span>
               <span>{{ showApiConfig() ? '▲ Hide' : '▼ Configure' }}</span>

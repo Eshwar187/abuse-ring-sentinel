@@ -43,11 +43,28 @@ app = FastAPI(
 # CORS Configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=config.cors_origins,
+    allow_origins=["*"],
+    allow_origin_regex=r"^https?://.*$",
     allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
+
+
+@app.options("/{full_path:path}")
+async def preflight_options_handler(request: Request, full_path: str):
+    """Explicitly handles preflight OPTIONS requests for cross-origin browser clients."""
+    origin = request.headers.get("origin", "*")
+    return Response(
+        status_code=200,
+        headers={
+            "Access-Control-Allow-Origin": origin,
+            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD",
+            "Access-Control-Allow-Headers": "*",
+            "Access-Control-Allow-Credentials": "true",
+        },
+    )
 
 # Global Singletons
 try:
