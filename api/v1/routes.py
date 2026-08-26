@@ -165,6 +165,14 @@ def create_v1_router(
         features_dict, data_quality = feature_adapter.extract_features(merchant_id, canonical_tx)
 
         # 4. Real Inference & Decision Engine Execution
+        nonlocal decision_engine
+        if decision_engine is None or decision_engine.model_service.model is None:
+            try:
+                from src.config import config
+                decision_engine = RiskDecisionEngine(model_path=config.model_path)
+            except Exception:
+                pass
+
         if decision_engine is None or decision_engine.model_service.model is None:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,

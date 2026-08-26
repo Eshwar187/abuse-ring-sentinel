@@ -317,15 +317,21 @@ async def generic_exception_handler(request: Request, exc: Exception):
 @app.get("/health", status_code=200)
 def health_check():
     """Returns system status, readiness, database connectivity, and frozen model metadata."""
+    global decision_engine, model_loaded, model_load_error
     if not model_loaded or decision_engine is None:
-        return JSONResponse(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            content={
-                "status": "degraded",
-                "message": "Risk model artifact unavailable.",
-                "error": model_load_error,
-            },
-        )
+        try:
+            decision_engine = RiskDecisionEngine(model_path=config.model_path)
+            model_loaded = True
+            model_load_error = None
+        except Exception as e:
+            return JSONResponse(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                content={
+                    "status": "degraded",
+                    "message": "Risk model artifact unavailable.",
+                    "error": str(e),
+                },
+            )
 
     try:
         from src.db.database import check_db_connection
@@ -373,13 +379,18 @@ def predict_transaction_risk(payload: PredictRequest, request: Request = None):
             detail="Rate limit exceeded. Please throttle your evaluation requests.",
         )
 
-    # Model Availability Guard
+    global decision_engine, model_loaded, model_load_error
     if not model_loaded or decision_engine is None:
-        metrics_tracker.record_error()
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Risk Decision Engine is currently unavailable (model artifact unready).",
-        )
+        try:
+            decision_engine = RiskDecisionEngine(model_path=config.model_path)
+            model_loaded = True
+            model_load_error = None
+        except Exception as e:
+            metrics_tracker.record_error()
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=f"Risk Decision Engine is currently unavailable ({e}).",
+            )
 
     try:
         decision_result = decision_engine.evaluate_features(
