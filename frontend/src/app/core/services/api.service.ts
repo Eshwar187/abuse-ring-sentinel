@@ -8,29 +8,38 @@ import { environment } from '../../../environments/environment';
 })
 export class ApiService {
   private http = inject(HttpClient);
-  readonly baseUrl = environment.apiBaseUrl;
+
+  get baseUrl(): string {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('sentinel_api_url');
+      if (stored && stored.trim()) return stored.trim().replace(/\/+$/, '');
+      const win = window as any;
+      if (win.__API_BASE_URL__) return win.__API_BASE_URL__.trim().replace(/\/+$/, '');
+    }
+    return environment.apiBaseUrl || '';
+  }
 
   get<T>(endpoint: string, options?: { headers?: Record<string, string> }): Observable<T> {
     return this.http.get<T>(`${this.baseUrl}${endpoint}`, options).pipe(
-      catchError(this.handleError)
+      catchError((err) => this.handleError(err))
     );
   }
 
   post<T>(endpoint: string, body: any, options?: { headers?: Record<string, string> }): Observable<T> {
     return this.http.post<T>(`${this.baseUrl}${endpoint}`, body, options).pipe(
-      catchError(this.handleError)
+      catchError((err) => this.handleError(err))
     );
   }
 
   put<T>(endpoint: string, body: any, options?: { headers?: Record<string, string> }): Observable<T> {
     return this.http.put<T>(`${this.baseUrl}${endpoint}`, body, options).pipe(
-      catchError(this.handleError)
+      catchError((err) => this.handleError(err))
     );
   }
 
   delete<T>(endpoint: string, options?: { headers?: Record<string, string> }): Observable<T> {
     return this.http.delete<T>(`${this.baseUrl}${endpoint}`, options).pipe(
-      catchError(this.handleError)
+      catchError((err) => this.handleError(err))
     );
   }
 
@@ -40,7 +49,7 @@ export class ApiService {
       errorMessage = `Client Error: ${error.error.message}`;
     } else {
       if (error.status === 0) {
-        errorMessage = 'Risk API service is currently unreachable. Please ensure FastAPI server is running on port 8000.';
+        errorMessage = 'Risk API service is currently unreachable. Please ensure the backend server is running and CORS is permitted.';
       } else if (error.error?.detail) {
         errorMessage = typeof error.error.detail === 'string' ? error.error.detail : JSON.stringify(error.error.detail);
       } else if (error.error?.message) {

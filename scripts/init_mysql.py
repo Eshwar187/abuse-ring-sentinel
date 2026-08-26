@@ -19,12 +19,14 @@ def create_database_if_not_exists(db_name: str) -> bool:
     """Attempts to connect to MySQL server root and create database if missing."""
     print(f"[*] Checking/creating database '{db_name}' on {config.mysql_host}:{config.mysql_port}...")
     try:
+        ssl_kwargs = {"ssl": {"ssl_mode": "REQUIRED"}} if config.mysql_ssl_mode in ("REQUIRED", "VERIFY_CA", "VERIFY_IDENTITY") or "aiven" in config.mysql_host else {}
         conn = pymysql.connect(
             host=config.mysql_host,
             port=config.mysql_port,
             user=config.mysql_user,
             password=config.mysql_password,
             charset="utf8mb4",
+            **ssl_kwargs,
         )
         with conn.cursor() as cursor:
             cursor.execute(f"CREATE DATABASE IF NOT EXISTS `{db_name}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;")

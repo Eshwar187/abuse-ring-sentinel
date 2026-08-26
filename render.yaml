@@ -1,0 +1,43 @@
+services:
+  - type: web
+    name: abuse-ring-sentinel-api
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn api.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: DB_ENGINE
+        value: mysql
+      - key: DATABASE_URL
+        sync: false
+      - key: MYSQL_HOST
+        value: mysql-354f0a6e-jeshwar2009-6d66.c.aivencloud.com
+      - key: MYSQL_PORT
+        value: "16261"
+      - key: MYSQL_DATABASE
+        value: defaultdb
+      - key: MYSQL_USER
+        value: avnadmin
+      - key: MYSQL_PASSWORD
+        sync: false
+      - key: MYSQL_SSL_MODE
+        value: REQUIRED
+      - key: MYSQL_POOL_SIZE
+        value: "10"
+      - key: MYSQL_MAX_OVERFLOW
+        value: "20"
+      - key: CORS_ORIGINS
+        value: "*"
+      - key: MODEL_PATH
+        value: models/model_f.joblib
+      - key: LOG_LEVEL
+        value: INFO
+      - key: RATE_LIMIT_PER_MINUTE
+        value: "120"
+      - key: MAX_PAYLOAD_SIZE_BYTES
+        value: "1048576"
+      - key: REQUEST_TIMEOUT_SECONDS
+        value: "30.0"

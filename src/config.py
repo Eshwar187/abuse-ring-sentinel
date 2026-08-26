@@ -2,13 +2,13 @@
 Production Configuration for Abuse-Ring Sentinel.
 
 Reads configuration settings from environment variables and .env file.
-Supports development, testing, and production runtime profiles.
+Supports development, testing, cloud, and production runtime profiles (including Aiven, AWS, Render).
 """
 
 import os
 from pathlib import Path
-from typing import List
-from urllib.parse import quote_plus
+from typing import List, Optional, Dict, Any
+from urllib.parse import quote_plus, urlparse, parse_qs, urlencode, urlunparse
 from dataclasses import dataclass, field
 
 # Automatically load .env file from project root if available
@@ -30,11 +30,11 @@ class AppConfig:
     host: str = field(default_factory=lambda: os.getenv("HOST", "0.0.0.0"))
     port: int = field(default_factory=lambda: int(os.getenv("PORT", "8000")))
     
-    # Comma-separated list of allowed CORS origins
+    # Comma-separated list of allowed CORS origins (allow all in prod/dev if specified, or specific frontend URLs)
     cors_origins_raw: str = field(
         default_factory=lambda: os.getenv(
             "CORS_ORIGINS",
-            "http://localhost:4200,http://localhost:8000,http://127.0.0.1:4200,http://127.0.0.1:8000"
+            "http://localhost:4200,http://localhost:8000,http://127.0.0.1:4200,http://127.0.0.1:8000,https://*.vercel.app,*"
         )
     )
     
@@ -49,13 +49,15 @@ class AppConfig:
     max_payload_size_bytes: int = field(default_factory=lambda: int(os.getenv("MAX_PAYLOAD_SIZE_BYTES", "1048576")))  # 1MB
     request_timeout_seconds: float = field(default_factory=lambda: float(os.getenv("REQUEST_TIMEOUT_SECONDS", "30.0")))
 
-    # Database Configuration (MySQL 8.x + PyMySQL)
+    # Database Configuration (MySQL 8.x / Aiven / RDS / PyMySQL)
     db_engine: str = field(default_factory=lambda: os.getenv("DB_ENGINE", "mysql").lower())
+    database_url: str = field(default_factory=lambda: os.getenv("DATABASE_URL") or os.getenv("MYSQL_URL") or "")
     mysql_host: str = field(default_factory=lambda: os.getenv("MYSQL_HOST", "127.0.0.1"))
     mysql_port: int = field(default_factory=lambda: int(os.getenv("MYSQL_PORT", "3306")))
-    mysql_database: str = field(default_factory=lambda: os.getenv("MYSQL_DATABASE", "abuse_ring_sentinel"))
+    mysql_database: str = field(default_factory=lambda: os.getenv("MYSQL_DATABASE", "defaultdb" if "aiven" in os.getenv("MYSQL_HOST", "") else "abuse_ring_sentinel"))
     mysql_user: str = field(default_factory=lambda: os.getenv("MYSQL_USER", "root"))
     mysql_password: str = field(default_factory=lambda: os.getenv("MYSQL_PASSWORD", ""))
+    mysql_ssl_mode: str = field(default_factory=lambda: os.getenv("MYSQL_SSL_MODE", "REQUIRED" if "aiven" in os.getenv("MYSQL_HOST", "") or "aiven" in (os.getenv("DATABASE_URL") or "") else "DISABLED").upper())
     mysql_pool_size: int = field(default_factory=lambda: int(os.getenv("MYSQL_POOL_SIZE", "10")))
     mysql_max_overflow: int = field(default_factory=lambda: int(os.getenv("MYSQL_MAX_OVERFLOW", "20")))
     mysql_pool_timeout: int = field(default_factory=lambda: int(os.getenv("MYSQL_POOL_TIMEOUT", "30")))
@@ -75,17 +77,59 @@ class AppConfig:
         if not self.is_production and self.cors_origins_raw.strip() == "*":
             return ["*"]
         origins = [o.strip() for o in self.cors_origins_raw.split(",") if o.strip()]
+        if "*" in origins:
+            return ["*"]
         return origins if origins else ["http://localhost:4200", "http://localhost:8000"]
 
     def get_mysql_url(self, database: str = None) -> str:
-        """Constructs full SQLAlchemy connection URL for MySQL with URL-encoded credentials."""
+        """
+        Constructs full SQLAlchemy connection URL for MySQL with URL-encoded credentials
+        and SSL parameters (supporting direct DATABASE_URL or individual config).
+        """
+        # If full connection URI provided
+        if self.database_url:
+            raw_url = self.database_url.strip()
+            # Normalize scheme: mysql:// -> mysql+pymysql://
+            if raw_url.startswith("mysql://"):
+                raw_url = "mysql+pymysql://" + raw_url[len("mysql://"):]
+            elif not raw_url.startswith("mysql+pymysql://"):
+                raw_url = f"mysql+pymysql://{raw_url}"
+            
+            # If a specific target database is requested (e.g. for test DB)
+            if database:
+                parsed = urlparse(raw_url)
+                raw_url = urlunparse((
+                    parsed.scheme,
+                    parsed.netloc,
+                    f"/{database}",
+                    parsed.params,
+                    parsed.query,
+                    parsed.fragment,
+                ))
+            return raw_url
+
         db_name = database or self.mysql_database
         user = quote_plus(self.mysql_user) if self.mysql_user else "root"
         pwd = f":{quote_plus(self.mysql_password)}" if self.mysql_password else ""
-        return f"mysql+pymysql://{user}{pwd}@{self.mysql_host}:{self.mysql_port}/{db_name}?charset=utf8mb4"
+        url = f"mysql+pymysql://{user}{pwd}@{self.mysql_host}:{self.mysql_port}/{db_name}?charset=utf8mb4"
+        if self.mysql_ssl_mode in ("REQUIRED", "VERIFY_CA", "VERIFY_IDENTITY"):
+            url += "&ssl_mode=REQUIRED"
+        return url
 
     def get_masked_mysql_url(self, database: str = None) -> str:
         """Returns safe masked connection URL for logging."""
+        if self.database_url:
+            try:
+                parsed = urlparse(self.database_url)
+                netloc = parsed.netloc
+                if "@" in netloc:
+                    user_part, host_part = netloc.split("@", 1)
+                    user = user_part.split(":", 1)[0] if ":" in user_part else user_part
+                    netloc = f"{user}:••••••••@{host_part}"
+                return f"mysql+pymysql://{netloc}{parsed.path}"
+            except Exception:
+                return "mysql+pymysql://••••••••:••••••••@cloud-mysql"
+
         db_name = database or self.mysql_database
         pwd = ":••••••••" if self.mysql_password else ""
         return f"mysql+pymysql://{self.mysql_user}{pwd}@{self.mysql_host}:{self.mysql_port}/{db_name}"

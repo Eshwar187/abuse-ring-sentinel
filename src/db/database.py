@@ -32,9 +32,14 @@ def get_engine(database: Optional[str] = None, is_test: bool = False) -> Engine:
 
     url = config.get_mysql_url(database=db_name)
     
+    connect_args = {}
+    if config.mysql_ssl_mode in ("REQUIRED", "VERIFY_CA", "VERIFY_IDENTITY") or "ssl" in url.lower() or "aiven" in url.lower():
+        connect_args["ssl"] = {"ssl_mode": "REQUIRED"}
+
     # Configure production pool
     engine = create_engine(
         url,
+        connect_args=connect_args,
         poolclass=QueuePool,
         pool_size=config.mysql_pool_size,
         max_overflow=config.mysql_max_overflow,

@@ -947,11 +947,12 @@ class RuntimeStateStore:
         if self.use_mysql:
             with get_db_session() as session:
                 repo = MerchantRepository(session)
+                combined_hash = f"{password_hash}:{password_salt}" if password_salt else password_hash
                 repo.create_merchant(
                     merchant_id=merchant_id,
                     company_name=company_name,
                     email=email,
-                    password_hash=password_hash,
+                    password_hash=combined_hash,
                 )
                 repo.create_credential(
                     merchant_id=merchant_id,
@@ -988,13 +989,17 @@ class RuntimeStateStore:
                 repo = MerchantRepository(session)
                 merchant = repo.get_merchant_by_email(clean_email)
                 if merchant:
+                    p_hash = merchant.password_hash
+                    p_salt = ""
+                    if ":" in p_hash:
+                        p_hash, p_salt = p_hash.split(":", 1)
                     return {
                         "user_id": merchant.merchant_id,
                         "merchant_id": merchant.merchant_id,
                         "full_name": merchant.company_name,
                         "email": merchant.email,
-                        "password_hash": merchant.password_hash,
-                        "password_salt": "",
+                        "password_hash": p_hash,
+                        "password_salt": p_salt,
                         "created_at": merchant.created_at.isoformat(),
                     }
                 return None

@@ -1,6 +1,6 @@
 # Phase 14 MySQL Reality Audit Report
 
-**Generated:** 2026-08-26T08:12:33.484098
+**Generated:** 2026-08-26T12:26:21.711342
 
 **Overall Status:** PASS
 
@@ -14,7 +14,7 @@
 
 - Configured Engine: `mysql`
 - Database Connection Probe: `connected`
-- Latency: `105.96 ms`
+- Latency: `1412.64 ms`
 - Schema Normalized Tables: `13`
   - `merchants`
   - `merchant_credentials`
