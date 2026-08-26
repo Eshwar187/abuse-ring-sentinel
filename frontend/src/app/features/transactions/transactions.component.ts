@@ -21,132 +21,154 @@ import { ScoreMeterComponent } from '../../shared/components/score-meter.compone
     ScoreMeterComponent,
   ],
   template: `
-    <div class="space-y-6">
+    <div class="space-y-6 max-w-7xl mx-auto font-sans select-none pb-12">
       <!-- Header -->
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 class="text-xl font-bold text-surface-900 tracking-tight">Transactions Console</h2>
-          <p class="text-xs text-surface-500 mt-1">
-            Real-time audit and investigation queue for evaluated merchant transactions.
+          <div class="flex items-center gap-2">
+            <span class="px-2.5 py-0.5 bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 text-[10px] font-bold rounded-full font-mono uppercase">
+              TRANSACTION LEDGER
+            </span>
+          </div>
+          <h2 class="text-2xl font-extrabold text-white tracking-tight mt-1.5">Transactions Console</h2>
+          <p class="text-xs text-slate-400 mt-1">
+            Real-time audit and investigation queue for evaluated merchant transactions in Cloud MySQL.
           </p>
         </div>
-        <div class="text-xs font-mono text-surface-500 bg-white px-3 py-1.5 border border-surface-200 rounded-md shadow-sm">
-          Total in View: <span class="font-bold text-surface-900">{{ filteredTransactions.length }}</span> records
+        <div class="text-xs font-mono text-cyan-300 bg-[#0B132B] px-3.5 py-2 border border-slate-800 rounded-xl shadow-sm">
+          Total in View: <span class="font-bold text-white">{{ filteredTransactions.length }}</span> records
         </div>
       </div>
 
       <!-- Filters & Toolbar -->
-      <div class="bg-white border border-surface-200 rounded-lg p-4 shadow-card space-y-3">
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div class="bg-[#0B132B]/85 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4 backdrop-blur-xl">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <!-- Search -->
           <div>
-            <label class="block text-[11px] font-bold text-surface-500 uppercase tracking-wider mb-1">Search ID / User</label>
+            <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 font-mono">Search ID / User</label>
             <input
               type="text"
               [(ngModel)]="searchFilter"
               (input)="applyFilters()"
               placeholder="e.g. tx_0027436 or usr_004812"
-              class="w-full px-3 py-1.5 text-xs bg-surface-50 border border-surface-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500 font-mono"
+              class="w-full px-4 py-2 text-xs bg-[#030712] border border-slate-800 rounded-xl focus:outline-none focus:border-cyan-500 font-mono text-cyan-300 placeholder-slate-500 shadow-inner"
             />
           </div>
 
           <!-- Risk Level Filter -->
           <div>
-            <label class="block text-[11px] font-bold text-surface-500 uppercase tracking-wider mb-1">Risk Level</label>
+            <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 font-mono">Risk Level</label>
             <select
               [(ngModel)]="riskFilter"
               (change)="applyFilters()"
-              class="w-full px-3 py-1.5 text-xs bg-surface-50 border border-surface-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500"
+              class="w-full px-3 py-2 text-xs bg-[#030712] border border-slate-800 rounded-xl focus:outline-none focus:border-cyan-500 text-slate-200"
             >
-              <option value="ALL">All Levels</option>
-              <option value="LOW">Low Risk (<0.50)</option>
-              <option value="MEDIUM">Medium Risk (0.50 - 0.90)</option>
-              <option value="HIGH">High Risk (≥0.90)</option>
+              <option value="ALL">All Risk Tiers</option>
+              <option value="LOW">LOW Risk (Score &lt; 0.40)</option>
+              <option value="MEDIUM">MEDIUM Risk (0.40 - 0.90)</option>
+              <option value="HIGH">HIGH Risk (Score &ge; 0.90)</option>
             </select>
           </div>
 
           <!-- Decision Filter -->
           <div>
-            <label class="block text-[11px] font-bold text-surface-500 uppercase tracking-wider mb-1">Decision</label>
+            <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 font-mono">Policy Decision</label>
             <select
               [(ngModel)]="decisionFilter"
               (change)="applyFilters()"
-              class="w-full px-3 py-1.5 text-xs bg-surface-50 border border-surface-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500"
+              class="w-full px-3 py-2 text-xs bg-[#030712] border border-slate-800 rounded-xl focus:outline-none focus:border-cyan-500 text-slate-200"
             >
               <option value="ALL">All Decisions</option>
-              <option value="APPROVE">APPROVE (Auto)</option>
-              <option value="REVIEW">REVIEW (2FA / Step-up)</option>
-              <option value="BLOCK">BLOCK (Declined)</option>
+              <option value="APPROVE">APPROVE</option>
+              <option value="REVIEW">REVIEW</option>
+              <option value="BLOCK">BLOCK</option>
             </select>
           </div>
         </div>
       </div>
 
-      <!-- Transactions Data Table -->
-      <div class="bg-white border border-surface-200 rounded-lg shadow-card overflow-hidden">
+      <!-- Transactions Table -->
+      <div class="bg-[#0B132B]/85 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden backdrop-blur-xl">
         <div class="overflow-x-auto">
           <table class="w-full text-left border-collapse text-xs">
             <thead>
-              <tr class="bg-surface-50 border-b border-surface-200 text-surface-500 font-bold uppercase tracking-wider text-[10px]">
-                <th class="py-3 px-4 font-semibold">Transaction ID</th>
-                <th class="py-3 px-4 font-semibold">Timestamp</th>
-                <th class="py-3 px-4 font-semibold">User / Category</th>
-                <th class="py-3 px-4 font-semibold">Amount</th>
-                <th class="py-3 px-4 font-semibold">Risk Score</th>
-                <th class="py-3 px-4 font-semibold">Risk Level</th>
-                <th class="py-3 px-4 font-semibold">Decision</th>
-                <th class="py-3 px-4 font-semibold">Primary Reason / Trigger</th>
-                <th class="py-3 px-4 text-right font-semibold">Actions</th>
+              <tr class="bg-[#030712] border-b border-slate-800 text-slate-400 font-bold uppercase tracking-wider text-[10px] font-mono">
+                <th class="py-3.5 px-4 font-semibold">Transaction ID</th>
+                <th class="py-3.5 px-4 font-semibold">User ID</th>
+                <th class="py-3.5 px-4 font-semibold">Amount</th>
+                <th class="py-3.5 px-4 font-semibold">Category</th>
+                <th class="py-3.5 px-4 font-semibold">Risk Score</th>
+                <th class="py-3.5 px-4 font-semibold">Risk Tier</th>
+                <th class="py-3.5 px-4 font-semibold">Decision</th>
+                <th class="py-3.5 px-4 font-semibold">Timestamp</th>
+                <th class="py-3.5 px-4 text-right font-semibold">Details</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-surface-100 font-sans">
-              @for (tx of filteredTransactions; track tx.transaction_id) {
-                <tr class="hover:bg-surface-50 transition-colors">
-                  <td class="py-3.5 px-4 font-mono font-bold text-surface-900">
-                    <a [routerLink]="['/transactions', tx.transaction_id]" class="hover:text-brand-600 hover:underline">
+            <tbody class="divide-y divide-slate-800/60 font-mono">
+              @for (tx of pagedTransactions; track tx.transaction_id) {
+                <tr class="hover:bg-slate-900/60 transition-colors">
+                  <td class="py-3.5 px-4 font-bold text-cyan-300">
+                    <a [routerLink]="['/app/transactions', tx.transaction_id]" class="hover:underline">
                       {{ tx.transaction_id }}
                     </a>
                   </td>
-                  <td class="py-3.5 px-4 font-mono text-surface-500 text-[11px] whitespace-nowrap">
-                    {{ tx.timestamp | date:'mediumDate' }} {{ tx.timestamp | date:'shortTime' }}
+                  <td class="py-3.5 px-4 text-slate-400">
+                    {{ tx.user_id }}
                   </td>
-                  <td class="py-3.5 px-4">
-                    <div class="font-mono text-surface-800 text-[11px]">{{ tx.user_id || 'usr_unknown' }}</div>
-                    <div class="text-[10px] text-surface-400 uppercase font-semibold">{{ tx.product_category }}</div>
-                  </td>
-                  <td class="py-3.5 px-4 font-mono font-bold text-surface-900 whitespace-nowrap">
+                  <td class="py-3.5 px-4 font-bold text-slate-100">
                     \${{ tx.amount.toFixed(2) }}
                   </td>
-                  <td class="py-3.5 px-4">
+                  <td class="py-3.5 px-4 text-slate-400 uppercase text-[10px]">
+                    {{ tx.product_category }}
+                  </td>
+                  <td class="py-3.5 px-4 font-sans">
                     <app-score-meter [score]="tx.risk_score"></app-score-meter>
                   </td>
-                  <td class="py-3.5 px-4">
+                  <td class="py-3.5 px-4 font-sans">
                     <app-risk-badge [level]="tx.risk_level"></app-risk-badge>
                   </td>
-                  <td class="py-3.5 px-4">
+                  <td class="py-3.5 px-4 font-sans">
                     <app-decision-badge [decision]="tx.decision"></app-decision-badge>
                   </td>
-                  <td class="py-3.5 px-4 font-medium text-surface-700 max-w-[220px] truncate" [title]="tx.primary_reason">
-                    {{ tx.primary_reason }}
+                  <td class="py-3.5 px-4 text-[11px] text-slate-500 whitespace-nowrap">
+                    {{ tx.timestamp | date:'yyyy-MM-dd HH:mm' }}
                   </td>
                   <td class="py-3.5 px-4 text-right">
                     <a
-                      [routerLink]="['/transactions', tx.transaction_id]"
-                      class="px-2.5 py-1 bg-surface-100 hover:bg-surface-200 text-surface-800 font-semibold rounded text-xs transition-colors"
+                      [routerLink]="['/app/transactions', tx.transaction_id]"
+                      class="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 border border-slate-700 rounded-lg text-[11px] font-mono text-cyan-300 hover:text-cyan-200 transition-colors"
                     >
-                      Investigate
+                      Inspect →
                     </a>
-                  </td>
-                </tr>
-              } @empty {
-                <tr>
-                  <td colspan="9" class="py-8 text-center text-surface-400 text-xs">
-                    No transactions match the selected filter criteria.
                   </td>
                 </tr>
               }
             </tbody>
           </table>
+        </div>
+
+        <!-- Pagination Bar -->
+        <div class="px-6 py-4 border-t border-slate-800 bg-[#030712] flex items-center justify-between text-xs font-mono text-slate-400">
+          <div>
+            Showing <strong class="text-white">{{ (currentPage - 1) * pageSize + 1 }}</strong> to <strong class="text-white">{{ Math.min(currentPage * pageSize, filteredTransactions.length) }}</strong> of <strong class="text-white">{{ filteredTransactions.length }}</strong>
+          </div>
+          <div class="flex items-center gap-2">
+            <button
+              (click)="goToPage(currentPage - 1)"
+              [disabled]="currentPage === 1"
+              class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 disabled:opacity-40 hover:bg-slate-800 text-slate-200 transition-colors"
+            >
+              Prev
+            </button>
+            <span class="text-slate-500">Page {{ currentPage }} of {{ totalPages }}</span>
+            <button
+              (click)="goToPage(currentPage + 1)"
+              [disabled]="currentPage >= totalPages"
+              class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 disabled:opacity-40 hover:bg-slate-800 text-slate-200 transition-colors"
+            >
+              Next
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -158,34 +180,63 @@ export class TransactionsComponent implements OnInit {
 
   transactions: TransactionListItem[] = [];
   filteredTransactions: TransactionListItem[] = [];
+  pagedTransactions: TransactionListItem[] = [];
 
   searchFilter = '';
-  riskFilter: 'ALL' | RiskLevel = 'ALL';
-  decisionFilter: 'ALL' | RiskDecision = 'ALL';
+  riskFilter: string = 'ALL';
+  decisionFilter: string = 'ALL';
+
+  currentPage = 1;
+  pageSize = 15;
+  totalPages = 1;
+  Math = Math;
 
   ngOnInit(): void {
-    this.transactions = this.txService.getTransactions();
-    this.filteredTransactions = [...this.transactions];
-
-    this.route.params.subscribe((params) => {
-      if (params['id']) {
-        this.searchFilter = params['id'];
-        this.applyFilters();
-      }
+    this.txService.getTransactions().subscribe({
+      next: (data) => {
+        this.transactions = data;
+        this.route.queryParams.subscribe((params) => {
+          if (params['risk']) this.riskFilter = params['risk'];
+          if (params['decision']) this.decisionFilter = params['decision'];
+          this.applyFilters();
+        });
+      },
     });
   }
 
-  applyFilters() {
-    this.filteredTransactions = this.transactions.filter((tx) => {
-      const matchSearch =
-        !this.searchFilter.trim() ||
-        tx.transaction_id.toLowerCase().includes(this.searchFilter.toLowerCase()) ||
-        (tx.user_id && tx.user_id.toLowerCase().includes(this.searchFilter.toLowerCase()));
+  applyFilters(): void {
+    let list = [...this.transactions];
 
-      const matchRisk = this.riskFilter === 'ALL' || tx.risk_level === this.riskFilter;
-      const matchDecision = this.decisionFilter === 'ALL' || tx.decision === this.decisionFilter;
+    if (this.searchFilter.trim()) {
+      const q = this.searchFilter.toLowerCase().trim();
+      list = list.filter((t) =>
+        t.transaction_id.toLowerCase().includes(q) ||
+        t.user_id.toLowerCase().includes(q)
+      );
+    }
 
-      return matchSearch && matchRisk && matchDecision;
-    });
+    if (this.riskFilter !== 'ALL') {
+      list = list.filter((t) => t.risk_level === this.riskFilter);
+    }
+
+    if (this.decisionFilter !== 'ALL') {
+      list = list.filter((t) => t.decision === this.decisionFilter);
+    }
+
+    this.filteredTransactions = list;
+    this.currentPage = 1;
+    this.updatePagination();
+  }
+
+  updatePagination(): void {
+    this.totalPages = Math.ceil(this.filteredTransactions.length / this.pageSize) || 1;
+    const startIndex = (this.currentPage - 1) * this.pageSize;
+    this.pagedTransactions = this.filteredTransactions.slice(startIndex, startIndex + this.pageSize);
+  }
+
+  goToPage(page: number): void {
+    if (page < 1 || page > this.totalPages) return;
+    this.currentPage = page;
+    this.updatePagination();
   }
 }
