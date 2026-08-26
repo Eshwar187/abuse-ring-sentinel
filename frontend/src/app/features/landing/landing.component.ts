@@ -16,37 +16,40 @@ import { RouterLink } from '@angular/router';
       </div>
 
       <!-- Navigation Bar -->
-      <header class="border-b border-slate-800/80 bg-[#060A14]/80 backdrop-blur-2xl sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <div class="relative">
-              <img src="vigilai_logo.jpg" alt="VigilAI Logo" class="w-11 h-11 rounded-xl shadow-lg shadow-cyan-500/25 object-cover border border-cyan-500/40" />
-              <span class="absolute -bottom-1 -right-1 flex h-3 w-3">
+      <header class="border-b border-slate-800/80 bg-[#060A14]/90 backdrop-blur-2xl sticky top-0 z-50 py-3">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+          <!-- Left Logo & Brand -->
+          <div class="flex items-center gap-3.5">
+            <div class="relative flex items-center shrink-0">
+              <img src="vigilai_logo.jpg" alt="VigilAI Logo" class="w-10 h-10 rounded-xl shadow-lg shadow-cyan-500/25 object-cover border border-cyan-500/40" />
+              <span class="absolute -bottom-0.5 -right-0.5 flex h-2.5 w-2.5">
                 <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-                <span class="relative inline-flex rounded-full h-3 w-3 bg-cyan-500 border-2 border-[#060A14]"></span>
+                <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyan-500 border-2 border-[#060A14]"></span>
               </span>
             </div>
-            <div>
-              <span class="text-base font-extrabold tracking-tight text-white flex items-center gap-2">
-                <span>VigilAI</span>
-                <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 font-mono">
+            <div class="flex flex-col justify-center">
+              <div class="flex items-center gap-2 leading-none">
+                <span class="text-base font-extrabold tracking-tight text-white">VigilAI</span>
+                <span class="text-[9px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 font-mono">
                   RISK ENGINE
                 </span>
-              </span>
-              <p class="text-[10px] text-slate-400 font-mono">Autonomous Fraud & Ring Defense</p>
+              </div>
+              <p class="text-[10px] text-slate-400 font-mono mt-1 leading-none">Autonomous Fraud & Ring Defense</p>
             </div>
           </div>
 
+          <!-- Center Nav Links -->
           <nav class="hidden md:flex items-center gap-8 text-xs font-medium text-slate-400">
             <a href="#how-it-works" class="hover:text-cyan-300 transition-colors">How It Works</a>
             <a href="#api" class="hover:text-cyan-300 transition-colors">Developer API</a>
             <a href="#architecture" class="hover:text-cyan-300 transition-colors">MySQL Architecture</a>
           </nav>
 
+          <!-- Right Actions -->
           <div class="flex items-center gap-3">
             <a
               routerLink="/demo"
-              class="hidden sm:inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-xs font-semibold text-amber-300 transition-all shadow-sm"
+              class="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-xs font-semibold text-amber-300 transition-all shadow-sm"
             >
               <span>▶ 6.9k Benchmark Demo</span>
             </a>
@@ -58,7 +61,7 @@ import { RouterLink } from '@angular/router';
             </a>
             <a
               routerLink="/signup"
-              class="px-5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black text-xs font-bold shadow-lg shadow-cyan-500/25 transition-all hover:scale-105"
+              class="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-600 hover:from-cyan-300 hover:to-indigo-500 text-black text-xs font-bold shadow-lg shadow-cyan-500/25 transition-all hover:scale-105"
             >
               Start Free
             </a>
