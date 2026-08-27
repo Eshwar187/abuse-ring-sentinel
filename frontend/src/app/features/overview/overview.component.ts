@@ -1,28 +1,29 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { MerchantService } from '../../core/services/merchant.service';
 import { AuthService } from '../../core/services/auth.service';
-import { TransactionService } from '../../core/services/transaction.service';
 
 @Component({
   selector: 'app-live-overview',
   standalone: true,
-  imports: [
-    CommonModule,
-    RouterLink,
-  ],
+  imports: [CommonModule, RouterLink],
   template: `
     <div class="space-y-6 font-sans select-none pb-12 max-w-7xl mx-auto">
-      <!-- 1. Hero Welcome & System Health Banner -->
+      <!-- 1. Hero Welcome & Real Merchant Status Banner -->
       <div class="p-6 sm:p-7 rounded-3xl bg-[#0B132B]/85 border border-slate-800/90 shadow-2xl backdrop-blur-2xl relative overflow-hidden flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
         <div class="relative z-10 max-w-xl">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-md bg-cyan-500/10 text-cyan-300 border border-cyan-500/25">
+              Tenant ID: {{ auth.currentUser()?.merchant_id || 'Isolated' }}
+            </span>
+          </div>
           <h2 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2">
-            <span>Welcome back, {{ auth.currentUser()?.company_name || 'Enterprise' }}</span>
+            <span>Welcome, {{ auth.currentUser()?.company_name || 'Merchant' }}</span>
             <span class="text-xl">👋</span>
           </h2>
           <p class="text-xs sm:text-sm text-slate-400 mt-2 leading-relaxed">
-            Your fraud defense system is actively monitoring and protecting transactions in real-time with zero point-in-time leakage.
+            Your dedicated fraud defense environment is active. Real-time decision boundary is operating at cost-optimal threshold <strong>&tau;* = 0.90</strong>.
           </p>
         </div>
 
@@ -41,7 +42,7 @@ import { TransactionService } from '../../core/services/transaction.service';
         <!-- Right System Health Mini Widget -->
         <div class="relative z-10 bg-[#060A14]/90 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between min-w-[240px]">
           <div class="flex items-center justify-between">
-            <span class="text-xs font-semibold text-white">Live System Health</span>
+            <span class="text-xs font-semibold text-white">Tenant Connection</span>
             <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
           </div>
           <div class="text-[11px] text-emerald-300 font-mono mt-1 font-semibold">
@@ -55,13 +56,55 @@ import { TransactionService } from '../../core/services/transaction.service';
             </svg>
           </div>
 
-          <div class="text-[10px] text-slate-500 font-mono">
-            Last updated {{ merchantService.secondsSinceLastUpdate() }} seconds ago
+          <div class="text-[10px] text-slate-500 font-mono flex items-center justify-between">
+            <span>Last Sync: Just now</span>
+            <button (click)="refreshData()" class="text-cyan-400 hover:text-cyan-300 transition-colors">
+              Refresh ↻
+            </button>
           </div>
         </div>
       </div>
 
-      <!-- 2. Top 5 KPI Metric Cards (Generous Responsive Grid) -->
+      <!-- ZERO-DATA ONBOARDING BANNER (Only visible when user has 0 transactions) -->
+      <div *ngIf="totalTransactionsCount() === 0" class="p-6 rounded-3xl bg-gradient-to-r from-cyan-950/40 via-[#0B132B] to-purple-950/40 border border-cyan-500/30 shadow-2xl backdrop-blur-2xl animate-fade-in">
+        <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+          <div class="space-y-2 max-w-2xl">
+            <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-[10px] font-mono font-bold">
+              <span>🚀 NEW TENANT INITIALIZATION</span>
+            </div>
+            <h3 class="text-xl font-extrabold text-white">No Transactions Evaluated Yet</h3>
+            <p class="text-xs text-slate-300 leading-relaxed">
+              Your account is freshly provisioned and securely partitioned. To view live graph clusters and fraud statistics, 
+              send your first API transaction or upload a historical transaction CSV batch.
+            </p>
+          </div>
+
+          <!-- Quick Action Buttons for New User -->
+          <div class="flex flex-wrap items-center gap-3 shrink-0">
+            <a
+              routerLink="/app/onboarding"
+              class="px-4 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black text-xs font-bold font-mono transition-all shadow-lg shadow-cyan-500/20 flex items-center gap-2"
+            >
+              <span>📁 Upload CSV Batch</span>
+              <span>→</span>
+            </a>
+            <a
+              routerLink="/app/risk-analyzer"
+              class="px-4 py-2.5 rounded-xl bg-[#030712] hover:bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold font-mono transition-all flex items-center gap-2"
+            >
+              <span>⚡ Test Risk Analyzer</span>
+            </a>
+            <a
+              routerLink="/app/integration"
+              class="px-4 py-2.5 rounded-xl bg-[#030712] hover:bg-slate-800 text-cyan-300 border border-cyan-500/30 text-xs font-semibold font-mono transition-all flex items-center gap-2"
+            >
+              <span>🔑 Get API Key</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Top 5 Real KPI Metric Cards -->
       <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-5">
         <!-- Live Volume -->
         <div class="p-5 rounded-2xl bg-[#0B132B]/85 border border-slate-800 hover:border-cyan-500/40 shadow-xl backdrop-blur-xl transition-all">
@@ -77,8 +120,9 @@ import { TransactionService } from '../../core/services/transaction.service';
             {{ totalTransactionsCount() | number }}
           </div>
           <div class="mt-1 flex items-center justify-between text-[11px] font-mono">
-            <span class="text-slate-500">Transactions / 24h</span>
-            <span class="text-emerald-400 font-bold">↗ 23.5%</span>
+            <span class="text-slate-500">Evaluations</span>
+            <span class="text-cyan-400 font-bold" *ngIf="totalTransactionsCount() > 0">Live</span>
+            <span class="text-slate-600" *ngIf="totalTransactionsCount() === 0">0 Events</span>
           </div>
         </div>
 
@@ -96,8 +140,9 @@ import { TransactionService } from '../../core/services/transaction.service';
             {{ approvalRateText() }}
           </div>
           <div class="mt-1 flex items-center justify-between text-[11px] font-mono">
-            <span class="text-slate-500">Auto-cleared</span>
-            <span class="text-emerald-400 font-bold">↗ 2.3%</span>
+            <span class="text-slate-500">Cleared ({{ approvalsCount() }})</span>
+            <span class="text-emerald-400 font-bold" *ngIf="totalTransactionsCount() > 0">Active</span>
+            <span class="text-slate-600" *ngIf="totalTransactionsCount() === 0">—</span>
           </div>
         </div>
 
@@ -115,8 +160,9 @@ import { TransactionService } from '../../core/services/transaction.service';
             {{ reviewRateText() }}
           </div>
           <div class="mt-1 flex items-center justify-between text-[11px] font-mono">
-            <span class="text-slate-500">Step-up challenges</span>
-            <span class="text-emerald-400 font-bold">↘ 1.2%</span>
+            <span class="text-slate-500">2FA Step-up ({{ reviewsCount() }})</span>
+            <span class="text-amber-400 font-bold" *ngIf="totalTransactionsCount() > 0">Active</span>
+            <span class="text-slate-600" *ngIf="totalTransactionsCount() === 0">—</span>
           </div>
         </div>
 
@@ -134,8 +180,9 @@ import { TransactionService } from '../../core/services/transaction.service';
             {{ blockRateText() }}
           </div>
           <div class="mt-1 flex items-center justify-between text-[11px] font-mono">
-            <span class="text-slate-500">Syndicates blocked</span>
-            <span class="text-rose-400 font-bold">↗ 0.5%</span>
+            <span class="text-slate-500">Syndicates ({{ blocksCount() }})</span>
+            <span class="text-rose-400 font-bold" *ngIf="totalTransactionsCount() > 0">Protected</span>
+            <span class="text-slate-600" *ngIf="totalTransactionsCount() === 0">—</span>
           </div>
         </div>
 
@@ -153,375 +200,182 @@ import { TransactionService } from '../../core/services/transaction.service';
             {{ meanRiskScoreText() }}
           </div>
           <div class="mt-1 flex items-center justify-between text-[11px] font-mono">
-            <span class="text-slate-500">GBDT probability</span>
-            <span class="text-emerald-400 font-bold">↘ 0.042</span>
+            <span class="text-slate-500">GBDT Probability</span>
+            <span class="text-purple-400 font-bold" *ngIf="totalTransactionsCount() > 0">Model F</span>
+            <span class="text-slate-600" *ngIf="totalTransactionsCount() === 0">—</span>
           </div>
         </div>
       </div>
 
-      <!-- 3. Middle Analytics Row (3 Columns: Risk Distribution, Risk Score Over Time, Top Risk Factors) -->
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Column 1: Risk Distribution -->
-        <div class="p-6 rounded-3xl bg-[#0B132B]/85 border border-slate-800/90 shadow-2xl backdrop-blur-2xl flex flex-col justify-between">
-          <div class="flex items-center justify-between">
-            <h3 class="text-sm font-bold text-white tracking-tight font-mono">Risk Distribution</h3>
-            <span class="text-slate-500 text-xs">Total: {{ totalTransactionsCount() }}</span>
+      <!-- 3. Recent Real Transactions List -->
+      <div class="rounded-3xl bg-[#0B132B]/85 border border-slate-800/90 shadow-2xl p-6 backdrop-blur-2xl space-y-4">
+        <div class="flex items-center justify-between flex-wrap gap-4">
+          <div>
+            <h3 class="text-base font-extrabold text-white tracking-tight">Live Evaluated Transactions</h3>
+            <p class="text-xs text-slate-400 mt-0.5">Real-time risk scoring stream from your merchant endpoints</p>
           </div>
-
-          <!-- Circular Donut SVG Representation -->
-          <div class="py-6 flex items-center justify-center">
-            <div class="relative w-40 h-40 flex items-center justify-center">
-              <svg class="w-full h-full -rotate-90 transform" viewBox="0 0 36 36">
-                <!-- Background ring -->
-                <path class="text-slate-800" stroke-width="3.5" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                <!-- Low Risk (Green: 69.4%) -->
-                <path class="text-emerald-400" stroke-dasharray="69.4, 100" stroke-width="3.5" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                <!-- Medium Risk (Yellow: 29.1%) -->
-                <path class="text-amber-400" stroke-dasharray="29.1, 100" stroke-dashoffset="-69.4" stroke-width="3.5" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                <!-- High Risk (Red: 1.5%) -->
-                <path class="text-rose-500" stroke-dasharray="1.5, 100" stroke-dashoffset="-98.5" stroke-width="3.5" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-              </svg>
-              <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
-                <span class="text-xl font-extrabold text-white font-mono">{{ totalTransactionsCount() | number }}</span>
-                <span class="text-[10px] text-slate-400 font-mono">Live Total</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Legend -->
-          <div class="space-y-2 text-xs font-mono">
-            <div class="flex items-center justify-between">
-              <span class="flex items-center gap-2 text-slate-300">
-                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
-                <span>Low Risk (0.00 - 0.40)</span>
-              </span>
-              <span class="text-slate-200 font-bold">69.4%</span>
-            </div>
-            <div class="flex items-center justify-between">
-              <span class="flex items-center gap-2 text-slate-300">
-                <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
-                <span>Medium Risk (0.40 - 0.90)</span>
-              </span>
-              <span class="text-slate-200 font-bold">29.1%</span>
-            </div>
-            <div class="flex items-center justify-between">
-              <span class="flex items-center gap-2 text-slate-300">
-                <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
-                <span>High Risk (0.90 - 1.00)</span>
-              </span>
-              <span class="text-rose-400 font-bold">1.5%</span>
-            </div>
-          </div>
+          <a
+            routerLink="/app/transactions"
+            class="text-xs text-cyan-400 hover:text-cyan-300 font-mono font-semibold transition-colors"
+          >
+            View Full Transaction History →
+          </a>
         </div>
 
-        <!-- Column 2: Risk Score Over Time -->
-        <div class="p-6 rounded-3xl bg-[#0B132B]/85 border border-slate-800/90 shadow-2xl backdrop-blur-2xl flex flex-col justify-between">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-sm font-bold text-white tracking-tight font-mono">Risk Score Over Time</h3>
-            <div class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-[11px] font-mono text-slate-300 flex items-center gap-1">
-              <span>24 Hours</span>
-            </div>
-          </div>
-
-          <!-- Line Chart -->
-          <div class="h-44 w-full relative flex items-end">
-            <!-- Y-Axis labels -->
-            <div class="absolute left-0 top-0 bottom-6 flex flex-col justify-between text-[9px] font-mono text-slate-500">
-              <span>1.00</span>
-              <span>0.75</span>
-              <span>0.50</span>
-              <span>0.25</span>
-              <span>0.00</span>
-            </div>
-
-            <!-- Waveform SVG Line -->
-            <div class="ml-7 w-full h-full pb-6">
-              <svg class="w-full h-full" viewBox="0 0 300 100" preserveAspectRatio="none">
-                <defs>
-                  <linearGradient id="purpleGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.35" />
-                    <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0.0" />
-                  </linearGradient>
-                </defs>
-                <!-- Area fill -->
-                <path d="M0 70 Q30 40, 60 65 T120 45 T180 60 T240 30 T300 55 L300 100 L0 100 Z" fill="url(#purpleGrad)" />
-                <!-- Main Line -->
-                <path d="M0 70 Q30 40, 60 65 T120 45 T180 60 T240 30 T300 55" fill="none" stroke="#a855f7" stroke-width="2.5" />
-                <!-- Dot Markers -->
-                <circle cx="60" cy="65" r="3.5" fill="#c084fc" />
-                <circle cx="120" cy="45" r="3.5" fill="#c084fc" />
-                <circle cx="180" cy="60" r="3.5" fill="#c084fc" />
-                <circle cx="240" cy="30" r="3.5" fill="#c084fc" />
-                <circle cx="300" cy="55" r="3.5" fill="#c084fc" />
-              </svg>
-            </div>
-          </div>
-
-          <!-- X-Axis Labels -->
-          <div class="ml-7 flex items-center justify-between text-[10px] font-mono text-slate-500 pt-1 border-t border-slate-800">
-            <span>00:00</span>
-            <span>06:00</span>
-            <span>12:00</span>
-            <span>18:00</span>
-            <span>24:00</span>
-          </div>
+        <!-- If Transactions Exist -->
+        <div *ngIf="recentTransactions().length > 0" class="overflow-x-auto">
+          <table class="w-full text-left text-xs font-mono">
+            <thead>
+              <tr class="border-b border-slate-800 text-slate-400 text-[11px]">
+                <th class="py-3 px-3">Transaction ID</th>
+                <th class="py-3 px-3">User ID</th>
+                <th class="py-3 px-3">Amount</th>
+                <th class="py-3 px-3">Risk Score</th>
+                <th class="py-3 px-3">Decision</th>
+                <th class="py-3 px-3">Timestamp</th>
+                <th class="py-3 px-3 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800/60">
+              <tr *ngFor="let tx of recentTransactions()" class="hover:bg-slate-900/40 transition-colors">
+                <td class="py-3 px-3 text-cyan-300 font-bold">{{ tx.transaction_id }}</td>
+                <td class="py-3 px-3 text-slate-300">{{ tx.user_id }}</td>
+                <td class="py-3 px-3 text-white font-bold">{{ tx.currency }} {{ tx.amount | number:'1.2-2' }}</td>
+                <td class="py-3 px-3">
+                  <span class="font-bold" [class.text-rose-400]="tx.risk_score >= 0.90" [class.text-amber-400]="tx.risk_score >= 0.50 && tx.risk_score < 0.90" [class.text-emerald-400]="tx.risk_score < 0.50">
+                    {{ tx.risk_score | number:'1.4-4' }}
+                  </span>
+                </td>
+                <td class="py-3 px-3">
+                  <span
+                    class="px-2 py-0.5 rounded text-[10px] font-bold"
+                    [class.bg-rose-500-20]="tx.decision === 'BLOCK'"
+                    [class.text-rose-400]="tx.decision === 'BLOCK'"
+                    [class.bg-amber-500-20]="tx.decision === 'REVIEW'"
+                    [class.text-amber-400]="tx.decision === 'REVIEW'"
+                    [class.bg-emerald-500-20]="tx.decision === 'APPROVE'"
+                    [class.text-emerald-400]="tx.decision === 'APPROVE'"
+                  >
+                    {{ tx.decision }}
+                  </span>
+                </td>
+                <td class="py-3 px-3 text-slate-400 text-[10px]">{{ tx.timestamp }}</td>
+                <td class="py-3 px-3 text-right">
+                  <a
+                    [routerLink]="['/app/transactions', tx.transaction_id]"
+                    class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] transition-colors"
+                  >
+                    Details →
+                  </a>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
 
-        <!-- Column 3: Top Risk Factors -->
-        <div class="p-6 rounded-3xl bg-[#0B132B]/85 border border-slate-800/90 shadow-2xl backdrop-blur-2xl flex flex-col justify-between">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-sm font-bold text-white tracking-tight font-mono">Top Risk Factors</h3>
-            <span class="text-[10px] text-cyan-400 font-mono">Real-Time Aggregation</span>
+        <!-- Zero Transactions Empty State -->
+        <div *ngIf="recentTransactions().length === 0" class="py-12 text-center text-xs text-slate-400 space-y-3 font-mono">
+          <div class="w-12 h-12 rounded-2xl bg-slate-900/80 border border-slate-800 mx-auto flex items-center justify-center text-xl text-slate-500">
+            📊
           </div>
-
-          <div class="space-y-4">
-            <!-- Shared Device -->
-            <div>
-              <div class="flex items-center justify-between text-xs font-sans mb-1">
-                <span class="text-slate-300">Shared Device Clustering</span>
-                <span class="text-slate-200 font-mono font-bold">42.8%</span>
-              </div>
-              <div class="w-full bg-slate-900 rounded-full h-2 overflow-hidden">
-                <div class="bg-rose-500 h-2 rounded-full shadow-[0_0_8px_rgba(244,63,94,0.5)]" style="width: 42.8%"></div>
-              </div>
-            </div>
-
-            <!-- Shared Payment Method -->
-            <div>
-              <div class="flex items-center justify-between text-xs font-sans mb-1">
-                <span class="text-slate-300">Shared Payment Card</span>
-                <span class="text-slate-200 font-mono font-bold">28.7%</span>
-              </div>
-              <div class="w-full bg-slate-900 rounded-full h-2 overflow-hidden">
-                <div class="bg-orange-500 h-2 rounded-full shadow-[0_0_8px_rgba(249,115,22,0.5)]" style="width: 28.7%"></div>
-              </div>
-            </div>
-
-            <!-- Velocity Anomaly -->
-            <div>
-              <div class="flex items-center justify-between text-xs font-sans mb-1">
-                <span class="text-slate-300">Velocity Burst Spike</span>
-                <span class="text-slate-200 font-mono font-bold">18.3%</span>
-              </div>
-              <div class="w-full bg-slate-900 rounded-full h-2 overflow-hidden">
-                <div class="bg-amber-400 h-2 rounded-full shadow-[0_0_8px_rgba(251,191,36,0.5)]" style="width: 18.3%"></div>
-              </div>
-            </div>
-
-            <!-- High-Risk ASN / IP -->
-            <div>
-              <div class="flex items-center justify-between text-xs font-sans mb-1">
-                <span class="text-slate-300">Proxy / Datacenter ASN</span>
-                <span class="text-slate-200 font-mono font-bold">6.1%</span>
-              </div>
-              <div class="w-full bg-slate-900 rounded-full h-2 overflow-hidden">
-                <div class="bg-blue-500 h-2 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.5)]" style="width: 6.1%"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 4. Bottom Row: High-Risk Transactions, System Activity & Quick Actions -->
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
-        <!-- Recent High Risk Transactions (5 cols) -->
-        <div class="lg:col-span-5 p-6 rounded-3xl bg-[#0B132B]/85 border border-slate-800/90 shadow-2xl backdrop-blur-2xl flex flex-col justify-between">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-sm font-bold text-white tracking-tight font-mono">Recent High Risk Transactions</h3>
-            <a routerLink="/app/transactions" class="text-xs text-cyan-400 hover:text-cyan-300 font-mono transition-colors">
-              View All →
-            </a>
-          </div>
-
-          <div class="overflow-x-auto w-full">
-            <table class="w-full text-left text-xs font-mono">
-              <thead>
-                <tr class="text-[10px] text-slate-500 border-b border-slate-800 pb-2 uppercase tracking-wider">
-                  <th class="pb-2 font-semibold">Tx ID</th>
-                  <th class="pb-2 font-semibold">User</th>
-                  <th class="pb-2 font-semibold">Score</th>
-                  <th class="pb-2 text-right font-semibold">Decision</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-800/60">
-                @for (tx of recentTransactions(); track tx.transaction_id) {
-                  <tr class="hover:bg-slate-900/60 transition-colors">
-                    <td class="py-2.5 text-cyan-300 font-bold truncate max-w-[100px]">{{ tx.transaction_id }}</td>
-                    <td class="py-2.5 text-slate-400 truncate max-w-[110px]">{{ tx.user_id }}</td>
-                    <td class="py-2.5 font-bold" [ngClass]="tx.risk_score >= 0.90 ? 'text-rose-400' : 'text-amber-400'">
-                      {{ tx.risk_score.toFixed(2) }}
-                    </td>
-                    <td class="py-2.5 text-right">
-                      <span
-                        class="px-2 py-0.5 rounded text-[10px] font-bold uppercase"
-                        [ngClass]="{
-                          'bg-rose-500/15 text-rose-400 border border-rose-500/30': tx.decision === 'BLOCK',
-                          'bg-amber-500/15 text-amber-400 border border-amber-500/30': tx.decision === 'REVIEW',
-                          'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30': tx.decision === 'APPROVE'
-                        }"
-                      >
-                        {{ tx.decision }}
-                      </span>
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- System Activity (4 cols) -->
-        <div class="lg:col-span-4 p-6 rounded-3xl bg-[#0B132B]/85 border border-slate-800/90 shadow-2xl backdrop-blur-2xl flex flex-col justify-between">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-sm font-bold text-white tracking-tight font-mono">System Activity Feed</h3>
-            <a routerLink="/app/audit-log" class="text-xs text-cyan-400 hover:text-cyan-300 font-mono transition-colors">
-              View All →
-            </a>
-          </div>
-
-          <div class="space-y-3 max-h-64 overflow-y-auto">
-            <div class="flex items-start gap-3 p-2.5 rounded-xl bg-[#030712]/70 border border-slate-800">
-              <div class="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20 flex items-center justify-center shrink-0 text-xs">
-                ⚡
-              </div>
-              <div class="flex-1 min-w-0">
-                <div class="text-xs font-semibold text-slate-100 flex items-center justify-between">
-                  <span>Transaction evaluated</span>
-                  <span class="text-[10px] text-slate-500 font-mono">30s ago</span>
-                </div>
-                <div class="text-[11px] text-slate-400 font-mono truncate">TXN_9K2MBN4S · Approved</div>
-              </div>
-            </div>
-
-            <div class="flex items-start gap-3 p-2.5 rounded-xl bg-[#030712]/70 border border-slate-800">
-              <div class="w-7 h-7 rounded-lg bg-purple-500/10 text-purple-400 border border-purple-500/20 flex items-center justify-center shrink-0 text-xs">
-                🛡️
-              </div>
-              <div class="flex-1 min-w-0">
-                <div class="text-xs font-semibold text-slate-100 flex items-center justify-between">
-                  <span>Model F inference spike</span>
-                  <span class="text-[10px] text-slate-500 font-mono">2m ago</span>
-                </div>
-                <div class="text-[11px] text-slate-400 font-mono truncate">Batch of 42 txns scored in 3.4ms</div>
-              </div>
-            </div>
-
-            <div class="flex items-start gap-3 p-2.5 rounded-xl bg-[#030712]/70 border border-slate-800">
-              <div class="w-7 h-7 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/20 flex items-center justify-center shrink-0 text-xs">
-                ✕
-              </div>
-              <div class="flex-1 min-w-0">
-                <div class="text-xs font-semibold text-slate-100 flex items-center justify-between">
-                  <span>Abuse Ring Blocked</span>
-                  <span class="text-[10px] text-slate-500 font-mono">4m ago</span>
-                </div>
-                <div class="text-[11px] text-rose-400 font-mono truncate">Score: 0.98 · Multi-device Sybil</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Quick Actions (3 cols) -->
-        <div class="lg:col-span-3 p-6 rounded-3xl bg-[#0B132B]/85 border border-slate-800/90 shadow-2xl backdrop-blur-2xl flex flex-col justify-between">
-          <div class="mb-4">
-            <h3 class="text-sm font-bold text-white tracking-tight font-mono">Quick Actions</h3>
-            <p class="text-[11px] text-slate-400 mt-0.5">Direct access tools</p>
-          </div>
-
-          <div class="grid grid-cols-2 gap-2.5">
+          <div class="text-slate-300 font-bold">No Real Transactions Recorded Yet</div>
+          <p class="text-slate-500 max-w-sm mx-auto">
+            Transactions evaluated with your API key will appear in this real-time feed instantly.
+          </p>
+          <div class="pt-2">
             <a
               routerLink="/app/risk-analyzer"
-              class="p-3 rounded-2xl bg-[#030712] hover:bg-slate-900 border border-slate-800 hover:border-cyan-500/40 text-center transition-all flex flex-col items-center justify-center group"
+              class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-xs font-bold transition-all"
             >
-              <div class="text-base mb-1 group-hover:scale-110 transition-transform">⚡</div>
-              <div class="text-xs font-bold text-slate-200 group-hover:text-cyan-300">Test Risk</div>
-              <div class="text-[10px] text-slate-500 font-mono">Simulate</div>
-            </a>
-
-            <a
-              routerLink="/app/risk-networks"
-              class="p-3 rounded-2xl bg-[#030712] hover:bg-slate-900 border border-slate-800 hover:border-cyan-500/40 text-center transition-all flex flex-col items-center justify-center group"
-            >
-              <div class="text-base mb-1 group-hover:scale-110 transition-transform">🕸️</div>
-              <div class="text-xs font-bold text-slate-200 group-hover:text-cyan-300">Entity Graph</div>
-              <div class="text-[10px] text-slate-500 font-mono">Collusion</div>
-            </a>
-
-            <a
-              routerLink="/app/monitoring"
-              class="p-3 rounded-2xl bg-[#030712] hover:bg-slate-900 border border-slate-800 hover:border-cyan-500/40 text-center transition-all flex flex-col items-center justify-center group"
-            >
-              <div class="text-base mb-1 group-hover:scale-110 transition-transform">📈</div>
-              <div class="text-xs font-bold text-slate-200 group-hover:text-cyan-300">Model F</div>
-              <div class="text-[10px] text-slate-500 font-mono">Telemetry</div>
-            </a>
-
-            <a
-              routerLink="/app/audit-log"
-              class="p-3 rounded-2xl bg-[#030712] hover:bg-slate-900 border border-slate-800 hover:border-cyan-500/40 text-center transition-all flex flex-col items-center justify-center group"
-            >
-              <div class="text-base mb-1 group-hover:scale-110 transition-transform">📜</div>
-              <div class="text-xs font-bold text-slate-200 group-hover:text-cyan-300">Audit Log</div>
-              <div class="text-[10px] text-slate-500 font-mono">Immutable</div>
+              <span>▶ Evaluate First Transaction</span>
             </a>
           </div>
         </div>
       </div>
 
-      <!-- 5. Bottom Floating Telemetry Bar -->
-      <div class="p-4 rounded-2xl bg-[#060A14]/90 border border-slate-800/90 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4 font-mono text-xs text-slate-400">
-        <div class="flex flex-wrap items-center gap-4">
-          <div class="flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span>Model F (τ = 0.90): <strong class="text-white">Active & Protected</strong></span>
-          </div>
-          <span class="hidden md:inline text-slate-700">|</span>
-          <div class="flex items-center gap-2">
-            <span>Cloud MySQL: <strong class="text-cyan-300">Connected</strong></span>
-          </div>
-          <span class="hidden md:inline text-slate-700">|</span>
-          <div>Gateway: <strong class="text-emerald-400">Operational</strong></div>
-        </div>
+      <!-- 4. Fast Navigation Hub -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <a
+          routerLink="/app/risk-analyzer"
+          class="p-4 rounded-2xl bg-[#0B132B]/85 border border-slate-800 hover:border-cyan-500/40 text-center transition-all flex flex-col items-center justify-center group"
+        >
+          <div class="text-xl mb-1 group-hover:scale-110 transition-transform">⚡</div>
+          <div class="text-xs font-bold text-white group-hover:text-cyan-300">Risk Analyzer</div>
+          <div class="text-[10px] text-slate-500 font-mono">Evaluate Event</div>
+        </a>
 
         <a
-          routerLink="/app/transactions"
-          class="px-5 py-2 rounded-xl bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-600 hover:from-cyan-300 hover:to-indigo-500 text-black font-extrabold text-xs shadow-md shadow-cyan-500/20 transition-all hover:scale-105 shrink-0"
+          routerLink="/app/networks"
+          class="p-4 rounded-2xl bg-[#0B132B]/85 border border-slate-800 hover:border-purple-500/40 text-center transition-all flex flex-col items-center justify-center group"
         >
-          View Live Transactions →
+          <div class="text-xl mb-1 group-hover:scale-110 transition-transform">🕸️</div>
+          <div class="text-xs font-bold text-white group-hover:text-purple-300">Entity Networks</div>
+          <div class="text-[10px] text-slate-500 font-mono">Collusion Graphs</div>
+        </a>
+
+        <a
+          routerLink="/app/onboarding"
+          class="p-4 rounded-2xl bg-[#0B132B]/85 border border-slate-800 hover:border-emerald-500/40 text-center transition-all flex flex-col items-center justify-center group"
+        >
+          <div class="text-xl mb-1 group-hover:scale-110 transition-transform">📁</div>
+          <div class="text-xs font-bold text-white group-hover:text-emerald-300">Data Ingestion</div>
+          <div class="text-[10px] text-slate-500 font-mono">Upload CSV</div>
+        </a>
+
+        <a
+          routerLink="/app/integration"
+          class="p-4 rounded-2xl bg-[#0B132B]/85 border border-slate-800 hover:border-blue-500/40 text-center transition-all flex flex-col items-center justify-center group"
+        >
+          <div class="text-xl mb-1 group-hover:scale-110 transition-transform">🔑</div>
+          <div class="text-xs font-bold text-white group-hover:text-blue-300">API Credentials</div>
+          <div class="text-[10px] text-slate-500 font-mono">SDK Docs</div>
         </a>
       </div>
     </div>
   `,
 })
-export class LiveOverviewComponent implements OnInit {
+export class LiveOverviewComponent implements OnInit, OnDestroy {
   merchantService = inject(MerchantService);
   auth = inject(AuthService);
-  txService = inject(TransactionService);
 
   readonly metrics = this.merchantService.liveMetrics;
   readonly liveTransactions = this.merchantService.liveTransactions;
 
-  readonly recentTransactions = signal<any[]>([
-    { transaction_id: 'tx_0027436', user_id: 'usr_004812', amount: 249.99, currency: 'USD', risk_score: 1.0, decision: 'BLOCK', timestamp: new Date().toISOString() },
-    { transaction_id: 'tx_0027410', user_id: 'usr_004809', amount: 189.50, currency: 'USD', risk_score: 0.9998, decision: 'BLOCK', timestamp: new Date().toISOString() },
-    { transaction_id: 'tx_0014738', user_id: 'usr_003890', amount: 135.00, currency: 'USD', risk_score: 0.621, decision: 'REVIEW', timestamp: new Date().toISOString() },
-    { transaction_id: 'tx_0024882', user_id: 'usr_003115', amount: 112.00, currency: 'USD', risk_score: 0.0001, decision: 'APPROVE', timestamp: new Date().toISOString() },
-    { transaction_id: 'tx_0024439', user_id: 'usr_002104', amount: 64.20, currency: 'USD', risk_score: 0.0002, decision: 'APPROVE', timestamp: new Date().toISOString() },
-  ]);
+  private refreshInterval: any;
 
   ngOnInit(): void {
-    const txs = this.txService.getTransactions();
-    if (txs && txs.length > 0) {
-      const highRisk = txs.filter((t: any) => t.decision === 'BLOCK' || t.decision === 'REVIEW' || t.risk_score > 0.4);
-      if (highRisk.length > 0) {
-        this.recentTransactions.set(highRisk.slice(0, 5));
-      }
+    this.refreshData();
+    // Poll for real transaction updates every 15s
+    this.refreshInterval = setInterval(() => {
+      this.refreshData();
+    }, 15000);
+  }
+
+  ngOnDestroy(): void {
+    if (this.refreshInterval) {
+      clearInterval(this.refreshInterval);
     }
   }
 
+  refreshData(): void {
+    this.merchantService.getLiveMetrics().subscribe();
+    this.merchantService.getLiveTransactions('', '', '', 1, 10).subscribe();
+  }
+
   totalTransactionsCount(): number {
-    return this.metrics()?.total_transactions || 2847;
+    return this.metrics()?.total_transactions || 0;
+  }
+
+  approvalsCount(): number {
+    return this.metrics()?.approvals || 0;
+  }
+
+  reviewsCount(): number {
+    return this.metrics()?.reviews || 0;
+  }
+
+  blocksCount(): number {
+    return this.metrics()?.blocks || 0;
   }
 
   approvalRateText(): string {
@@ -529,7 +383,7 @@ export class LiveOverviewComponent implements OnInit {
     if (m && m.total_transactions > 0) {
       return (m.approval_rate * 100).toFixed(1) + '%';
     }
-    return '94.7%';
+    return '0.0%';
   }
 
   reviewRateText(): string {
@@ -537,7 +391,7 @@ export class LiveOverviewComponent implements OnInit {
     if (m && m.total_transactions > 0) {
       return (m.review_rate * 100).toFixed(1) + '%';
     }
-    return '3.8%';
+    return '0.0%';
   }
 
   blockRateText(): string {
@@ -545,7 +399,7 @@ export class LiveOverviewComponent implements OnInit {
     if (m && m.total_transactions > 0) {
       return (m.block_rate * 100).toFixed(1) + '%';
     }
-    return '1.5%';
+    return '0.0%';
   }
 
   meanRiskScoreText(): string {
@@ -553,6 +407,18 @@ export class LiveOverviewComponent implements OnInit {
     if (m && m.total_transactions > 0) {
       return m.average_risk_score.toFixed(3);
     }
-    return '0.158';
+    return '0.000';
+  }
+
+  recentTransactions(): any[] {
+    const txs = this.liveTransactions();
+    if (txs && txs.length > 0) {
+      return txs;
+    }
+    const metricsRecent = this.metrics()?.recent_transactions;
+    if (metricsRecent && metricsRecent.length > 0) {
+      return metricsRecent;
+    }
+    return [];
   }
 }

@@ -71,31 +71,7 @@ import { CyberBackgroundComponent } from '../../shared/components/cyber-backgrou
             <p class="text-xs text-slate-400 mt-1">Sign in to your merchant risk console</p>
           </div>
 
-          <!-- 1-Click Quick Fill Credentials Bar -->
-          <div class="mb-5 p-3 rounded-2xl bg-[#030712]/90 border border-cyan-500/30 space-y-2">
-            <div class="text-[10px] font-mono text-cyan-300 font-bold uppercase tracking-wider flex items-center justify-between">
-              <span>⚡ 1-Click Quick Test Accounts</span>
-              <span class="text-[9px] text-slate-500 font-normal">Pre-Seeded</span>
-            </div>
-            <div class="grid grid-cols-2 gap-2 text-[10px] font-mono">
-              <button
-                type="button"
-                (click)="fillCredentials('jeshwar.work@gmail.com', 'Password123!')"
-                class="px-2.5 py-1.5 rounded-lg bg-cyan-950/40 hover:bg-cyan-900/50 border border-cyan-500/30 text-cyan-200 text-left transition-colors cursor-pointer"
-              >
-                <div class="font-bold text-white truncate">Eshwar Work</div>
-                <div class="text-[9px] text-slate-400 truncate">jeshwar.work&#64;...</div>
-              </button>
-              <button
-                type="button"
-                (click)="fillCredentials('eshwar09052005@gmail.com', 'Password123!')"
-                class="px-2.5 py-1.5 rounded-lg bg-purple-950/40 hover:bg-purple-900/50 border border-purple-500/30 text-purple-200 text-left transition-colors cursor-pointer"
-              >
-                <div class="font-bold text-white truncate">Eshwar Personal</div>
-                <div class="text-[9px] text-slate-400 truncate">eshwar09052005&#64;...</div>
-              </button>
-            </div>
-          </div>
+
 
           <!-- Error Alert Banner -->
           <div *ngIf="errorMessage()" class="mb-5 p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-xs text-rose-300 flex items-start gap-3 shadow-[0_0_15px_rgba(244,63,94,0.15)] animate-fade-in">
