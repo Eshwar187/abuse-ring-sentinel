@@ -221,41 +221,12 @@ import { CyberBackgroundComponent } from '../../shared/components/cyber-backgrou
                 </a>
               </div>
 
-              <!-- Footer Backend API Target Bar -->
-              <div class="mt-4 pt-4 border-t border-slate-800/60 flex items-center justify-between text-[11px] font-mono text-slate-400">
-                <div class="flex items-center gap-1.5">
-                  <span>Target Backend API</span>
-                  <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                    Connected
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  (click)="showApiConfig.set(!showApiConfig())"
-                  class="text-cyan-400 hover:text-cyan-300 transition-colors"
-                >
-                  Configure →
-                </button>
-              </div>
-
-              <!-- Hidden Config Input when clicked -->
-              <div *ngIf="showApiConfig()" class="mt-3 pt-3 border-t border-slate-800/40 space-y-2 animate-fade-in">
-                <input
-                  type="text"
-                  [(ngModel)]="customApiUrl"
-                  placeholder="https://vigil-ai-f0ev.onrender.com"
-                  class="w-full bg-[#030712] border border-slate-800 rounded-lg px-3 py-1.5 text-[11px] text-cyan-300 font-mono focus:border-cyan-500 focus:outline-none"
-                />
-                <div class="flex items-center justify-between text-[10px]">
-                  <button
-                    type="button"
-                    (click)="saveCustomApiUrl()"
-                    class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 font-mono transition-colors"
-                  >
-                    Save Endpoint
-                  </button>
-                  <span class="text-slate-500 font-mono truncate max-w-[200px]">{{ currentBaseUrl }}</span>
-                </div>
+              <!-- SuperAdmin Portal Access Section -->
+              <div class="mt-4 pt-4 border-t border-slate-800/80 flex items-center justify-between text-xs font-mono text-slate-400">
+                <span>System Administration</span>
+                <a routerLink="/admin/login" class="text-purple-400 hover:text-purple-300 font-bold transition-colors">
+                  Admin Portal →
+                </a>
               </div>
             </div>
           </div>

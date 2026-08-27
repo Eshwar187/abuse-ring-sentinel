@@ -24,7 +24,7 @@ import { AdminService } from '../../core/services/admin.service';
             <span class="px-2.5 py-0.5 bg-purple-500/20 text-purple-300 border border-purple-500/40 text-[10px] font-bold rounded-full font-mono uppercase tracking-widest">
               ROOT // SUPERADMIN
             </span>
-            <span class="px-2 py-0.5 bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 text-[10px] font-mono">
+            <span class="px-2.5 py-0.5 bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 text-[10px] font-mono">
               256-Bit Tunnel
             </span>
           </div>
@@ -54,7 +54,8 @@ import { AdminService } from '../../core/services/admin.service';
                 <input
                   type="text"
                   formControlName="username"
-                  placeholder="Enter superadmin username..."
+                  autocomplete="username"
+                  placeholder="Enter admin username..."
                   class="w-full px-4 py-2.5 bg-[#030712] border border-slate-800 focus:border-purple-500 rounded-xl text-xs font-mono text-white placeholder-slate-600 focus:outline-none transition-colors shadow-inner"
                 />
                 <span class="absolute right-3.5 top-2.5 text-xs text-slate-600 font-mono">👤</span>
@@ -71,7 +72,8 @@ import { AdminService } from '../../core/services/admin.service';
                 <input
                   [type]="showPassword ? 'text' : 'password'"
                   formControlName="password"
-                  placeholder="Enter password..."
+                  autocomplete="current-password"
+                  placeholder="Enter admin password..."
                   class="w-full px-4 py-2.5 bg-[#030712] border border-slate-800 focus:border-purple-500 rounded-xl text-xs font-mono text-white placeholder-slate-600 focus:outline-none transition-colors shadow-inner"
                 />
                 <button
@@ -84,22 +86,11 @@ import { AdminService } from '../../core/services/admin.service';
               </div>
             </div>
 
-            <!-- Quick Auto-Fill Credential Helper -->
-            <div class="pt-1">
-              <button
-                type="button"
-                (click)="autofillCredentials()"
-                class="w-full py-2 bg-[#030712] hover:bg-slate-900 text-purple-300 border border-purple-500/25 rounded-xl text-[11px] font-mono transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm hover:border-purple-500/50"
-              >
-                <span>⚡ Auto-Fill SuperAdmin Credentials (eshwar187)</span>
-              </button>
-            </div>
-
             <!-- Submit Button -->
             <button
               type="submit"
               [disabled]="isLoading || loginForm.invalid"
-              class="w-full py-3.5 bg-gradient-to-r from-purple-500 via-indigo-600 to-cyan-500 hover:from-purple-400 hover:to-cyan-400 text-white font-extrabold text-xs rounded-xl shadow-xl shadow-purple-500/25 transition-all flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 cursor-pointer"
+              class="w-full py-3.5 bg-gradient-to-r from-purple-500 via-indigo-600 to-cyan-500 hover:from-purple-400 hover:to-cyan-400 text-white font-extrabold text-xs rounded-xl shadow-xl shadow-purple-500/25 transition-all flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 cursor-pointer mt-2"
             >
               <span *ngIf="isLoading" class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
               <span>{{ isLoading ? 'Verifying Cryptographic Credentials...' : 'Authenticate & Enter Command Center →' }}</span>
@@ -127,21 +118,13 @@ export class AdminLoginComponent {
   private router = inject(Router);
 
   loginForm: FormGroup = this.fb.group({
-    username: ['eshwar187', [Validators.required]],
-    password: ['Eshu@2005', [Validators.required]],
+    username: ['', [Validators.required]],
+    password: ['', [Validators.required]],
   });
 
   isLoading = false;
   showPassword = false;
   errorMessage: string | null = null;
-
-  autofillCredentials(): void {
-    this.loginForm.patchValue({
-      username: 'eshwar187',
-      password: 'Eshu@2005',
-    });
-    this.errorMessage = null;
-  }
 
   onSubmit(): void {
     if (this.loginForm.invalid) return;
