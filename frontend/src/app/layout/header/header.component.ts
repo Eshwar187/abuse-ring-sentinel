@@ -283,6 +283,20 @@ interface NotificationItem {
               >
                 <span>▶ 6.9k Benchmark Studio</span>
               </a>
+              <a
+                routerLink="/admin"
+                (click)="showProfileMenu.set(false)"
+                class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-purple-300 hover:text-purple-100 bg-purple-950/30 hover:bg-purple-900/50 border border-purple-500/30 transition-colors font-semibold"
+              >
+                <span>🛡️ Central Admin (SuperAdmin)</span>
+              </a>
+              <a
+                routerLink="/maintenance"
+                (click)="showProfileMenu.set(false)"
+                class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-amber-300 hover:text-amber-100 hover:bg-slate-900 transition-colors"
+              >
+                <span>🛠️ System Maintenance Screen</span>
+              </a>
             </div>
 
             <!-- Sign Out Action Button -->

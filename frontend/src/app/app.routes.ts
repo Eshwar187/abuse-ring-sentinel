@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { ShellComponent } from './layout/shell/shell.component';
 import { authGuard, unauthGuard } from './core/guards/auth.guard';
+import { adminGuard, adminUnauthGuard } from './core/guards/admin.guard';
 
 export const routes: Routes = [
   // Public Landing Page
@@ -10,6 +11,38 @@ export const routes: Routes = [
       import('./features/landing/landing.component').then(
         (m) => m.LandingPageComponent
       ),
+    pathMatch: 'full',
+  },
+
+  // Dedicated Public Maintenance Page
+  {
+    path: 'maintenance',
+    loadComponent: () =>
+      import('./features/maintenance/maintenance.component').then(
+        (m) => m.MaintenanceComponent
+      ),
+  },
+
+  // Central SuperAdmin Gateway & Command Center
+  {
+    path: 'admin/login',
+    canActivate: [adminUnauthGuard],
+    loadComponent: () =>
+      import('./features/admin/admin-login.component').then(
+        (m) => m.AdminLoginComponent
+      ),
+  },
+  {
+    path: 'admin',
+    canActivate: [adminGuard],
+    loadComponent: () =>
+      import('./features/admin/admin-dashboard.component').then(
+        (m) => m.AdminDashboardComponent
+      ),
+  },
+  {
+    path: 'admin/dashboard',
+    redirectTo: 'admin',
     pathMatch: 'full',
   },
 

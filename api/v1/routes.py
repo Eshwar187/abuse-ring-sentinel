@@ -55,10 +55,23 @@ from src.actions.schemas import (
 from src.actions.action_service import ActionExecutionService
 from src.integration.normalizer import EventNormalizer
 from src.integration.feature_adapter import FeatureAdapter
-from src.state.state_store import RuntimeStateStore
-from src.decision.engine import RiskDecisionEngine
 from src.audit.logger import AuditLogger
 from src.config import config
+from src.admin.schemas import (
+    AdminLoginRequest,
+    AdminLoginResponse,
+    AdminMerchantItem,
+    AdminMerchantsResponse,
+    AdminToggleMerchantRequest,
+    AdminPolicyConfig,
+    AdminUpdatePolicyRequest,
+    MaintenanceConfig,
+    UpdateMaintenanceRequest,
+    AdminSystemStatusResponse,
+    AdminEmergencyActionRequest,
+    AdminEmergencyActionResponse,
+)
+from src.admin.admin_service import AdminService
 
 
 router = APIRouter(prefix="/api/v1", tags=["Merchant Risk API v1"])
@@ -778,6 +791,155 @@ def create_v1_router(
             "page_size": page_size,
             "actions": actions,
         }
+
+    # -------------------------------------------------------------------------
+    # Central SuperAdmin & Maintenance Operations (/api/v1/admin/*)
+    # -------------------------------------------------------------------------
+    admin_service = AdminService(state_store=state_store, decision_engine=decision_engine)
+
+    def authenticate_superadmin(
+        authorization: Optional[str] = Header(None, alias="Authorization"),
+        x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token"),
+    ) -> Dict[str, Any]:
+        """Authenticates SuperAdmin requests using Bearer or X-Admin-Token."""
+        token = None
+        if x_admin_token:
+            token = x_admin_token.strip()
+        elif authorization and authorization.startswith("Bearer "):
+            token = authorization[7:].strip()
+
+        session = admin_service.validate_admin_token(token) if token else None
+        if not session:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail={"error": True, "code": "ADMIN_UNAUTHORIZED", "message": "SuperAdmin authentication required. Access denied."},
+            )
+        return session
+
+    @v1.post("/admin/login", response_model=AdminLoginResponse, status_code=status.HTTP_200_OK)
+    async def admin_login(payload: AdminLoginRequest):
+        """Authenticates SuperAdmin with credentials (eshwar187 / Eshu@2005)."""
+        auth_resp = admin_service.authenticate_admin(payload.username, payload.password)
+        if not auth_resp:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail={"error": True, "code": "INVALID_ADMIN_CREDENTIALS", "message": "Invalid SuperAdmin username or password."},
+            )
+        return auth_resp
+
+    @v1.get("/admin/me", status_code=status.HTTP_200_OK)
+    async def get_admin_session_info(
+        authorization: Optional[str] = Header(None, alias="Authorization"),
+        x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token"),
+    ):
+        """Returns the active SuperAdmin session metadata."""
+        session = authenticate_superadmin(authorization, x_admin_token)
+        return session
+
+    @v1.get("/admin/system/status", response_model=AdminSystemStatusResponse, status_code=status.HTTP_200_OK)
+    async def get_admin_system_status(
+        authorization: Optional[str] = Header(None, alias="Authorization"),
+        x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token"),
+    ):
+        """Returns comprehensive system telemetry, database health, and model performance."""
+        authenticate_superadmin(authorization, x_admin_token)
+        return admin_service.get_system_status()
+
+    @v1.get("/admin/merchants", response_model=AdminMerchantsResponse, status_code=status.HTTP_200_OK)
+    async def list_all_merchants_admin(
+        authorization: Optional[str] = Header(None, alias="Authorization"),
+        x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token"),
+    ):
+        """Lists all registered merchants with volume, fraud block rates, and status."""
+        authenticate_superadmin(authorization, x_admin_token)
+        return admin_service.list_all_merchants()
+
+    @v1.post("/admin/merchants/{merchant_id}/toggle-status", status_code=status.HTTP_200_OK)
+    async def toggle_merchant_status_admin(
+        merchant_id: str,
+        payload: Optional[AdminToggleMerchantRequest] = None,
+        authorization: Optional[str] = Header(None, alias="Authorization"),
+        x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token"),
+    ):
+        """Toggles or updates a merchant's status (ACTIVE / SUSPENDED)."""
+        authenticate_superadmin(authorization, x_admin_token)
+        target = payload.status if payload else None
+        return admin_service.toggle_merchant_status(merchant_id, target)
+
+    @v1.post("/admin/merchants/{merchant_id}/rotate-key", status_code=status.HTTP_200_OK)
+    async def rotate_merchant_key_admin(
+        merchant_id: str,
+        authorization: Optional[str] = Header(None, alias="Authorization"),
+        x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token"),
+    ):
+        """Forces an administrative API key rotation for a merchant."""
+        authenticate_superadmin(authorization, x_admin_token)
+        return admin_service.rotate_merchant_key(merchant_id)
+
+    @v1.get("/admin/model/config", response_model=AdminPolicyConfig, status_code=status.HTTP_200_OK)
+    async def get_admin_model_config(
+        authorization: Optional[str] = Header(None, alias="Authorization"),
+        x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token"),
+    ):
+        """Returns the active decision policy thresholds and model metadata."""
+        authenticate_superadmin(authorization, x_admin_token)
+        return admin_service.get_policy_config()
+
+    @v1.post("/admin/model/config", response_model=AdminPolicyConfig, status_code=status.HTTP_200_OK)
+    async def update_admin_model_config(
+        payload: AdminUpdatePolicyRequest,
+        authorization: Optional[str] = Header(None, alias="Authorization"),
+        x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token"),
+    ):
+        """Updates decision thresholds and sensitivity configuration in real time."""
+        authenticate_superadmin(authorization, x_admin_token)
+        return admin_service.update_policy_config(
+            block_threshold=payload.block_threshold,
+            review_threshold=payload.review_threshold,
+            sensitivity_preset=payload.sensitivity_preset,
+            rate_limit_per_minute=payload.rate_limit_per_minute,
+        )
+
+    @v1.post("/admin/model/reload", status_code=status.HTTP_200_OK)
+    async def reload_admin_model(
+        authorization: Optional[str] = Header(None, alias="Authorization"),
+        x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token"),
+    ):
+        """Forces an in-memory reload and checkpoint refresh of Model F."""
+        authenticate_superadmin(authorization, x_admin_token)
+        return admin_service.reload_model_engine()
+
+    @v1.get("/admin/maintenance", response_model=MaintenanceConfig, status_code=status.HTTP_200_OK)
+    async def get_maintenance_status_endpoint():
+        """Public and admin endpoint returning current maintenance mode state."""
+        return admin_service.get_maintenance_status()
+
+    @v1.post("/admin/maintenance", response_model=MaintenanceConfig, status_code=status.HTTP_200_OK)
+    async def update_maintenance_status_endpoint(
+        payload: UpdateMaintenanceRequest,
+        authorization: Optional[str] = Header(None, alias="Authorization"),
+        x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token"),
+    ):
+        """Activates, deactivates, or modifies maintenance mode."""
+        authenticate_superadmin(authorization, x_admin_token)
+        return admin_service.update_maintenance_status(
+            is_active=payload.is_active,
+            title=payload.title,
+            message=payload.message,
+            maintenance_type=payload.maintenance_type,
+            duration_minutes=payload.duration_minutes,
+            affected_services=payload.affected_services,
+        )
+
+    @v1.post("/admin/emergency-action", response_model=AdminEmergencyActionResponse, status_code=status.HTTP_200_OK)
+    async def trigger_emergency_action_endpoint(
+        payload: AdminEmergencyActionRequest,
+        authorization: Optional[str] = Header(None, alias="Authorization"),
+        x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token"),
+    ):
+        """Executes emergency circuit breakers (flush sessions, quarantine traffic, reload models)."""
+        authenticate_superadmin(authorization, x_admin_token)
+        return admin_service.trigger_emergency_action(payload.action, payload.reason)
 
     @v1.get("/admin/database/summary", status_code=status.HTTP_200_OK)
     async def get_admin_database_summary():
