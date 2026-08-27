@@ -365,9 +365,9 @@ export class SignupComponent implements OnInit {
     this.errorMessage.set(null);
 
     this.auth.signup({
-      full_name: this.fullName,
-      email: this.email,
-      company_name: this.companyName,
+      full_name: this.fullName.trim(),
+      email: this.email.trim().toLowerCase(),
+      company_name: this.companyName.trim(),
       password: this.password,
     }).subscribe({
       next: (res) => {
@@ -376,7 +376,15 @@ export class SignupComponent implements OnInit {
       },
       error: (err) => {
         this.isLoading.set(false);
-        this.errorMessage.set(err.message || 'Failed to create merchant account.');
+        let msg = 'Failed to create merchant account.';
+        if (err?.error?.message && typeof err.error.message === 'string') {
+          msg = err.error.message;
+        } else if (err?.error?.detail?.message && typeof err.error.detail.message === 'string') {
+          msg = err.error.detail.message;
+        } else if (err?.message && typeof err.message === 'string' && !err.message.startsWith('Http failure')) {
+          msg = err.message;
+        }
+        this.errorMessage.set(msg);
       },
     });
   }

@@ -177,27 +177,6 @@ class RuntimeStateStore:
                 "raw_api_key": "ars_live_demo_merchant_02",
             },
             {
-                "merchant_id": "merchant_jeshwar_work",
-                "company_name": "Eshwar Enterprises",
-                "email": "jeshwar.work@gmail.com",
-                "password": "Password123!",
-                "raw_api_key": "ars_live_jeshwar_key",
-            },
-            {
-                "merchant_id": "merchant_eshwar_personal",
-                "company_name": "Microsoft Partner Ops",
-                "email": "eshwar09052009@gmail.com",
-                "password": "Password123!",
-                "raw_api_key": "ars_live_eshwar_personal",
-            },
-            {
-                "merchant_id": "merchant_eshwar_2005",
-                "company_name": "Eshwar Engineering",
-                "email": "eshwar09052005@gmail.com",
-                "password": "Password123!",
-                "raw_api_key": "ars_live_eshwar_2005",
-            },
-            {
                 "merchant_id": "merchant_sandbox",
                 "company_name": "Sandbox Merchant",
                 "email": "sandbox@merchant.in",
@@ -209,6 +188,16 @@ class RuntimeStateStore:
         try:
             with get_db_session() as session:
                 repo = MerchantRepository(session)
+                # Cleanup any legacy pre-seeded user accounts so real users can register fresh
+                for old_email in ["eshwar09052005@gmail.com", "eshwar09052009@gmail.com", "jeshwar.work@gmail.com"]:
+                    try:
+                        old_m = repo.get_merchant_by_email(old_email)
+                        if old_m and old_m.merchant_id.startswith("merchant_eshwar") or (old_m and old_m.merchant_id.startswith("merchant_jeshwar")):
+                            session.delete(old_m)
+                            session.commit()
+                    except Exception:
+                        pass
+
                 for m in default_seed:
                     existing = repo.get_merchant_by_id(m["merchant_id"])
                     if not existing:
@@ -444,33 +433,6 @@ class RuntimeStateStore:
                 "raw_api_key": "ars_live_demo_merchant_02",
             },
             {
-                "merchant_id": "merchant_jeshwar_work",
-                "company_name": "Eshwar Enterprises",
-                "email": "jeshwar.work@gmail.com",
-                "user_id": "usr_jeshwar_work",
-                "full_name": "Eshwar J",
-                "password": "Password123!",
-                "raw_api_key": "ars_live_jeshwar_key",
-            },
-            {
-                "merchant_id": "merchant_eshwar_personal",
-                "company_name": "Microsoft Partner Ops",
-                "email": "eshwar09052009@gmail.com",
-                "user_id": "usr_eshwar_personal",
-                "full_name": "Eshwar J",
-                "password": "Password123!",
-                "raw_api_key": "ars_live_eshwar_personal",
-            },
-            {
-                "merchant_id": "merchant_eshwar_2005",
-                "company_name": "Eshwar Engineering",
-                "email": "eshwar09052005@gmail.com",
-                "user_id": "usr_eshwar_2005",
-                "full_name": "Eshwar J",
-                "password": "Password123!",
-                "raw_api_key": "ars_live_eshwar_2005",
-            },
-            {
                 "merchant_id": "merchant_sandbox",
                 "company_name": "Sandbox Merchant",
                 "email": "sandbox@merchant.in",
@@ -483,6 +445,16 @@ class RuntimeStateStore:
 
         with self._get_connection() as conn:
             cursor = conn.cursor()
+            # Cleanup any legacy pre-seeded user accounts so real users can register fresh with their own password
+            for old_email in ["eshwar09052005@gmail.com", "eshwar09052009@gmail.com", "jeshwar.work@gmail.com"]:
+                cursor.execute("SELECT user_id, merchant_id FROM users WHERE email = ? AND (merchant_id LIKE 'merchant_eshwar%' OR merchant_id LIKE 'merchant_jeshwar%')", (old_email,))
+                row = cursor.fetchone()
+                if row:
+                    cursor.execute("DELETE FROM auth_sessions WHERE merchant_id = ?", (row["merchant_id"],))
+                    cursor.execute("DELETE FROM api_keys WHERE merchant_id = ?", (row["merchant_id"],))
+                    cursor.execute("DELETE FROM users WHERE merchant_id = ?", (row["merchant_id"],))
+                    cursor.execute("DELETE FROM merchants WHERE merchant_id = ?", (row["merchant_id"],))
+
             for m in default_seed:
                 cursor.execute(
                     "INSERT OR IGNORE INTO merchants (merchant_id, company_name, email, created_at) VALUES (?, ?, ?, ?)",
