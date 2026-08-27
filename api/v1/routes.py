@@ -146,6 +146,7 @@ def create_v1_router(
     """
     v1 = APIRouter(prefix="/api/v1", tags=["Merchant Risk API v1"])
     action_service = ActionExecutionService(state_store=state_store, environment=config.environment)
+    admin_service = AdminService(state_store=state_store, decision_engine=decision_engine)
 
     @v1.post("/risk/evaluate", response_model=RiskEvaluateResponse, status_code=status.HTTP_200_OK)
     async def evaluate_transaction_risk(
@@ -160,6 +161,17 @@ def create_v1_router(
         executes the frozen HistGradientBoosting model, applies decision policy, generates reason codes,
         triggers outbound merchant action execution if configured, and logs audit records.
         """
+        if admin_service.is_request_blocked_by_maintenance(is_admin=False):
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail={
+                    "error": True,
+                    "code": "MAINTENANCE_MODE_ACTIVE",
+                    "message": "Engine is in maintenance mode. Risk inference is temporarily held.",
+                    "estimated_end_time": admin_service.maintenance.estimated_end_time,
+                },
+            )
+
         merchant_id = authenticate_merchant(x_api_key=x_api_key, authorization=authorization, state_store=state_store)
         start_time = time.perf_counter()
         req_id = str(uuid.uuid4())
@@ -416,6 +428,17 @@ def create_v1_router(
         """Creates a new merchant account, admin user, and initial API key."""
         from src.auth.security import hash_password
 
+        if admin_service.is_request_blocked_by_maintenance(is_admin=False):
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail={
+                    "error": True,
+                    "code": "MAINTENANCE_MODE_ACTIVE",
+                    "message": "VigilAI is currently under scheduled core engine maintenance. Merchant registration is temporarily paused.",
+                    "estimated_end_time": admin_service.maintenance.estimated_end_time,
+                },
+            )
+
         existing = state_store.get_user_by_email(payload.email)
         if existing:
             raise HTTPException(
@@ -454,6 +477,17 @@ def create_v1_router(
     async def login_merchant(payload: LoginRequest):
         """Authenticates merchant user and returns active session token."""
         from src.auth.security import verify_password
+
+        if admin_service.is_request_blocked_by_maintenance(is_admin=False):
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail={
+                    "error": True,
+                    "code": "MAINTENANCE_MODE_ACTIVE",
+                    "message": "VigilAI is currently under scheduled core engine maintenance. Merchant login is temporarily disabled to prevent data inconsistency.",
+                    "estimated_end_time": admin_service.maintenance.estimated_end_time,
+                },
+            )
 
         user = state_store.get_user_by_email(payload.email)
         if not user or not verify_password(payload.password, user["password_hash"], user["password_salt"]):
@@ -795,7 +829,6 @@ def create_v1_router(
     # -------------------------------------------------------------------------
     # Central SuperAdmin & Maintenance Operations (/api/v1/admin/*)
     # -------------------------------------------------------------------------
-    admin_service = AdminService(state_store=state_store, decision_engine=decision_engine)
 
     def authenticate_superadmin(
         authorization: Optional[str] = Header(None, alias="Authorization"),

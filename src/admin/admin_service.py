@@ -191,13 +191,13 @@ class AdminService:
 
         return self.maintenance
 
-    def is_request_blocked_by_maintenance(self, is_admin: bool = False, client_ip: str = "127.0.0.1") -> bool:
+    def is_request_blocked_by_maintenance(self, is_admin: bool = False, client_ip: Optional[str] = None) -> bool:
         """Checks if a request should be blocked by active maintenance mode."""
         if not self.maintenance.is_active:
             return False
         if is_admin and self.maintenance.allow_admin_bypass:
             return False
-        if client_ip in self.maintenance.bypass_ips:
+        if client_ip and self.maintenance.bypass_ips and client_ip in self.maintenance.bypass_ips:
             return False
         return True
 
