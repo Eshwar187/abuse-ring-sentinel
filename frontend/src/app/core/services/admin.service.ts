@@ -156,6 +156,19 @@ export class AdminService {
       );
   }
 
+  deleteMerchant(merchantId: string): Observable<{ success: boolean; message: string }> {
+    return this.api
+      .delete<{ success: boolean; message: string }>(
+        `/api/v1/admin/merchants/${merchantId}`,
+        { headers: this.getAuthHeaders() }
+      )
+      .pipe(
+        tap(() => {
+          this.fetchMerchants().subscribe();
+        })
+      );
+  }
+
   // -------------------------------------------------------------------------
   // Decision Policy & Model Configuration
   // -------------------------------------------------------------------------

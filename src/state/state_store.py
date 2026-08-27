@@ -61,7 +61,7 @@ try:
         IdempotencyRepository,
         AuditRepository,
     )
-    from sqlalchemy import select, func, desc, and_
+    from sqlalchemy import select, func, desc, and_, delete
     MYSQL_AVAILABLE = True
 except ImportError:
     MYSQL_AVAILABLE = False
@@ -1879,3 +1879,203 @@ class RuntimeStateStore:
                 },
                 "latest_transaction_timestamp": latest_ts,
             }
+
+    # -------------------------------------------------------------------------
+    # SuperAdmin Merchant Management & Account Purge
+    # -------------------------------------------------------------------------
+    def list_merchants_admin(self) -> List[Dict[str, Any]]:
+        """Aggregates all registered merchants with live counts and volume."""
+        results = []
+        if self.use_mysql:
+            try:
+                with get_db_session() as session:
+                    merchants = session.scalars(select(MerchantModel)).all()
+                    for m in merchants:
+                        tx_stats = session.execute(
+                            select(
+                                func.count(TransactionModel.transaction_id),
+                                func.sum(TransactionModel.amount),
+                            ).where(TransactionModel.merchant_id == m.merchant_id)
+                        ).first()
+                        total_tx = tx_stats[0] if tx_stats and tx_stats[0] else 0
+                        total_vol = float(tx_stats[1]) if tx_stats and tx_stats[1] else 0.0
+
+                        eval_stats = session.execute(
+                            select(
+                                func.count(RiskEvaluationModel.request_id),
+                                RiskEvaluationModel.decision,
+                            ).where(RiskEvaluationModel.merchant_id == m.merchant_id)
+                            .group_by(RiskEvaluationModel.decision)
+                        ).all()
+                        blocked_c = 0
+                        review_c = 0
+                        approved_c = 0
+                        for row in eval_stats:
+                            if row[1] == "BLOCK":
+                                blocked_c = row[0]
+                            elif row[1] == "REVIEW":
+                                review_c = row[0]
+                            elif row[1] == "ALLOW":
+                                approved_c = row[0]
+
+                        cred = session.scalar(
+                            select(MerchantCredentialModel).where(
+                                MerchantCredentialModel.merchant_id == m.merchant_id
+                            )
+                        )
+                        api_prefix = cred.api_key_prefix if cred else "ars_live_••••"
+                        status = "ACTIVE" if (cred and cred.is_active) else ("SUSPENDED" if cred else "ACTIVE")
+
+                        user = session.scalar(
+                            select(UserModel).where(UserModel.merchant_id == m.merchant_id)
+                        )
+                        full_name = user.full_name if user else m.company_name
+
+                        results.append({
+                            "merchant_id": m.merchant_id,
+                            "company_name": m.company_name,
+                            "email": m.email,
+                            "full_name": full_name,
+                            "api_key_prefix": api_prefix,
+                            "tier": "ENTERPRISE",
+                            "status": status,
+                            "created_at": m.created_at.isoformat() if m.created_at else datetime.now(timezone.utc).isoformat(),
+                            "total_transactions": total_tx,
+                            "total_volume_usd": total_vol,
+                            "blocked_count": blocked_c,
+                            "review_count": review_c,
+                            "approved_count": approved_c,
+                        })
+                return results
+            except Exception as e:
+                import sys
+                print(f"[RuntimeStateStore] MySQL list_merchants_admin fallback: {e}", file=sys.stderr)
+                self._ensure_sqlite_ready()
+
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT m.merchant_id, m.company_name, m.email, m.created_at,
+                       COALESCE(u.full_name, m.company_name) as full_name,
+                       COALESCE(k.key_prefix, 'ars_live_••••') as api_key_prefix,
+                       COALESCE(k.is_active, 1) as is_active
+                FROM merchants m
+                LEFT JOIN users u ON m.merchant_id = u.merchant_id
+                LEFT JOIN api_keys k ON m.merchant_id = k.merchant_id
+                GROUP BY m.merchant_id
+                ORDER BY m.created_at DESC
+            """)
+            rows = cursor.fetchall()
+            for r in rows:
+                mid = r["merchant_id"]
+                cursor.execute("SELECT COUNT(*), SUM(amount) FROM runtime_transactions WHERE merchant_id = ?", (mid,))
+                tx_row = cursor.fetchone()
+                total_tx = tx_row[0] if tx_row and tx_row[0] else 0
+                total_vol = float(tx_row[1]) if tx_row and tx_row[1] else 0.0
+
+                cursor.execute("SELECT COUNT(*) FROM runtime_transactions WHERE merchant_id = ? AND decision = 'BLOCK'", (mid,))
+                blocked_c = cursor.fetchone()[0]
+                cursor.execute("SELECT COUNT(*) FROM runtime_transactions WHERE merchant_id = ? AND decision = 'REVIEW'", (mid,))
+                review_c = cursor.fetchone()[0]
+                cursor.execute("SELECT COUNT(*) FROM runtime_transactions WHERE merchant_id = ? AND decision = 'ALLOW'", (mid,))
+                approved_c = cursor.fetchone()[0]
+
+                status = "ACTIVE" if r["is_active"] == 1 else "SUSPENDED"
+                results.append({
+                    "merchant_id": mid,
+                    "company_name": r["company_name"],
+                    "email": r["email"],
+                    "full_name": r["full_name"],
+                    "api_key_prefix": r["api_key_prefix"],
+                    "tier": "ENTERPRISE",
+                    "status": status,
+                    "created_at": r["created_at"],
+                    "total_transactions": total_tx,
+                    "total_volume_usd": total_vol,
+                    "blocked_count": blocked_c,
+                    "review_count": review_c,
+                    "approved_count": approved_c,
+                })
+        return results
+
+    def set_merchant_status(self, merchant_id: str, target_status: Optional[str] = None) -> Dict[str, Any]:
+        """Updates merchant status to ACTIVE or SUSPENDED."""
+        if not target_status:
+            target_status = "SUSPENDED"
+        target_status = target_status.upper()
+        is_active = (target_status == "ACTIVE")
+
+        if self.use_mysql:
+            try:
+                with get_db_session() as session:
+                    creds = session.scalars(
+                        select(MerchantCredentialModel).where(MerchantCredentialModel.merchant_id == merchant_id)
+                    ).all()
+                    for c in creds:
+                        c.is_active = is_active
+                    session.commit()
+            except Exception as e:
+                import sys
+                print(f"[RuntimeStateStore] MySQL set_merchant_status error: {e}", file=sys.stderr)
+
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("UPDATE api_keys SET is_active = ? WHERE merchant_id = ?", (1 if is_active else 0, merchant_id))
+            conn.commit()
+
+        return {
+            "merchant_id": merchant_id,
+            "status": target_status,
+            "message": f"Merchant {merchant_id} status updated to {target_status}",
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }
+
+    def delete_merchant(self, merchant_id: str) -> Dict[str, Any]:
+        """Completely purges merchant, associated users, auth sessions, credentials, and transactions."""
+        # 1. Purge from in-memory graphs
+        if merchant_id in self.merchant_graphs:
+            del self.merchant_graphs[merchant_id]
+
+        # 2. Purge from MySQL if enabled
+        if self.use_mysql:
+            try:
+                with get_db_session() as session:
+                    session.execute(delete(ActionAttemptModel).where(ActionAttemptModel.merchant_id == merchant_id))
+                    session.execute(delete(MerchantActionModel).where(MerchantActionModel.merchant_id == merchant_id))
+                    session.execute(delete(OutcomeModel).where(OutcomeModel.merchant_id == merchant_id))
+                    session.execute(delete(RiskEvaluationModel).where(RiskEvaluationModel.merchant_id == merchant_id))
+                    session.execute(delete(TransactionEntityModel).where(TransactionEntityModel.merchant_id == merchant_id))
+                    session.execute(delete(TransactionModel).where(TransactionModel.merchant_id == merchant_id))
+                    session.execute(delete(EntityRelationshipModel).where(EntityRelationshipModel.merchant_id == merchant_id))
+                    session.execute(delete(IdempotencyRecordModel).where(IdempotencyRecordModel.merchant_id == merchant_id))
+                    session.execute(delete(MerchantCredentialModel).where(MerchantCredentialModel.merchant_id == merchant_id))
+                    session.execute(delete(MerchantIntegrationModel).where(MerchantIntegrationModel.merchant_id == merchant_id))
+                    session.execute(delete(UserModel).where(UserModel.merchant_id == merchant_id))
+                    session.execute(delete(MerchantModel).where(MerchantModel.merchant_id == merchant_id))
+                    session.commit()
+            except Exception as e:
+                import sys
+                print(f"[RuntimeStateStore] MySQL delete_merchant warning: {e}", file=sys.stderr)
+
+        # 3. Purge from SQLite
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM auth_sessions WHERE merchant_id = ?", (merchant_id,))
+            cursor.execute("DELETE FROM api_keys WHERE merchant_id = ?", (merchant_id,))
+            cursor.execute("DELETE FROM users WHERE merchant_id = ?", (merchant_id,))
+            cursor.execute("DELETE FROM merchant_integrations WHERE merchant_id = ?", (merchant_id,))
+            cursor.execute("DELETE FROM merchant_actions WHERE merchant_id = ?", (merchant_id,))
+            cursor.execute("DELETE FROM runtime_transactions WHERE merchant_id = ?", (merchant_id,))
+            cursor.execute("DELETE FROM transaction_outcomes WHERE merchant_id = ?", (merchant_id,))
+            cursor.execute("DELETE FROM merchant_events WHERE merchant_id = ?", (merchant_id,))
+            cursor.execute("DELETE FROM idempotency_records WHERE merchant_id = ?", (merchant_id,))
+            cursor.execute("DELETE FROM merchants WHERE merchant_id = ?", (merchant_id,))
+            conn.commit()
+
+        return {
+            "success": True,
+            "merchant_id": merchant_id,
+            "message": f"Merchant {merchant_id} and all associated users, credentials, and transactions permanently purged.",
+            "deleted_at": datetime.now(timezone.utc).isoformat(),
+        }
+

@@ -337,6 +337,17 @@ class AdminService:
             "created_at": datetime.now(timezone.utc).isoformat(),
         }
 
+    def delete_merchant(self, merchant_id: str) -> Dict[str, Any]:
+        """Completely purges merchant, associated users, credentials, and transactions."""
+        if self.state_store and hasattr(self.state_store, "delete_merchant"):
+            return self.state_store.delete_merchant(merchant_id)
+        return {
+            "success": True,
+            "merchant_id": merchant_id,
+            "message": f"Merchant {merchant_id} deleted successfully.",
+            "deleted_at": datetime.now(timezone.utc).isoformat(),
+        }
+
     # -------------------------------------------------------------------------
     # Model & Policy Configuration
     # -------------------------------------------------------------------------

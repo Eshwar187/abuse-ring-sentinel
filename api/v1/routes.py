@@ -909,6 +909,16 @@ def create_v1_router(
         authenticate_superadmin(authorization, x_admin_token)
         return admin_service.rotate_merchant_key(merchant_id)
 
+    @v1.delete("/admin/merchants/{merchant_id}", status_code=status.HTTP_200_OK)
+    async def delete_merchant_admin(
+        merchant_id: str,
+        authorization: Optional[str] = Header(None, alias="Authorization"),
+        x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token"),
+    ):
+        """Permanently purges a merchant, all their users, credentials, and transactions."""
+        authenticate_superadmin(authorization, x_admin_token)
+        return admin_service.delete_merchant(merchant_id)
+
     @v1.get("/admin/model/config", response_model=AdminPolicyConfig, status_code=status.HTTP_200_OK)
     async def get_admin_model_config(
         authorization: Optional[str] = Header(None, alias="Authorization"),

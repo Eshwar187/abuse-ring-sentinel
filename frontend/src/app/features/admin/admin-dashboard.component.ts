@@ -410,6 +410,15 @@ interface AuditLogEntry {
                       >
                         🔑 Rotate Key
                       </button>
+
+                      <!-- Delete Merchant Account Button -->
+                      <button
+                        (click)="confirmDeleteMerchant(m)"
+                        class="px-2.5 py-1 bg-red-950/60 hover:bg-red-900/80 text-red-300 hover:text-white border border-red-500/40 hover:border-red-400 text-[11px] font-mono rounded-lg transition-all cursor-pointer shadow-sm"
+                        title="Permanently delete merchant account, users, credentials, and transactions"
+                      >
+                        🗑️ Delete
+                      </button>
                     </td>
                   </tr>
                 </tbody>
@@ -672,6 +681,51 @@ interface AuditLogEntry {
           </div>
         </div>
 
+        <!-- =================================================================== -->
+        <!-- DELETE MERCHANT CONFIRMATION MODAL -->
+        <!-- =================================================================== -->
+        <div *ngIf="merchantToDelete" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in">
+          <div class="bg-[#0B132B] border border-rose-500/50 rounded-3xl p-7 max-w-md w-full shadow-[0_0_50px_rgba(244,63,94,0.25)] space-y-5">
+            <div class="flex items-center gap-3 text-rose-400 border-b border-slate-800 pb-3">
+              <span class="text-3xl">⚠️</span>
+              <div>
+                <h3 class="text-base font-bold text-white font-mono uppercase tracking-wider">Delete Merchant Account</h3>
+                <span class="text-[10px] text-rose-400 font-mono">PERMANENT IRREVERSIBLE ACTION</span>
+              </div>
+            </div>
+            
+            <p class="text-xs text-slate-300 font-mono leading-relaxed">
+              Are you sure you want to permanently purge merchant <strong class="text-rose-300">{{ merchantToDelete.company_name }}</strong> (<span class="text-cyan-300">{{ merchantToDelete.merchant_id }}</span>)?
+            </p>
+
+            <div class="p-3.5 bg-rose-950/40 border border-rose-500/30 rounded-2xl text-[11px] font-mono text-rose-300 space-y-1.5">
+              <div class="flex items-center gap-2"><span>💥</span> <span>All registered merchant user logins will be deleted.</span></div>
+              <div class="flex items-center gap-2"><span>🔑</span> <span>All API keys & auth sessions will be revoked.</span></div>
+              <div class="flex items-center gap-2"><span>📊</span> <span>All transaction logs & entity graphs will be purged.</span></div>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                (click)="merchantToDelete = null"
+                [disabled]="isDeletingMerchant"
+                class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-mono transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                (click)="executeDeleteMerchant()"
+                [disabled]="isDeletingMerchant"
+                class="px-5 py-2.5 bg-gradient-to-r from-rose-600 to-red-700 hover:from-rose-500 hover:to-red-600 text-white font-bold rounded-xl text-xs font-mono transition-all flex items-center gap-2 cursor-pointer shadow-lg shadow-rose-600/40 disabled:opacity-50"
+              >
+                <span *ngIf="isDeletingMerchant" class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                <span>{{ isDeletingMerchant ? 'Purging Account...' : '🔥 Permanently Purge Account' }}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
       </main>
     </div>
   `,
@@ -690,6 +744,8 @@ export class AdminDashboardComponent implements OnInit {
   activeTab: 'telemetry' | 'merchants' | 'policy' | 'maintenance' | 'audit' = 'telemetry';
   currentUtcTime: string = new Date().toUTCString().slice(17, 25);
   merchantSearch = '';
+  merchantToDelete: AdminMerchantItem | null = null;
+  isDeletingMerchant = false;
 
   setTab(tabId: 'telemetry' | 'merchants' | 'policy' | 'maintenance' | 'audit'): void {
     this.activeTab = tabId;
@@ -982,6 +1038,32 @@ export class AdminDashboardComponent implements OnInit {
       admin: 'eshwar187',
       details,
       status,
+    });
+  }
+
+  confirmDeleteMerchant(m: AdminMerchantItem): void {
+    this.merchantToDelete = m;
+  }
+
+  executeDeleteMerchant(): void {
+    if (!this.merchantToDelete) return;
+    const m = this.merchantToDelete;
+    this.isDeletingMerchant = true;
+    this.adminService.deleteMerchant(m.merchant_id).subscribe({
+      next: (res) => {
+        this.isDeletingMerchant = false;
+        this.merchantToDelete = null;
+        this.addAuditLog(
+          'MERCHANT_ACCOUNT_PURGED',
+          `Permanently deleted merchant organization ${m.company_name} (${m.merchant_id}) and all associated users/transactions.`,
+          'ALERT'
+        );
+        this.adminService.refreshAll();
+      },
+      error: (err) => {
+        this.isDeletingMerchant = false;
+        alert(`Failed to delete merchant: ${err.message || 'Server error'}`);
+      },
     });
   }
 
