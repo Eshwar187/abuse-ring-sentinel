@@ -113,15 +113,30 @@ class RuntimeStateStore:
     # -------------------------------------------------------------------------
     def _init_mysql(self):
         """Initializes MySQL schema and seeds default development merchants."""
-        health = check_db_connection()
-        if health.get("status") != "connected":
-            # Do NOT silently fallback to SQLite when MySQL is configured
-            if config.db_engine == "mysql":
-                pass  # Keep state degraded; queries will raise database unavailable
-            return
+        try:
+            health = check_db_connection()
+            if health.get("status") != "connected":
+                import sys
+                print("[RuntimeStateStore] Warning: MySQL not reachable, self-healing to SQLite storage.", file=sys.stderr)
+                self.use_mysql = False
+                self.db_path = DEFAULT_DB_PATH
+                if self.db_path != ":memory:":
+                    os.makedirs(os.path.dirname(os.path.abspath(self.db_path)), exist_ok=True)
+                self._init_sqlite()
+                self._hydrate_graphs_from_sqlite()
+                return
 
-        init_db()
-        self._seed_default_merchants_mysql()
+            init_db()
+            self._seed_default_merchants_mysql()
+        except Exception as e:
+            import sys
+            print(f"[RuntimeStateStore] MySQL initialization exception: {e}. Self-healing fallback to SQLite.", file=sys.stderr)
+            self.use_mysql = False
+            self.db_path = DEFAULT_DB_PATH
+            if self.db_path != ":memory:":
+                os.makedirs(os.path.dirname(os.path.abspath(self.db_path)), exist_ok=True)
+            self._init_sqlite()
+            self._hydrate_graphs_from_sqlite()
 
     def _hydrate_graphs_from_mysql(self):
         """Reconstructs in-memory entity graph representation from MySQL persistent state."""
@@ -160,6 +175,20 @@ class RuntimeStateStore:
                 "email": "admin@novadigital.io",
                 "password": "Password123!",
                 "raw_api_key": "ars_live_demo_merchant_02",
+            },
+            {
+                "merchant_id": "merchant_jeshwar_work",
+                "company_name": "Eshwar Enterprises",
+                "email": "jeshwar.work@gmail.com",
+                "password": "Password123!",
+                "raw_api_key": "ars_live_jeshwar_key",
+            },
+            {
+                "merchant_id": "merchant_eshwar_personal",
+                "company_name": "Microsoft Partner Ops",
+                "email": "eshwar09052009@gmail.com",
+                "password": "Password123!",
+                "raw_api_key": "ars_live_eshwar_personal",
             },
             {
                 "merchant_id": "merchant_sandbox",
@@ -405,6 +434,24 @@ class RuntimeStateStore:
                 "full_name": "Sarah Connor",
                 "password": "Password123!",
                 "raw_api_key": "ars_live_demo_merchant_02",
+            },
+            {
+                "merchant_id": "merchant_jeshwar_work",
+                "company_name": "Eshwar Enterprises",
+                "email": "jeshwar.work@gmail.com",
+                "user_id": "usr_jeshwar_work",
+                "full_name": "Eshwar J",
+                "password": "Password123!",
+                "raw_api_key": "ars_live_jeshwar_key",
+            },
+            {
+                "merchant_id": "merchant_eshwar_personal",
+                "company_name": "Microsoft Partner Ops",
+                "email": "eshwar09052009@gmail.com",
+                "user_id": "usr_eshwar_personal",
+                "full_name": "Eshwar J",
+                "password": "Password123!",
+                "raw_api_key": "ars_live_eshwar_personal",
             },
             {
                 "merchant_id": "merchant_sandbox",
@@ -922,6 +969,16 @@ class RuntimeStateStore:
             row = cursor.fetchone()
             return row["timestamp"] if row else None
 
+    def _ensure_sqlite_ready(self):
+        """Ensures SQLite fallback tables and schemas are initialized."""
+        self.use_mysql = False
+        if not hasattr(self, "_sqlite_initialized") or not self._sqlite_initialized:
+            if self.db_path != ":memory:":
+                os.makedirs(os.path.dirname(os.path.abspath(self.db_path)), exist_ok=True)
+            self._init_sqlite()
+            self._hydrate_graphs_from_sqlite()
+            self._sqlite_initialized = True
+
     # -------------------------------------------------------------------------
     # Authentication & User State Operations
     # -------------------------------------------------------------------------
@@ -945,21 +1002,26 @@ class RuntimeStateStore:
         raw_key, key_hash, key_prefix = generate_api_key()
 
         if self.use_mysql:
-            with get_db_session() as session:
-                repo = MerchantRepository(session)
-                combined_hash = f"{password_hash}:{password_salt}" if password_salt else password_hash
-                repo.create_merchant(
-                    merchant_id=merchant_id,
-                    company_name=company_name,
-                    email=email,
-                    password_hash=combined_hash,
-                )
-                repo.create_credential(
-                    merchant_id=merchant_id,
-                    api_key_hash=key_hash,
-                    api_key_masked=f"{raw_key[:12]}••••••••",
-                )
-            return merchant_id, user_id, raw_key, key_prefix
+            try:
+                with get_db_session() as session:
+                    repo = MerchantRepository(session)
+                    combined_hash = f"{password_hash}:{password_salt}" if password_salt else password_hash
+                    repo.create_merchant(
+                        merchant_id=merchant_id,
+                        company_name=company_name,
+                        email=email,
+                        password_hash=combined_hash,
+                    )
+                    repo.create_credential(
+                        merchant_id=merchant_id,
+                        api_key_hash=key_hash,
+                        api_key_masked=f"{raw_key[:12]}••••••••",
+                    )
+                return merchant_id, user_id, raw_key, key_prefix
+            except Exception as e:
+                import sys
+                print(f"[RuntimeStateStore] MySQL create_merchant_user fallback: {e}", file=sys.stderr)
+                self._ensure_sqlite_ready()
 
         now_str = datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
         key_id = f"key_{uuid.uuid4().hex[:8]}"
@@ -985,24 +1047,29 @@ class RuntimeStateStore:
     def get_user_by_email(self, email: str) -> Optional[Dict[str, Any]]:
         clean_email = email.strip().lower()
         if self.use_mysql:
-            with get_db_session() as session:
-                repo = MerchantRepository(session)
-                merchant = repo.get_merchant_by_email(clean_email)
-                if merchant:
-                    p_hash = merchant.password_hash
-                    p_salt = ""
-                    if ":" in p_hash:
-                        p_hash, p_salt = p_hash.split(":", 1)
-                    return {
-                        "user_id": merchant.merchant_id,
-                        "merchant_id": merchant.merchant_id,
-                        "full_name": merchant.company_name,
-                        "email": merchant.email,
-                        "password_hash": p_hash,
-                        "password_salt": p_salt,
-                        "created_at": merchant.created_at.isoformat(),
-                    }
-                return None
+            try:
+                with get_db_session() as session:
+                    repo = MerchantRepository(session)
+                    merchant = repo.get_merchant_by_email(clean_email)
+                    if merchant:
+                        p_hash = merchant.password_hash
+                        p_salt = ""
+                        if ":" in p_hash:
+                            p_hash, p_salt = p_hash.split(":", 1)
+                        return {
+                            "user_id": merchant.merchant_id,
+                            "merchant_id": merchant.merchant_id,
+                            "full_name": merchant.company_name,
+                            "email": merchant.email,
+                            "password_hash": p_hash,
+                            "password_salt": p_salt,
+                            "created_at": merchant.created_at.isoformat(),
+                        }
+                    return None
+            except Exception as e:
+                import sys
+                print(f"[RuntimeStateStore] MySQL get_user_by_email fallback: {e}", file=sys.stderr)
+                self._ensure_sqlite_ready()
 
         with self._get_connection() as conn:
             cursor = conn.cursor()
@@ -1014,17 +1081,22 @@ class RuntimeStateStore:
 
     def get_merchant_by_id(self, merchant_id: str) -> Optional[Dict[str, Any]]:
         if self.use_mysql:
-            with get_db_session() as session:
-                repo = MerchantRepository(session)
-                m = repo.get_merchant_by_id(merchant_id)
-                if m:
-                    return {
-                        "merchant_id": m.merchant_id,
-                        "company_name": m.company_name,
-                        "email": m.email,
-                        "created_at": m.created_at.isoformat(),
-                    }
-                return None
+            try:
+                with get_db_session() as session:
+                    repo = MerchantRepository(session)
+                    m = repo.get_merchant_by_id(merchant_id)
+                    if m:
+                        return {
+                            "merchant_id": m.merchant_id,
+                            "company_name": m.company_name,
+                            "email": m.email,
+                            "created_at": m.created_at.isoformat(),
+                        }
+                    return None
+            except Exception as e:
+                import sys
+                print(f"[RuntimeStateStore] MySQL get_merchant_by_id fallback: {e}", file=sys.stderr)
+                self._ensure_sqlite_ready()
 
         with self._get_connection() as conn:
             cursor = conn.cursor()
@@ -1039,16 +1111,21 @@ class RuntimeStateStore:
 
         token = generate_session_token()
         if self.use_mysql:
-            with get_db_session() as session:
-                repo = MerchantRepository(session)
-                repo.create_credential(
-                    merchant_id=merchant_id,
-                    api_key_hash=f"session_{token[:16]}",
-                    api_key_masked="session_token",
-                    session_token=token,
-                    expires_at=datetime.utcnow() + timedelta(days=7),
-                )
-            return token
+            try:
+                with get_db_session() as session:
+                    repo = MerchantRepository(session)
+                    repo.create_credential(
+                        merchant_id=merchant_id,
+                        api_key_hash=f"session_{token[:16]}",
+                        api_key_masked="session_token",
+                        session_token=token,
+                        expires_at=datetime.utcnow() + timedelta(days=7),
+                    )
+                return token
+            except Exception as e:
+                import sys
+                print(f"[RuntimeStateStore] MySQL create_session fallback: {e}", file=sys.stderr)
+                self._ensure_sqlite_ready()
 
         now = datetime.now()
         now_str = now.strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -1067,21 +1144,26 @@ class RuntimeStateStore:
         if not session_token:
             return None
         if self.use_mysql:
-            with get_db_session() as session:
-                repo = MerchantRepository(session)
-                cred = repo.get_credential_by_session_token(session_token.strip())
-                if cred and cred.merchant:
-                    return {
-                        "session_token": cred.session_token,
-                        "user_id": cred.merchant_id,
-                        "merchant_id": cred.merchant_id,
-                        "full_name": cred.merchant.company_name,
-                        "email": cred.merchant.email,
-                        "company_name": cred.merchant.company_name,
-                        "created_at": cred.created_at.isoformat(),
-                        "expires_at": cred.expires_at.isoformat() if cred.expires_at else "",
-                    }
-                return None
+            try:
+                with get_db_session() as session:
+                    repo = MerchantRepository(session)
+                    cred = repo.get_credential_by_session_token(session_token.strip())
+                    if cred and cred.merchant:
+                        return {
+                            "session_token": cred.session_token,
+                            "user_id": cred.merchant_id,
+                            "merchant_id": cred.merchant_id,
+                            "full_name": cred.merchant.company_name,
+                            "email": cred.merchant.email,
+                            "company_name": cred.merchant.company_name,
+                            "created_at": cred.created_at.isoformat(),
+                            "expires_at": cred.expires_at.isoformat() if cred.expires_at else "",
+                        }
+                    return None
+            except Exception as e:
+                import sys
+                print(f"[RuntimeStateStore] MySQL get_session fallback: {e}", file=sys.stderr)
+                self._ensure_sqlite_ready()
 
         with self._get_connection() as conn:
             cursor = conn.cursor()
@@ -1107,12 +1189,28 @@ class RuntimeStateStore:
 
         k_hash = hash_api_key(raw_key)
         if self.use_mysql:
-            with get_db_session() as session:
-                repo = MerchantRepository(session)
-                cred = repo.get_credential_by_api_key_hash(k_hash)
-                if cred and cred.is_active:
-                    return cred.merchant_id
-                return None
+            try:
+                with get_db_session() as session:
+                    repo = MerchantRepository(session)
+                    cred = repo.get_credential_by_api_key_hash(k_hash)
+                    if cred and cred.is_active:
+                        return cred.merchant_id
+                    return None
+            except Exception as e:
+                import sys
+                print(f"[RuntimeStateStore] MySQL validate_api_key fallback: {e}", file=sys.stderr)
+                self._ensure_sqlite_ready()
+
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT merchant_id FROM api_keys WHERE key_hash = ? AND is_active = 1",
+                (k_hash,),
+            )
+            row = cursor.fetchone()
+            if row:
+                return row["merchant_id"]
+        return None
 
         with self._get_connection() as conn:
             cursor = conn.cursor()

@@ -40,29 +40,74 @@ app = FastAPI(
     redoc_url="/redoc" if not config.is_production else None,
 )
 
-# CORS Configuration
+# Universal CORS and Preflight Configuration
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_origin_regex=r"^https?://.*$",
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"],
+    allow_credentials=False,
+    allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["*"],
 )
 
 
-@app.options("/{full_path:path}")
-async def preflight_options_handler(request: Request, full_path: str):
-    """Explicitly handles preflight OPTIONS requests for cross-origin browser clients."""
-    origin = request.headers.get("origin", "*")
-    return Response(
-        status_code=200,
+@app.middleware("http")
+async def add_cors_and_security_headers(request: Request, call_next):
+    """Guarantees Access-Control-Allow-Origin header on EVERY response, including error exceptions."""
+    origin = request.headers.get("origin") or "*"
+    if request.method == "OPTIONS":
+        return Response(
+            status_code=200,
+            headers={
+                "Access-Control-Allow-Origin": origin,
+                "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD",
+                "Access-Control-Allow-Headers": "*",
+                "Access-Control-Expose-Headers": "*",
+            },
+        )
+    try:
+        response = await call_next(request)
+    except Exception as exc:
+        import traceback
+        print(f"[Unhandled Exception in Request]: {exc}\n{traceback.format_exc()}", file=sys.stderr)
+        response = JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"error": True, "code": "INTERNAL_SERVER_ERROR", "message": str(exc)},
+        )
+    response.headers["Access-Control-Allow-Origin"] = origin
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    response.headers["Access-Control-Expose-Headers"] = "*"
+    return response
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    origin = request.headers.get("origin") or "*"
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={"error": True, "code": "INTERNAL_SERVER_ERROR", "message": str(exc)},
         headers={
             "Access-Control-Allow-Origin": origin,
             "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD",
             "Access-Control-Allow-Headers": "*",
-            "Access-Control-Allow-Credentials": "true",
+            "Access-Control-Expose-Headers": "*",
+        },
+    )
+
+
+@app.exception_handler(HTTPException)
+async def custom_http_exception_handler(request: Request, exc: HTTPException):
+    origin = request.headers.get("origin") or "*"
+    content = exc.detail if isinstance(exc.detail, dict) else {"error": True, "code": "HTTP_ERROR", "message": str(exc.detail)}
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=content,
+        headers={
+            "Access-Control-Allow-Origin": origin,
+            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD",
+            "Access-Control-Allow-Headers": "*",
+            "Access-Control-Expose-Headers": "*",
         },
     )
 
