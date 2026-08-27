@@ -537,14 +537,24 @@ interface AuditLogEntry {
                   type="button"
                   (click)="maintenanceActive = !maintenanceActive"
                   class="relative inline-flex h-7 w-14 items-center rounded-full transition-colors cursor-pointer"
-                  [ngClass]="maintenanceActive ? 'bg-amber-500' : 'bg-slate-800'"
+                  [ngClass]="maintenanceActive ? 'bg-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.5)]' : 'bg-slate-800'"
                 >
                   <span
-                    class="inline-block h-5 w-5 transform rounded-full bg-white transition-transform"
+                    class="inline-block h-5 w-5 transform rounded-full bg-white transition-transform shadow-md"
                     [ngClass]="maintenanceActive ? 'translate-x-8' : 'translate-x-1'"
                   ></span>
                 </button>
               </div>
+            </div>
+
+            <!-- Feedback Alert Toast Banner -->
+            <div *ngIf="maintenanceToast()" class="p-4 rounded-2xl flex items-center justify-between gap-3 text-xs font-mono shadow-xl transition-all"
+                 [ngClass]="maintenanceToast()?.type === 'success' ? 'bg-emerald-500/15 border border-emerald-500/40 text-emerald-200' : 'bg-rose-500/15 border border-rose-500/40 text-rose-200'">
+              <div class="flex items-center gap-2.5">
+                <span class="text-base">{{ maintenanceToast()?.type === 'success' ? '🛡️' : '⚠️' }}</span>
+                <span class="font-bold">{{ maintenanceToast()?.message }}</span>
+              </div>
+              <button type="button" (click)="maintenanceToast.set(null)" class="text-slate-400 hover:text-white px-2 cursor-pointer font-bold">✕</button>
             </div>
 
             <!-- Maintenance Settings Form -->
@@ -692,6 +702,7 @@ export class AdminDashboardComponent implements OnInit {
   maintenanceMessage = 'VigilAI fraud intelligence engine is undergoing scheduled model calibration and database index optimization.';
   maintenanceDuration = 60;
   isApplyingMaintenance = false;
+  maintenanceToast = signal<{ type: 'success' | 'error'; message: string } | null>(null);
 
   // Policy Form State
   policyForm: FormGroup = this.fb.group({
@@ -746,7 +757,15 @@ export class AdminDashboardComponent implements OnInit {
 
   ngOnInit(): void {
     this.adminService.refreshAll();
-    this.syncMaintenanceForm();
+    this.adminService.fetchPublicMaintenanceStatus().subscribe((cfg) => {
+      if (cfg) {
+        this.maintenanceActive = cfg.is_active;
+        this.maintenanceType = cfg.maintenance_type || 'SCHEDULED_UPGRADE';
+        this.maintenanceTitle = cfg.title;
+        this.maintenanceMessage = cfg.message;
+        this.maintenanceDuration = cfg.duration_minutes || 60;
+      }
+    });
     this.syncPolicyForm();
     setInterval(() => {
       this.currentUtcTime = new Date().toUTCString().slice(17, 25);
@@ -790,44 +809,72 @@ export class AdminDashboardComponent implements OnInit {
 
   toggleQuickMaintenance(): void {
     const targetState = !this.isMaintenanceActive();
+    this.maintenanceToast.set(null);
     this.adminService
       .updateMaintenanceStatus({
         is_active: targetState,
         title: this.maintenanceTitle,
         message: this.maintenanceMessage,
         maintenance_type: this.maintenanceType,
-        duration_minutes: this.maintenanceDuration,
+        duration_minutes: Number(this.maintenanceDuration) || 60,
       })
-      .subscribe(() => {
-        this.addAuditLog(
-          'MAINTENANCE_TOGGLED',
-          `Global maintenance mode set to ${targetState ? 'ACTIVE' : 'INACTIVE'}`,
-          targetState ? 'WARNING' : 'SUCCESS'
-        );
+      .subscribe({
+        next: (cfg) => {
+          this.maintenanceActive = cfg.is_active;
+          this.maintenanceToast.set({
+            type: 'success',
+            message: `Maintenance Mode is now ${cfg.is_active ? 'ACTIVE (Public console locked)' : 'INACTIVE (All systems restored)'}.`
+          });
+          this.addAuditLog(
+            'MAINTENANCE_TOGGLED',
+            `Global maintenance mode set to ${cfg.is_active ? 'ACTIVE' : 'INACTIVE'}`,
+            cfg.is_active ? 'WARNING' : 'SUCCESS'
+          );
+          this.adminService.refreshAll();
+          setTimeout(() => this.maintenanceToast.set(null), 6000);
+        },
+        error: (err) => {
+          this.maintenanceToast.set({
+            type: 'error',
+            message: `Failed to toggle maintenance mode: ${err.message || 'Server error'}`
+          });
+        }
       });
   }
 
   applyMaintenanceSettings(): void {
     this.isApplyingMaintenance = true;
+    this.maintenanceToast.set(null);
     this.adminService
       .updateMaintenanceStatus({
         is_active: this.maintenanceActive,
         title: this.maintenanceTitle,
         message: this.maintenanceMessage,
         maintenance_type: this.maintenanceType,
-        duration_minutes: this.maintenanceDuration,
+        duration_minutes: Number(this.maintenanceDuration) || 60,
       })
       .subscribe({
-        next: () => {
+        next: (cfg) => {
           this.isApplyingMaintenance = false;
+          this.maintenanceActive = cfg.is_active;
+          this.maintenanceToast.set({
+            type: 'success',
+            message: `Maintenance policy updated: State is now ${cfg.is_active ? 'ACTIVE (Gating enabled)' : 'INACTIVE (Public traffic open)'}.`
+          });
           this.addAuditLog(
             'MAINTENANCE_CONFIG_UPDATED',
-            `Maintenance window updated: ${this.maintenanceTitle} (${this.maintenanceDuration} mins)`,
+            `Maintenance window updated: ${this.maintenanceTitle} (${this.maintenanceDuration} mins) - Active: ${cfg.is_active}`,
             'SUCCESS'
           );
+          this.adminService.refreshAll();
+          setTimeout(() => this.maintenanceToast.set(null), 6000);
         },
-        error: () => {
+        error: (err) => {
           this.isApplyingMaintenance = false;
+          this.maintenanceToast.set({
+            type: 'error',
+            message: `Failed to apply maintenance settings: ${err.message || 'Server error'}`
+          });
         },
       });
   }
