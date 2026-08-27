@@ -191,6 +191,13 @@ class RuntimeStateStore:
                 "raw_api_key": "ars_live_eshwar_personal",
             },
             {
+                "merchant_id": "merchant_eshwar_2005",
+                "company_name": "Eshwar Engineering",
+                "email": "eshwar09052005@gmail.com",
+                "password": "Password123!",
+                "raw_api_key": "ars_live_eshwar_2005",
+            },
+            {
                 "merchant_id": "merchant_sandbox",
                 "company_name": "Sandbox Merchant",
                 "email": "sandbox@merchant.in",
@@ -205,12 +212,13 @@ class RuntimeStateStore:
                 for m in default_seed:
                     existing = repo.get_merchant_by_id(m["merchant_id"])
                     if not existing:
-                        pwd_hash, _ = hash_password(m["password"])
+                        pwd_hash, pwd_salt = hash_password(m["password"])
+                        combined_hash = f"{pwd_hash}:{pwd_salt}"
                         repo.create_merchant(
                             merchant_id=m["merchant_id"],
                             company_name=m["company_name"],
                             email=m["email"],
-                            password_hash=pwd_hash,
+                            password_hash=combined_hash,
                         )
                         k_hash = hash_api_key(m["raw_api_key"])
                         k_masked = f"{m['raw_api_key'][:12]}••••••••"
@@ -452,6 +460,15 @@ class RuntimeStateStore:
                 "full_name": "Eshwar J",
                 "password": "Password123!",
                 "raw_api_key": "ars_live_eshwar_personal",
+            },
+            {
+                "merchant_id": "merchant_eshwar_2005",
+                "company_name": "Eshwar Engineering",
+                "email": "eshwar09052005@gmail.com",
+                "user_id": "usr_eshwar_2005",
+                "full_name": "Eshwar J",
+                "password": "Password123!",
+                "raw_api_key": "ars_live_eshwar_2005",
             },
             {
                 "merchant_id": "merchant_sandbox",

@@ -66,9 +66,35 @@ import { CyberBackgroundComponent } from '../../shared/components/cyber-backgrou
       <!-- Main Login Floating Glassmorphic Container -->
       <div class="relative z-20 w-full max-w-md">
         <div class="bg-[#0B132B]/80 border border-slate-800/90 hover:border-cyan-500/30 rounded-3xl p-8 sm:p-10 shadow-[0_0_50px_rgba(0,0,0,0.6)] backdrop-blur-2xl relative overflow-hidden transition-all">
-          <div class="text-center mb-7">
+          <div class="text-center mb-6">
             <h2 class="text-2xl font-extrabold text-white tracking-tight">Welcome Back</h2>
             <p class="text-xs text-slate-400 mt-1">Sign in to your merchant risk console</p>
+          </div>
+
+          <!-- 1-Click Quick Fill Credentials Bar -->
+          <div class="mb-5 p-3 rounded-2xl bg-[#030712]/90 border border-cyan-500/30 space-y-2">
+            <div class="text-[10px] font-mono text-cyan-300 font-bold uppercase tracking-wider flex items-center justify-between">
+              <span>⚡ 1-Click Quick Test Accounts</span>
+              <span class="text-[9px] text-slate-500 font-normal">Pre-Seeded</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2 text-[10px] font-mono">
+              <button
+                type="button"
+                (click)="fillCredentials('jeshwar.work@gmail.com', 'Password123!')"
+                class="px-2.5 py-1.5 rounded-lg bg-cyan-950/40 hover:bg-cyan-900/50 border border-cyan-500/30 text-cyan-200 text-left transition-colors cursor-pointer"
+              >
+                <div class="font-bold text-white truncate">Eshwar Work</div>
+                <div class="text-[9px] text-slate-400 truncate">jeshwar.work&#64;...</div>
+              </button>
+              <button
+                type="button"
+                (click)="fillCredentials('eshwar09052005@gmail.com', 'Password123!')"
+                class="px-2.5 py-1.5 rounded-lg bg-purple-950/40 hover:bg-purple-900/50 border border-purple-500/30 text-purple-200 text-left transition-colors cursor-pointer"
+              >
+                <div class="font-bold text-white truncate">Eshwar Personal</div>
+                <div class="text-[9px] text-slate-400 truncate">eshwar09052005&#64;...</div>
+              </button>
+            </div>
           </div>
 
           <!-- Error Alert Banner -->
@@ -76,7 +102,7 @@ import { CyberBackgroundComponent } from '../../shared/components/cyber-backgrou
             <svg class="w-4 h-4 text-rose-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
-            <div class="leading-relaxed">{{ errorMessage() }}</div>
+            <div class="leading-relaxed font-sans">{{ errorMessage() }}</div>
           </div>
 
           <form (ngSubmit)="onLogin()" class="space-y-4">
@@ -124,7 +150,7 @@ import { CyberBackgroundComponent } from '../../shared/components/cyber-backgrou
               <button
                 type="submit"
                 [disabled]="isLoading()"
-                class="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-600 hover:from-cyan-300 hover:via-blue-400 hover:to-indigo-500 text-black font-extrabold text-xs shadow-xl shadow-cyan-500/25 transition-all flex items-center justify-center gap-2 disabled:opacity-50 hover:scale-[1.01] active:scale-[0.99]"
+                class="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-600 hover:from-cyan-300 hover:via-blue-400 hover:to-indigo-500 text-black font-extrabold text-xs shadow-xl shadow-cyan-500/25 transition-all flex items-center justify-center gap-2 disabled:opacity-50 hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
               >
                 <span *ngIf="!isLoading()">Sign In →</span>
                 <span *ngIf="isLoading()" class="flex items-center gap-2 text-black">
@@ -138,7 +164,7 @@ import { CyberBackgroundComponent } from '../../shared/components/cyber-backgrou
           <!-- New Merchant Link -->
           <div class="mt-6 text-center text-xs text-slate-400">
             <span>New to VigilAI? </span>
-            <a routerLink="/signup" class="text-cyan-400 hover:text-cyan-300 font-semibold transition-colors">
+            <a routerLink="/signup" class="text-cyan-400 hover:text-cyan-300 font-semibold transition-colors cursor-pointer">
               Create your merchant account
             </a>
           </div>
@@ -235,6 +261,12 @@ export class LoginComponent implements OnInit {
     }
   }
 
+  fillCredentials(email: string, pass: string) {
+    this.email = email;
+    this.password = pass;
+    this.errorMessage.set(null);
+  }
+
   onLogin() {
     if (!this.email || !this.password) {
       this.errorMessage.set('Please enter your email and password.');
@@ -245,7 +277,7 @@ export class LoginComponent implements OnInit {
     this.errorMessage.set(null);
 
     this.auth.login({
-      email: this.email,
+      email: this.email.trim().toLowerCase(),
       password: this.password,
     }).subscribe({
       next: () => {
@@ -255,7 +287,15 @@ export class LoginComponent implements OnInit {
       },
       error: (err) => {
         this.isLoading.set(false);
-        this.errorMessage.set(err.message || 'Invalid email or password provided.');
+        let msg = 'Invalid email or password provided.';
+        if (err?.error?.message && typeof err.error.message === 'string') {
+          msg = err.error.message;
+        } else if (err?.error?.detail?.message && typeof err.error.detail.message === 'string') {
+          msg = err.error.detail.message;
+        } else if (err?.message && typeof err.message === 'string' && !err.message.startsWith('Http failure')) {
+          msg = err.message;
+        }
+        this.errorMessage.set(msg);
       },
     });
   }
