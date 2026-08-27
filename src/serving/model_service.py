@@ -181,7 +181,7 @@ class ModelServingService:
         clf.fit(df_train, df_train["is_abuse_ring"].values)
         return clf
 
-    def validate_features(self, features: Dict[str, Any]) -> pd.DataFrame:
+    def validate_features(self, features: Dict[str, Any], require_all: bool = True) -> pd.DataFrame:
         """
         Validates feature dictionary against expected schema, fills baseline defaults for any omitted fields,
         and rejects ground truth target columns.
@@ -191,7 +191,13 @@ class ModelServingService:
         if forbidden:
             raise ValueError(f"Ground-truth or post-event fields detected in inference input: {forbidden}")
 
-        # 2. Build row dict with auto-imputation of missing point-in-time signals
+        # 2. Check for missing required features
+        if require_all:
+            missing = [f for f in COMBINED_FEATURES if f not in features]
+            if missing:
+                raise ValueError(f"Missing required feature columns: {missing}")
+
+        # 3. Build row dict with auto-imputation of missing point-in-time signals
         row_dict = {}
         for f in COMBINED_FEATURES:
             if f in features and features[f] is not None:

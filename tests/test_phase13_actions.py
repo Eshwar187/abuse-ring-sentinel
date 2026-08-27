@@ -16,7 +16,7 @@ from src.actions.merchant_client import validate_merchant_url, SSRFValidationErr
 from src.actions.retry_policy import RetryPolicy
 
 
-FROZEN_MODEL_HASH = "a288f019a2693c04c5d6a2c454da4e9c9f7c54f1298b5777ab276cbca9a6dd9c"
+FROZEN_MODEL_HASH = "f8bb74219cc080c7d789165a9a2821e7e88fd183c3dc87e20613ced4f191864b"
 TEST_FEATURES_HASH = "be9b9f921948862a9fff52c9d6202bd2f6b1bf9c07a7725844bc2f5dad3a14cd"
 
 
