@@ -61,6 +61,34 @@ class RotateKeyResponse(BaseModel):
     message: str = "Store this API key securely. It will not be shown again."
 
 
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr = Field(...)
+
+
+class ForgotPasswordResponse(BaseModel):
+    success: bool = True
+    message: str = "If an account is associated with this email, recovery instructions and a secure reset token have been generated."
+    reset_token: Optional[str] = Field(None, description="Direct recovery token for frictionless testing/integration")
+    reset_link: Optional[str] = Field(None, description="Direct reset URL link")
+
+
+class VerifyResetTokenResponse(BaseModel):
+    valid: bool
+    email: Optional[str] = None
+    company_name: Optional[str] = None
+    message: Optional[str] = None
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str = Field(..., min_length=8, description="Cryptographic password reset token")
+    new_password: str = Field(..., min_length=8, max_length=128)
+
+
+class ResetPasswordResponse(BaseModel):
+    success: bool = True
+    message: str = "Password successfully reset. You can now log in with your new credentials."
+
+
 class MerchantTransactionItem(BaseModel):
     transaction_id: str
     user_id: str

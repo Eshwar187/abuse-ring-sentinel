@@ -390,6 +390,20 @@ class RuntimeStateStore:
                     FOREIGN KEY (merchant_id) REFERENCES merchants(merchant_id)
                 )
             """)
+            # 12. Password Resets table
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS password_resets (
+                    reset_id TEXT PRIMARY KEY,
+                    email TEXT NOT NULL,
+                    token_hash TEXT NOT NULL UNIQUE,
+                    expires_at TEXT NOT NULL,
+                    used_at TEXT,
+                    created_at TEXT NOT NULL
+                )
+            """)
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_pw_reset_hash ON password_resets(token_hash)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_pw_reset_email ON password_resets(email)")
+
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_actions_tx ON merchant_actions(merchant_id, transaction_id)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_actions_status ON merchant_actions(merchant_id, status)")
 
@@ -1214,6 +1228,136 @@ class RuntimeStateStore:
             if row:
                 return dict(row)
         return None
+
+    def create_password_reset_token(self, email: str) -> Optional[Tuple[str, str, str]]:
+        """
+        Creates a secure single-use password reset token for the given user email.
+        Returns (raw_token, expires_at_iso, company_name) or None if email not found.
+        """
+        import secrets
+        import hashlib
+        from datetime import datetime, timezone, timedelta
+
+        clean_email = email.strip().lower()
+        user = self.get_user_by_email(clean_email)
+        if not user:
+            return None
+
+        merchant = self.get_merchant_by_id(user.get("merchant_id", ""))
+        company_name = merchant["company_name"] if merchant else "Merchant"
+
+        raw_token = secrets.token_urlsafe(32)
+        token_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
+        now = datetime.now(timezone.utc)
+        expires_at = now + timedelta(minutes=15)
+        now_str = now.strftime("%Y-%m-%dT%H:%M:%SZ")
+        expires_str = expires_at.strftime("%Y-%m-%dT%H:%M:%SZ")
+        reset_id = f"rst_{secrets.token_hex(8)}"
+
+        self._ensure_sqlite_ready()
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "INSERT INTO password_resets (reset_id, email, token_hash, expires_at, created_at) VALUES (?, ?, ?, ?, ?)",
+                (reset_id, clean_email, token_hash, expires_str, now_str),
+            )
+            conn.commit()
+
+        return raw_token, expires_str, company_name
+
+    def verify_password_reset_token(self, raw_token: str) -> Optional[Dict[str, Any]]:
+        """
+        Verifies that a password reset token is valid, unused, and not expired.
+        """
+        import hashlib
+        from datetime import datetime, timezone
+
+        if not raw_token or len(raw_token.strip()) < 8:
+            return None
+
+        token_hash = hashlib.sha256(raw_token.strip().encode("utf-8")).hexdigest()
+        self._ensure_sqlite_ready()
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT * FROM password_resets WHERE token_hash = ? AND used_at IS NULL",
+                (token_hash,),
+            )
+            row = cursor.fetchone()
+            if not row:
+                return None
+
+            expires_str = row["expires_at"]
+            try:
+                expires_dt = datetime.strptime(expires_str, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+                if datetime.now(timezone.utc) > expires_dt:
+                    return None
+            except Exception:
+                pass
+
+            user = self.get_user_by_email(row["email"])
+            company_name = "Merchant"
+            if user:
+                merchant = self.get_merchant_by_id(user.get("merchant_id", ""))
+                if merchant:
+                    company_name = merchant["company_name"]
+
+            return {
+                "reset_id": row["reset_id"],
+                "email": row["email"],
+                "company_name": company_name,
+                "expires_at": expires_str,
+            }
+
+    def reset_password_with_token(self, raw_token: str, new_password: str) -> bool:
+        """
+        Updates the merchant password using a verified reset token and marks the token as used.
+        """
+        from datetime import datetime, timezone
+        from src.auth.security import hash_password
+
+        verification = self.verify_password_reset_token(raw_token)
+        if not verification:
+            return False
+
+        email = verification["email"]
+        reset_id = verification["reset_id"]
+        pwd_hash, pwd_salt = hash_password(new_password)
+        now_str = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+        if self.use_mysql:
+            try:
+                with get_db_session() as session:
+                    repo = MerchantRepository(session)
+                    m = repo.get_merchant_by_email(email)
+                    if m:
+                        combined_hash = f"{pwd_hash}:{pwd_salt}" if pwd_salt else pwd_hash
+                        m.password_hash = combined_hash
+                        session.commit()
+            except Exception as e:
+                import sys
+                print(f"[RuntimeStateStore] MySQL reset_password warning: {e}", file=sys.stderr)
+
+        self._ensure_sqlite_ready()
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            # Update password in users table
+            cursor.execute(
+                "UPDATE users SET password_hash = ?, password_salt = ? WHERE email = ?",
+                (pwd_hash, pwd_salt, email),
+            )
+            # Mark reset token as used
+            cursor.execute(
+                "UPDATE password_resets SET used_at = ? WHERE reset_id = ?",
+                (now_str, reset_id),
+            )
+            # Invalidate all active sessions for this user
+            cursor.execute(
+                "DELETE FROM auth_sessions WHERE user_id IN (SELECT user_id FROM users WHERE email = ?)",
+                (email,),
+            )
+            conn.commit()
+        return True
 
     def validate_api_key(self, raw_key: str) -> Optional[str]:
         """Validates raw API key and returns merchant_id if valid and active."""

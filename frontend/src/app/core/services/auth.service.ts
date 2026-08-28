@@ -9,6 +9,11 @@ import {
   LoginRequestPayload,
   LoginResponsePayload,
   RotateKeyResponsePayload,
+  ForgotPasswordRequestPayload,
+  ForgotPasswordResponsePayload,
+  VerifyResetTokenResponsePayload,
+  ResetPasswordRequestPayload,
+  ResetPasswordResponsePayload,
 } from '../models/auth.models';
 
 const SESSION_STORAGE_KEY = 'ars_session_token';
@@ -101,6 +106,20 @@ export class AuthService {
         }
       })
     );
+  }
+
+  forgotPassword(email: string): Observable<ForgotPasswordResponsePayload> {
+    return this.api.post<ForgotPasswordResponsePayload>('/api/v1/auth/forgot-password', {
+      email: email.trim().toLowerCase(),
+    });
+  }
+
+  verifyResetToken(token: string): Observable<VerifyResetTokenResponsePayload> {
+    return this.api.get<VerifyResetTokenResponsePayload>(`/api/v1/auth/verify-reset-token?token=${encodeURIComponent(token.trim())}`);
+  }
+
+  resetPassword(payload: ResetPasswordRequestPayload): Observable<ResetPasswordResponsePayload> {
+    return this.api.post<ResetPasswordResponsePayload>('/api/v1/auth/reset-password', payload);
   }
 
   logout(): void {

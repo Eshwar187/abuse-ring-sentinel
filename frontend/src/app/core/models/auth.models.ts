@@ -47,6 +47,34 @@ export interface RotateKeyResponsePayload {
   message: string;
 }
 
+export interface ForgotPasswordRequestPayload {
+  email: string;
+}
+
+export interface ForgotPasswordResponsePayload {
+  success: boolean;
+  message: string;
+  reset_token?: string;
+  reset_link?: string;
+}
+
+export interface VerifyResetTokenResponsePayload {
+  valid: boolean;
+  email?: string;
+  company_name?: string;
+  message?: string;
+}
+
+export interface ResetPasswordRequestPayload {
+  token: string;
+  new_password: string;
+}
+
+export interface ResetPasswordResponsePayload {
+  success: boolean;
+  message: string;
+}
+
 export interface LiveMerchantMetrics {
   merchant_id: string;
   total_transactions: number;

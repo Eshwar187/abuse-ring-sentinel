@@ -37,6 +37,11 @@ from src.auth.schemas import (
     LoginResponse,
     UserSessionResponse,
     RotateKeyResponse,
+    ForgotPasswordRequest,
+    ForgotPasswordResponse,
+    VerifyResetTokenResponse,
+    ResetPasswordRequest,
+    ResetPasswordResponse,
     MerchantTransactionItem,
     MerchantTransactionsResponse,
     MerchantMetricsResponse,
@@ -555,6 +560,60 @@ def create_v1_router(
             new_api_key=new_raw_key,
             key_prefix=new_prefix,
             created_at=created_at,
+        )
+
+    @v1.post("/auth/forgot-password", response_model=ForgotPasswordResponse, status_code=status.HTTP_200_OK)
+    async def forgot_password(payload: ForgotPasswordRequest):
+        """Initiates password recovery for merchant email. Returns token for immediate direct reset."""
+        result = state_store.create_password_reset_token(payload.email)
+        if result:
+            raw_token, expires_str, company_name = result
+            return ForgotPasswordResponse(
+                success=True,
+                message=f"Password recovery instructions and reset link generated for {payload.email}.",
+                reset_token=raw_token,
+                reset_link=f"/reset-password?token={raw_token}",
+            )
+        return ForgotPasswordResponse(
+            success=True,
+            message="If an account is associated with this email, password recovery instructions have been sent.",
+            reset_token=None,
+            reset_link=None,
+        )
+
+    @v1.get("/auth/verify-reset-token", response_model=VerifyResetTokenResponse, status_code=status.HTTP_200_OK)
+    async def verify_reset_token(token: str):
+        """Verifies if a password reset token is active, unused, and not expired."""
+        info = state_store.verify_password_reset_token(token)
+        if not info:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={"error": True, "code": "INVALID_OR_EXPIRED_TOKEN", "message": "This password reset link is invalid or has expired."},
+            )
+        return VerifyResetTokenResponse(
+            valid=True,
+            email=info["email"],
+            company_name=info["company_name"],
+            message="Reset token verified.",
+        )
+
+    @v1.post("/auth/reset-password", response_model=ResetPasswordResponse, status_code=status.HTTP_200_OK)
+    async def reset_password(payload: ResetPasswordRequest):
+        """Applies the new password using the validated recovery token."""
+        if len(payload.new_password) < 8:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail={"error": True, "code": "PASSWORD_TOO_SHORT", "message": "Password must be at least 8 characters."},
+            )
+        success = state_store.reset_password_with_token(payload.token, payload.new_password)
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={"error": True, "code": "RESET_FAILED", "message": "Invalid, expired, or already used reset token."},
+            )
+        return ResetPasswordResponse(
+            success=True,
+            message="Your password has been successfully reset. You can now sign in with your new credentials.",
         )
 
     # -------------------------------------------------------------------------
