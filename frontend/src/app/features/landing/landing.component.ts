@@ -134,25 +134,22 @@ interface AttackScenario {
             <strong>33 point-in-time features</strong> across dynamic entity graphs to detect Sybil attacks, voucher harvesting, and card testing in real time.
           </p>
 
-          <!-- CTAs & CLI Install -->
+          <!-- CTAs & Real Git Clone -->
           <div class="mt-9 flex flex-col sm:flex-row items-center justify-center gap-3.5">
             <a
               routerLink="/signup"
               class="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md shadow-indigo-600/20 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
             >
-              <span>Deploy Production Integration</span>
-              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-              </svg>
+              <span>Get API Credentials Free →</span>
             </a>
             
             <button
               type="button"
-              (click)="copyCliCommand()"
+              (click)="copyGitCloneCommand()"
               class="w-full sm:w-auto flex items-center justify-between gap-3 px-4 py-3 rounded-lg bg-zinc-900/90 hover:bg-zinc-800/90 border border-zinc-800 text-zinc-300 font-mono text-xs transition-all cursor-pointer group"
             >
               <span class="text-zinc-500 select-none">$</span>
-              <span class="text-zinc-200">curl -s https://vigilai.dev/install | sh</span>
+              <span class="text-zinc-200">git clone https://github.com/Eshwar187/abuse-ring-sentinel.git</span>
               <span class="text-[11px] text-zinc-400 group-hover:text-white transition-colors">
                 {{ copiedCli() ? '✓ Copied' : 'Copy' }}
               </span>
@@ -953,8 +950,8 @@ export class LandingPageComponent {
     return 'text-amber-400';
   }
 
-  copyCliCommand(): void {
-    navigator.clipboard?.writeText('curl -s https://vigilai.dev/install | sh');
+  copyGitCloneCommand(): void {
+    navigator.clipboard?.writeText('git clone https://github.com/Eshwar187/abuse-ring-sentinel.git');
     this.copiedCli.set(true);
     setTimeout(() => this.copiedCli.set(false), 2000);
   }
