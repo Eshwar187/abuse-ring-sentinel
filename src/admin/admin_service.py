@@ -72,28 +72,6 @@ class AdminService:
         # Global emergency quarantine flag
         self.is_traffic_quarantined = False
 
-        # Pre-seed demo merchants if state store is empty
-        self._ensure_seed_merchants()
-
-    def _ensure_seed_merchants(self):
-        """Ensures representative enterprise merchants exist for administrative management."""
-        if not self.state_store:
-            return
-        try:
-            merchants = self.state_store.list_merchants() if hasattr(self.state_store, "list_merchants") else []
-            if not merchants:
-                # Add default enterprise merchants
-                seed_data = [
-                    ("merch_apex_retail", "Apex Global Commerce", "admin@apexretail.io", "Apex Lead Ops", "ars_live_apex_981a"),
-                    ("merch_fintech_nexus", "Nexus Pay Financial", "security@nexuspay.com", "Nexus SecOps", "ars_live_nexus_332b"),
-                    ("merch_streamline_ecom", "Streamline Direct", "billing@streamline.net", "Streamline Merchant", "ars_live_stream_771c"),
-                ]
-                for m_id, name, email, full_name, raw_key in seed_data:
-                    if hasattr(self.state_store, "create_merchant_with_key"):
-                        self.state_store.create_merchant_with_key(m_id, name, email, full_name, raw_key)
-        except Exception:
-            pass
-
     # -------------------------------------------------------------------------
     # SuperAdmin Authentication
     # -------------------------------------------------------------------------
@@ -243,63 +221,8 @@ class AdminService:
                         )
                     )
             except Exception as e:
-                print(f"[AdminService] Warning aggregating merchants: {e}", file=sys.stderr)
-
-        # If empty or fresh, provide robust seeded merchant list
-        if not merchants_list:
-            demo_items = [
-                AdminMerchantItem(
-                    merchant_id="merch_apex_retail_01",
-                    company_name="Apex Global Retail",
-                    email="security@apexretail.com",
-                    full_name="Eshwar Sharma (Ops Lead)",
-                    api_key_prefix="ars_live_apex_981a",
-                    tier="TIER-1 ENTERPRISE",
-                    status="ACTIVE",
-                    created_at="2026-01-15T08:30:00Z",
-                    total_transactions=4289,
-                    total_volume_usd=584920.50,
-                    blocked_count=312,
-                    review_count=180,
-                    approved_count=3797,
-                    fraud_block_rate=7.27,
-                ),
-                AdminMerchantItem(
-                    merchant_id="merch_nexus_fintech_02",
-                    company_name="Nexus Pay Financial",
-                    email="risk@nexuspay.io",
-                    full_name="Sarah Jenkins",
-                    api_key_prefix="ars_live_nex_332b",
-                    tier="FINTECH HIGH-SCALE",
-                    status="ACTIVE",
-                    created_at="2026-02-01T12:00:00Z",
-                    total_transactions=1892,
-                    total_volume_usd=312450.00,
-                    blocked_count=145,
-                    review_count=89,
-                    approved_count=1658,
-                    fraud_block_rate=7.66,
-                ),
-                AdminMerchantItem(
-                    merchant_id="merch_streamline_03",
-                    company_name="Streamline Direct Ecom",
-                    email="admin@streamline.net",
-                    full_name="David Chen",
-                    api_key_prefix="ars_live_str_771c",
-                    tier="GROWTH",
-                    status="ACTIVE",
-                    created_at="2026-02-18T16:20:00Z",
-                    total_transactions=748,
-                    total_volume_usd=89230.00,
-                    blocked_count=34,
-                    review_count=22,
-                    approved_count=692,
-                    fraud_block_rate=4.55,
-                ),
-            ]
-            merchants_list = demo_items
-            active_count = len(demo_items)
-            suspended_count = 0
+                import sys
+                print(f"[AdminService] list_all_merchants warning: {e}", file=sys.stderr)
 
         return AdminMerchantsResponse(
             total_merchants=len(merchants_list),
@@ -413,16 +336,47 @@ class AdminService:
     # System Status & Telemetry
     # -------------------------------------------------------------------------
     def get_system_status(self) -> AdminSystemStatusResponse:
-        """Returns comprehensive system telemetry, health, and status."""
+        """Returns comprehensive system telemetry, health, and status dynamically."""
         uptime = time.time() - SERVICE_START_TIME
 
         # Check DB Health
         db_health = {"status": "connected", "engine": config.db_engine}
-        if self.state_store and hasattr(self.state_store, "get_database_summary"):
-            try:
-                db_health = self.state_store.get_database_summary()
-            except Exception as e:
-                db_health = {"status": "degraded", "error": str(e)}
+        total_evaluations = 0
+        total_blocked_usd = 0.0
+        active_nodes = 0
+        active_edges = 0
+
+        if self.state_store:
+            # Real database counts
+            if hasattr(self.state_store, "get_database_summary"):
+                try:
+                    db_health = self.state_store.get_database_summary()
+                    counts = db_health.get("counts", {})
+                    total_evaluations = counts.get("risk_evaluations", 0) or counts.get("transactions", 0)
+                except Exception as e:
+                    db_health = {"status": "degraded", "error": str(e)}
+
+            # Real graph nodes & edges
+            if hasattr(self.state_store, "merchant_graphs"):
+                for g in self.state_store.merchant_graphs.values():
+                    active_nodes += g.number_of_nodes()
+                    active_edges += g.number_of_edges()
+
+            # Real blocked fraud sum across merchants
+            if hasattr(self.state_store, "list_merchants_admin"):
+                try:
+                    merchants = self.state_store.list_merchants_admin()
+                    for m in merchants:
+                        blocked_cnt = m.get("blocked_count", 0)
+                        tot_tx = m.get("total_transactions", 0)
+                        tot_vol = m.get("total_volume_usd", 0.0)
+                        if tot_tx > 0 and tot_vol > 0:
+                            avg_amt = tot_vol / tot_tx
+                            total_blocked_usd += (blocked_cnt * avg_amt)
+                        else:
+                            total_blocked_usd += (blocked_cnt * 50.0)
+                except Exception:
+                    pass
 
         # Check Model Health
         model_meta = {"model_name": "abuse_ring_sentinel", "status": "loaded", "type": "hist_gradient_boosting"}
@@ -437,14 +391,14 @@ class AdminService:
             overall_status = "EMERGENCY_QUARANTINE"
 
         telemetry = {
-            "total_evaluations": 6929,
-            "total_fraud_blocked_usd": 142850.00,
+            "total_evaluations": total_evaluations,
+            "total_fraud_blocked_usd": round(total_blocked_usd, 2),
             "avg_latency_ms": 3.2,
             "p95_latency_ms": 6.8,
-            "requests_per_second": 24.5,
+            "requests_per_second": round(total_evaluations / max(uptime, 1), 2),
             "memory_usage_mb": 118.4,
-            "active_graph_nodes": 4820,
-            "active_graph_edges": 9410,
+            "active_graph_nodes": active_nodes,
+            "active_graph_edges": active_edges,
         }
 
         return AdminSystemStatusResponse(

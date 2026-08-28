@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -517,11 +517,11 @@ interface AuditLogEntry {
               <h2 class="text-base font-bold text-white font-mono flex items-center gap-2.5">
                 <span>🏢 Registered Enterprise Tenants</span>
                 <span class="px-2.5 py-0.5 bg-indigo-500/20 text-indigo-300 text-xs rounded-full font-bold">
-                  {{ merchantsData()?.total_merchants || 3 }} Active Tenants
+                  {{ merchantsData()?.total_merchants || 0 }} Active Tenants
                 </span>
               </h2>
               <p class="text-xs text-zinc-400 mt-1">
-                Manage merchant tenant credentials, API keys, operational tiers, and access privileges.
+                Manage merchant tenant credentials, API keys, operational tiers, and access privileges in real time.
               </p>
             </div>
 
@@ -614,6 +614,14 @@ interface AuditLogEntry {
                       >
                         🗑️ Delete
                       </button>
+                    </td>
+                  </tr>
+
+                  <tr *ngIf="filteredMerchants().length === 0">
+                    <td colspan="7" class="px-6 py-12 text-center text-zinc-500 font-mono">
+                      <div class="text-3xl mb-2">🏢</div>
+                      <div class="text-sm text-zinc-300 font-bold">No Merchant Accounts Registered Yet</div>
+                      <div class="text-xs text-zinc-500 mt-1">Real merchants created through the signup portal (/signup) will appear here in real time.</div>
                     </td>
                   </tr>
                 </tbody>
@@ -951,10 +959,11 @@ interface AuditLogEntry {
     </div>
   `,
 })
-export class AdminDashboardComponent implements OnInit {
+export class AdminDashboardComponent implements OnInit, OnDestroy {
   private adminService = inject(AdminService);
   private fb = inject(FormBuilder);
   private router = inject(Router);
+  private pollInterval: any;
 
   readonly systemStatus = this.adminService.systemStatus;
   readonly merchantsData = this.adminService.merchantsData;
@@ -992,7 +1001,7 @@ export class AdminDashboardComponent implements OnInit {
 
   tabs: Array<{ id: 'telemetry' | 'merchants' | 'policy' | 'maintenance' | 'audit'; label: string; icon: string; badge: string }> = [
     { id: 'telemetry', label: 'System Health & Telemetry', icon: '🌐', badge: '' },
-    { id: 'merchants', label: 'Multi-Tenant Merchants', icon: '🏢', badge: '3' },
+    { id: 'merchants', label: 'Multi-Tenant Merchants', icon: '🏢', badge: '' },
     { id: 'policy', label: 'Model F Decision Matrix', icon: '⚡', badge: 'τ*=0.90' },
     { id: 'maintenance', label: 'Maintenance Orchestrator', icon: '🛠️', badge: '' },
     { id: 'audit', label: 'Admin Security Logs', icon: '📜', badge: '' },
@@ -1047,6 +1056,17 @@ export class AdminDashboardComponent implements OnInit {
     setInterval(() => {
       this.currentUtcTime = new Date().toUTCString().slice(17, 25);
     }, 1000);
+
+    // Live Real-Time Polling every 5 seconds
+    this.pollInterval = setInterval(() => {
+      this.adminService.refreshAll();
+    }, 5000);
+  }
+
+  ngOnDestroy(): void {
+    if (this.pollInterval) {
+      clearInterval(this.pollInterval);
+    }
   }
 
   syncMaintenanceForm(): void {

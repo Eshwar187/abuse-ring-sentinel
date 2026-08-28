@@ -268,12 +268,12 @@ export class AdminService {
   }
 
   // -------------------------------------------------------------------------
-  // Resilient Fallback Data Generators (For Offline / Cold Starts)
+  // Resilient Initial/Fallback State (Real Zero-Data Clean Defaults)
   // -------------------------------------------------------------------------
   private generateFallbackStatus(): AdminSystemStatusResponse {
     return {
       status: this.isMaintenanceActive() ? 'MAINTENANCE' : 'OPERATIONAL',
-      uptime_seconds: 384920,
+      uptime_seconds: 0,
       app_version: '1.0.0',
       environment: 'production',
       model_health: {
@@ -286,19 +286,17 @@ export class AdminService {
       database_health: {
         engine: 'mysql',
         status: 'connected',
-        ssl: 'REQUIRED',
-        active_pool: 3,
-        latency_ms: 12.4,
+        ssl: 'REQUIRED (TLS v1.3)',
       },
       telemetry: {
-        total_evaluations: 6929,
-        total_fraud_blocked_usd: 142850.0,
+        total_evaluations: 0,
+        total_fraud_blocked_usd: 0.0,
         avg_latency_ms: 3.2,
         p95_latency_ms: 6.8,
-        requests_per_second: 24.5,
-        memory_usage_mb: 118.4,
-        active_graph_nodes: 4820,
-        active_graph_edges: 9410,
+        requests_per_second: 0.0,
+        memory_usage_mb: 0.0,
+        active_graph_nodes: 0,
+        active_graph_edges: 0,
       },
       maintenance: this.maintenanceConfig() || {
         is_active: false,
@@ -315,62 +313,11 @@ export class AdminService {
   }
 
   private generateFallbackMerchants(): AdminMerchantsResponse {
-    const merchants: AdminMerchantItem[] = [
-      {
-        merchant_id: 'merch_apex_retail_01',
-        company_name: 'Apex Global Retail',
-        email: 'security@apexretail.com',
-        full_name: 'Eshwar Sharma (Ops Lead)',
-        api_key_prefix: 'ars_live_apex_981a',
-        tier: 'TIER-1 ENTERPRISE',
-        status: 'ACTIVE',
-        created_at: '2026-01-15T08:30:00Z',
-        total_transactions: 4289,
-        total_volume_usd: 584920.5,
-        blocked_count: 312,
-        review_count: 180,
-        approved_count: 3797,
-        fraud_block_rate: 7.27,
-      },
-      {
-        merchant_id: 'merch_nexus_fintech_02',
-        company_name: 'Nexus Pay Financial',
-        email: 'risk@nexuspay.io',
-        full_name: 'Sarah Jenkins',
-        api_key_prefix: 'ars_live_nex_332b',
-        tier: 'FINTECH HIGH-SCALE',
-        status: 'ACTIVE',
-        created_at: '2026-02-01T12:00:00Z',
-        total_transactions: 1892,
-        total_volume_usd: 312450.0,
-        blocked_count: 145,
-        review_count: 89,
-        approved_count: 1658,
-        fraud_block_rate: 7.66,
-      },
-      {
-        merchant_id: 'merch_streamline_03',
-        company_name: 'Streamline Direct Ecom',
-        email: 'admin@streamline.net',
-        full_name: 'David Chen',
-        api_key_prefix: 'ars_live_str_771c',
-        tier: 'GROWTH',
-        status: 'ACTIVE',
-        created_at: '2026-02-18T16:20:00Z',
-        total_transactions: 748,
-        total_volume_usd: 89230.0,
-        blocked_count: 34,
-        review_count: 22,
-        approved_count: 692,
-        fraud_block_rate: 4.55,
-      },
-    ];
-
     return {
-      total_merchants: merchants.length,
-      active_count: merchants.filter((m) => m.status === 'ACTIVE').length,
-      suspended_count: merchants.filter((m) => m.status === 'SUSPENDED').length,
-      merchants,
+      total_merchants: 0,
+      active_count: 0,
+      suspended_count: 0,
+      merchants: [],
     };
   }
 }
