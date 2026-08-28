@@ -564,13 +564,17 @@ def create_v1_router(
 
     @v1.post("/auth/forgot-password", response_model=ForgotPasswordResponse, status_code=status.HTTP_200_OK)
     async def forgot_password(payload: ForgotPasswordRequest):
-        """Initiates password recovery for merchant email. Returns token for immediate direct reset."""
+        """Initiates password recovery for merchant email. Dispatches email and generates secure reset token."""
+        from src.auth.email_service import send_password_reset_email
+
         result = state_store.create_password_reset_token(payload.email)
         if result:
             raw_token, expires_str, company_name = result
+            full_reset_url = f"https://vigil-ai-ten.vercel.app/reset-password?token={raw_token}"
+            send_password_reset_email(to_email=payload.email, company_name=company_name, reset_link=full_reset_url)
             return ForgotPasswordResponse(
                 success=True,
-                message=f"Password recovery instructions and reset link generated for {payload.email}.",
+                message=f"Password recovery instructions have been sent to {payload.email}.",
                 reset_token=raw_token,
                 reset_link=f"/reset-password?token={raw_token}",
             )

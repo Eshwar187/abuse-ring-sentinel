@@ -48,50 +48,46 @@ import { AuthService } from '../../core/services/auth.service';
           </div>
 
           <!-- Success State -->
-          <div *ngIf="isSubmitted(); else formState" class="text-center space-y-5 animate-fade-in">
-            <div class="w-14 h-14 rounded-2xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 flex items-center justify-center mx-auto shadow-[0_0_25px_rgba(16,185,129,0.25)]">
-              <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          <div *ngIf="isSubmitted(); else formState" class="text-center space-y-6 animate-fade-in">
+            <div class="w-16 h-16 rounded-3xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 flex items-center justify-center mx-auto shadow-[0_0_30px_rgba(6,182,212,0.25)]">
+              <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
               </svg>
             </div>
             
-            <div>
-              <h3 class="text-lg font-bold text-white tracking-tight">Recovery Token Generated</h3>
-              <p class="text-xs text-slate-300 mt-1.5 leading-relaxed">
-                A single-use recovery token has been initialized for <span class="text-cyan-300 font-mono font-semibold">{{ email }}</span>.
+            <div class="space-y-2">
+              <h3 class="text-xl font-bold text-white tracking-tight">Check Your Inbox</h3>
+              <p class="text-xs text-slate-300 leading-relaxed max-w-sm mx-auto">
+                We've sent a secure password recovery link to:
               </p>
+              <div class="inline-block px-3.5 py-1.5 rounded-full bg-slate-900/90 border border-cyan-500/30 text-cyan-300 font-mono text-xs font-semibold shadow-inner">
+                {{ email }}
+              </div>
             </div>
 
-            <!-- Direct Reset Action Button (Frictionless Reset) -->
-            <div *ngIf="resetToken()" class="p-4 rounded-2xl bg-[#030712]/90 border border-cyan-500/30 text-left space-y-3 shadow-inner">
-              <div class="flex items-center justify-between text-[11px] font-mono text-slate-400">
-                <span class="text-cyan-400 font-semibold flex items-center gap-1.5">
-                  <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping"></span>
-                  Single-Use Recovery Key:
-                </span>
-                <span class="text-slate-500">TTL 15m</span>
-              </div>
-              <div class="font-mono text-xs text-slate-200 bg-slate-900/90 p-2.5 rounded-xl border border-slate-800 break-all select-all flex items-center justify-between gap-2">
-                <span class="truncate">{{ resetToken() }}</span>
-                <button (click)="copyToken()" type="button" class="shrink-0 text-[10px] px-2 py-1 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 rounded border border-cyan-500/40 transition-colors">
-                  {{ isCopied() ? 'Copied!' : 'Copy' }}
-                </button>
-              </div>
+            <!-- Seamless 1-Click Reset Action Button -->
+            <div class="pt-2">
               <button
                 (click)="goToReset()"
                 type="button"
-                class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black text-xs font-black tracking-wide shadow-[0_0_20px_rgba(6,182,212,0.35)] transition-all flex items-center justify-center gap-2"
+                class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black text-xs font-black tracking-wide shadow-[0_0_20px_rgba(6,182,212,0.35)] transition-all flex items-center justify-center gap-2 group"
               >
-                <span>Proceed to Reset Password Now →</span>
+                <span>Continue to Password Reset</span>
+                <span class="group-hover:translate-x-1 transition-transform">→</span>
               </button>
             </div>
+
+            <p class="text-[11px] text-slate-500 leading-relaxed">
+              Didn't receive the email? Check your spam folder or 
+              <button (click)="isSubmitted.set(false)" class="text-cyan-400 hover:underline">try again</button>.
+            </p>
 
             <div class="pt-2 border-t border-slate-800/80">
               <a
                 routerLink="/login"
                 class="inline-flex items-center gap-2 text-xs text-slate-400 hover:text-cyan-400 font-medium transition-colors"
               >
-                <span>← Back to Sign In</span>
+                <span>← Return to Sign In</span>
               </a>
             </div>
           </div>
