@@ -1889,7 +1889,7 @@ class RuntimeStateStore:
         if self.use_mysql:
             try:
                 with get_db_session() as session:
-                    merchants = session.scalars(select(MerchantModel)).all()
+                    merchants = session.scalars(select(MerchantModel).order_by(MerchantModel.created_at.desc())).all()
                     for m in merchants:
                         tx_stats = session.execute(
                             select(
@@ -1897,8 +1897,8 @@ class RuntimeStateStore:
                                 func.sum(TransactionModel.amount),
                             ).where(TransactionModel.merchant_id == m.merchant_id)
                         ).first()
-                        total_tx = tx_stats[0] if tx_stats and tx_stats[0] else 0
-                        total_vol = float(tx_stats[1]) if tx_stats and tx_stats[1] else 0.0
+                        total_tx = int(tx_stats[0]) if tx_stats and tx_stats[0] is not None else 0
+                        total_vol = float(tx_stats[1]) if tx_stats and tx_stats[1] is not None else 0.0
 
                         eval_stats = session.execute(
                             select(
@@ -1912,34 +1912,32 @@ class RuntimeStateStore:
                         approved_c = 0
                         for row in eval_stats:
                             if row[1] == "BLOCK":
-                                blocked_c = row[0]
+                                blocked_c = int(row[0])
                             elif row[1] == "REVIEW":
-                                review_c = row[0]
+                                review_c = int(row[0])
                             elif row[1] == "ALLOW":
-                                approved_c = row[0]
+                                approved_c = int(row[0])
 
                         cred = session.scalar(
                             select(MerchantCredentialModel).where(
                                 MerchantCredentialModel.merchant_id == m.merchant_id
                             )
                         )
-                        api_prefix = cred.api_key_prefix if cred else "ars_live_••••"
-                        status = "ACTIVE" if (cred and cred.is_active) else ("SUSPENDED" if cred else "ACTIVE")
+                        api_prefix = cred.api_key_masked if cred and hasattr(cred, "api_key_masked") else "ars_live_••••"
+                        is_act = getattr(cred, "is_active", True) if cred else (m.status.lower() == "active")
+                        status = "ACTIVE" if is_act else "SUSPENDED"
 
-                        user = session.scalar(
-                            select(UserModel).where(UserModel.merchant_id == m.merchant_id)
-                        )
-                        full_name = user.full_name if user else m.company_name
+                        created_str = m.created_at.isoformat() if hasattr(m.created_at, "isoformat") else str(m.created_at or datetime.now(timezone.utc).isoformat())
 
                         results.append({
                             "merchant_id": m.merchant_id,
                             "company_name": m.company_name,
                             "email": m.email,
-                            "full_name": full_name,
+                            "full_name": m.company_name,
                             "api_key_prefix": api_prefix,
                             "tier": "ENTERPRISE",
                             "status": status,
-                            "created_at": m.created_at.isoformat() if m.created_at else datetime.now(timezone.utc).isoformat(),
+                            "created_at": created_str,
                             "total_transactions": total_tx,
                             "total_volume_usd": total_vol,
                             "blocked_count": blocked_c,
@@ -1949,7 +1947,7 @@ class RuntimeStateStore:
                 return results
             except Exception as e:
                 import sys
-                print(f"[RuntimeStateStore] MySQL list_merchants_admin fallback: {e}", file=sys.stderr)
+                print(f"[RuntimeStateStore] MySQL list_merchants_admin error: {e}", file=sys.stderr)
                 self._ensure_sqlite_ready()
 
         with self._get_connection() as conn:

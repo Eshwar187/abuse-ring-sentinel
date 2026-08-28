@@ -831,20 +831,22 @@ def create_v1_router(
     # -------------------------------------------------------------------------
 
     def authenticate_superadmin(
-        authorization: Optional[str] = Header(None, alias="Authorization"),
-        x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token"),
-        x_admin_key: Optional[str] = Header(None, alias="X-Admin-Key"),
+        authorization: Optional[str] = None,
+        x_admin_token: Optional[str] = None,
+        x_admin_key: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Authenticates SuperAdmin requests using Bearer, X-Admin-Token, or X-Admin-Key."""
         token = None
-        if x_admin_key:
+        if isinstance(x_admin_key, str) and x_admin_key.strip():
             token = x_admin_key.strip()
-        elif x_admin_token:
+        elif isinstance(x_admin_token, str) and x_admin_token.strip():
             token = x_admin_token.strip()
-        elif authorization and authorization.startswith("Bearer "):
-            token = authorization[7:].strip()
-        elif authorization:
-            token = authorization.strip()
+        elif isinstance(authorization, str) and authorization.strip():
+            auth_clean = authorization.strip()
+            if auth_clean.startswith("Bearer "):
+                token = auth_clean[7:].strip()
+            else:
+                token = auth_clean
 
         session = admin_service.validate_admin_token(token) if token else None
         if not session:
@@ -869,27 +871,30 @@ def create_v1_router(
     async def get_admin_session_info(
         authorization: Optional[str] = Header(None, alias="Authorization"),
         x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token"),
+        x_admin_key: Optional[str] = Header(None, alias="X-Admin-Key"),
     ):
         """Returns the active SuperAdmin session metadata."""
-        session = authenticate_superadmin(authorization, x_admin_token)
+        session = authenticate_superadmin(authorization=authorization, x_admin_token=x_admin_token, x_admin_key=x_admin_key)
         return session
 
     @v1.get("/admin/system/status", response_model=AdminSystemStatusResponse, status_code=status.HTTP_200_OK)
     async def get_admin_system_status(
         authorization: Optional[str] = Header(None, alias="Authorization"),
         x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token"),
+        x_admin_key: Optional[str] = Header(None, alias="X-Admin-Key"),
     ):
         """Returns comprehensive system telemetry, database health, and model performance."""
-        authenticate_superadmin(authorization, x_admin_token)
+        authenticate_superadmin(authorization=authorization, x_admin_token=x_admin_token, x_admin_key=x_admin_key)
         return admin_service.get_system_status()
 
     @v1.get("/admin/merchants", response_model=AdminMerchantsResponse, status_code=status.HTTP_200_OK)
     async def list_all_merchants_admin(
         authorization: Optional[str] = Header(None, alias="Authorization"),
         x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token"),
+        x_admin_key: Optional[str] = Header(None, alias="X-Admin-Key"),
     ):
         """Lists all registered merchants with volume, fraud block rates, and status."""
-        authenticate_superadmin(authorization, x_admin_token)
+        authenticate_superadmin(authorization=authorization, x_admin_token=x_admin_token, x_admin_key=x_admin_key)
         return admin_service.list_all_merchants()
 
     @v1.post("/admin/merchants/{merchant_id}/toggle-status", status_code=status.HTTP_200_OK)
@@ -898,9 +903,10 @@ def create_v1_router(
         payload: Optional[AdminToggleMerchantRequest] = None,
         authorization: Optional[str] = Header(None, alias="Authorization"),
         x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token"),
+        x_admin_key: Optional[str] = Header(None, alias="X-Admin-Key"),
     ):
         """Toggles or updates a merchant's status (ACTIVE / SUSPENDED)."""
-        authenticate_superadmin(authorization, x_admin_token)
+        authenticate_superadmin(authorization=authorization, x_admin_token=x_admin_token, x_admin_key=x_admin_key)
         target = payload.status if payload else None
         return admin_service.toggle_merchant_status(merchant_id, target)
 
@@ -909,9 +915,10 @@ def create_v1_router(
         merchant_id: str,
         authorization: Optional[str] = Header(None, alias="Authorization"),
         x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token"),
+        x_admin_key: Optional[str] = Header(None, alias="X-Admin-Key"),
     ):
         """Forces an administrative API key rotation for a merchant."""
-        authenticate_superadmin(authorization, x_admin_token)
+        authenticate_superadmin(authorization=authorization, x_admin_token=x_admin_token, x_admin_key=x_admin_key)
         return admin_service.rotate_merchant_key(merchant_id)
 
     @v1.delete("/admin/merchants/{merchant_id}", status_code=status.HTTP_200_OK)
@@ -919,9 +926,10 @@ def create_v1_router(
         merchant_id: str,
         authorization: Optional[str] = Header(None, alias="Authorization"),
         x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token"),
+        x_admin_key: Optional[str] = Header(None, alias="X-Admin-Key"),
     ):
         """Permanently purges a merchant, all their users, credentials, and transactions."""
-        authenticate_superadmin(authorization, x_admin_token)
+        authenticate_superadmin(authorization=authorization, x_admin_token=x_admin_token, x_admin_key=x_admin_key)
         return admin_service.delete_merchant(merchant_id)
 
     @v1.get("/admin/model/config", response_model=AdminPolicyConfig, status_code=status.HTTP_200_OK)

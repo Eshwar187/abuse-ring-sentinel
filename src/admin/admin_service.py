@@ -227,22 +227,28 @@ class AdminService:
                     blocked = m.get("blocked_count", 0)
                     block_rate = round((blocked / total_tx) * 100, 2) if total_tx > 0 else 0.0
 
+                    created_at_val = m.get("created_at")
+                    if hasattr(created_at_val, "isoformat"):
+                        created_at_str = created_at_val.isoformat()
+                    else:
+                        created_at_str = str(created_at_val or datetime.now(timezone.utc).isoformat())
+
                     merchants_list.append(
                         AdminMerchantItem(
-                            merchant_id=m["merchant_id"],
-                            company_name=m.get("company_name", "Enterprise Client"),
-                            email=m.get("email", "ops@client.com"),
-                            full_name=m.get("full_name", "Primary Contact"),
-                            api_key_prefix=m.get("api_key_prefix", "ars_live_••••"),
-                            tier=m.get("tier", "ENTERPRISE"),
+                            merchant_id=str(m.get("merchant_id", "m_unknown")),
+                            company_name=str(m.get("company_name", "Enterprise Client")),
+                            email=str(m.get("email", "ops@client.com")),
+                            full_name=str(m.get("full_name", m.get("company_name", "Primary Contact"))),
+                            api_key_prefix=str(m.get("api_key_prefix", "ars_live_••••")),
+                            tier=str(m.get("tier", "ENTERPRISE")),
                             status=status,
-                            created_at=m.get("created_at", datetime.now(timezone.utc).isoformat()),
-                            total_transactions=total_tx,
-                            total_volume_usd=float(m.get("total_volume_usd", 0.0)),
-                            blocked_count=blocked,
-                            review_count=m.get("review_count", 0),
-                            approved_count=m.get("approved_count", 0),
-                            fraud_block_rate=block_rate,
+                            created_at=created_at_str,
+                            total_transactions=int(total_tx or 0),
+                            total_volume_usd=float(m.get("total_volume_usd", 0.0) or 0.0),
+                            blocked_count=int(blocked or 0),
+                            review_count=int(m.get("review_count", 0) or 0),
+                            approved_count=int(m.get("approved_count", 0) or 0),
+                            fraud_block_rate=float(block_rate or 0.0),
                         )
                     )
             except Exception as e:
