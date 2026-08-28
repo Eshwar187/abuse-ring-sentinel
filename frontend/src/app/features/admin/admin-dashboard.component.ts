@@ -19,40 +19,43 @@ interface AuditLogEntry {
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule],
   template: `
-    <div class="min-h-screen bg-[#07080B] text-zinc-100 font-sans relative overflow-x-hidden select-none pb-20 selection:bg-indigo-500 selection:text-white antialiased">
+    <div class="min-h-screen bg-[#07080B] text-zinc-100 font-sans relative overflow-x-hidden select-none pb-24 selection:bg-indigo-500 selection:text-white antialiased">
       
-      <!-- Ambient Lighting & Precision Background -->
+      <!-- Ambient Lighting & Precision Background Grid -->
       <div class="fixed inset-0 pointer-events-none z-0">
-        <div class="absolute -top-32 left-1/2 -translate-x-1/2 w-[1000px] h-[450px] bg-gradient-to-b from-indigo-500/10 via-purple-600/5 to-transparent blur-[140px] rounded-full"></div>
-        <div class="absolute bottom-0 right-0 w-[500px] h-[500px] bg-cyan-600/5 blur-[160px] rounded-full"></div>
+        <div class="absolute -top-32 left-1/2 -translate-x-1/2 w-[1100px] h-[480px] bg-gradient-to-b from-indigo-500/15 via-violet-600/5 to-transparent blur-[140px] rounded-full"></div>
+        <div class="absolute top-1/3 -right-40 w-[600px] h-[600px] bg-cyan-600/5 blur-[160px] rounded-full"></div>
+        <div class="absolute bottom-10 -left-40 w-[600px] h-[600px] bg-emerald-600/5 blur-[160px] rounded-full"></div>
         <div class="absolute inset-0 bg-[radial-gradient(#27272a_1px,transparent_1px)] [background-size:24px_24px] [mask-image:radial-gradient(ellipse_75%_60%_at_50%_0%,#000_70%,transparent_100%)] opacity-50"></div>
       </div>
 
-      <!-- Top Enterprise HUD Header -->
-      <header class="sticky top-0 z-50 bg-[#07080B]/85 backdrop-blur-xl border-b border-white/[0.08] px-4 sm:px-6 py-3 shadow-xl transition-all">
+      <!-- Top Enterprise Operations Header -->
+      <header class="sticky top-0 z-50 bg-[#07080B]/90 backdrop-blur-xl border-b border-white/[0.08] px-4 sm:px-6 lg:px-8 py-3 shadow-2xl transition-all">
         <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           
           <!-- Brand Crest & SuperAdmin Info -->
           <div class="flex items-center gap-3.5">
             <div class="relative flex items-center shrink-0">
-              <div class="w-9 h-9 rounded-lg bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-md shadow-indigo-500/25 border border-indigo-400/30">
-                <span class="text-base">🛡️</span>
-              </div>
-              <span class="absolute -bottom-0.5 -right-0.5 flex h-2 w-2">
+              <img 
+                src="vigilai_logo.jpg" 
+                alt="VigilAI Logo" 
+                class="w-9 h-9 rounded-xl object-cover border border-white/10 shadow-md shadow-indigo-500/20" 
+              />
+              <span class="absolute -bottom-0.5 -right-0.5 flex h-2.5 w-2.5">
                 <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 border border-[#07080B]"></span>
+                <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500 border-2 border-[#07080B]"></span>
               </span>
             </div>
 
             <div>
               <div class="flex items-center gap-2 leading-tight">
-                <span class="text-[15px] font-extrabold tracking-tight text-white">VigilAI Central Admin</span>
+                <span class="text-base font-extrabold tracking-tight text-white">VigilAI Central Operations</span>
                 <span class="px-2 py-0.5 bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 text-[9px] font-mono rounded-full font-bold uppercase tracking-wider">
                   ROOT CONTROL
                 </span>
               </div>
               <div class="text-[11px] text-zinc-400 font-mono flex items-center gap-2 mt-0.5">
-                <span class="text-indigo-400 font-semibold">👤 eshwar187</span>
+                <span class="text-indigo-400 font-semibold">👤 eshwar187 [SuperAdmin]</span>
                 <span class="text-zinc-600">•</span>
                 <span class="text-zinc-400">UTC: {{ currentUtcTime }}</span>
               </div>
@@ -62,42 +65,38 @@ interface AuditLogEntry {
           <!-- Fast Action Toolbar -->
           <div class="flex items-center gap-2.5 flex-wrap justify-end">
             
-            <!-- Live Maintenance Pill Switch -->
-            <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all"
+            <!-- Live Maintenance State Pill -->
+            <div class="flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all shadow-sm"
                  [ngClass]="isMaintenanceActive() ? 'border-amber-500/40 bg-amber-950/30 text-amber-300' : 'border-emerald-500/30 bg-emerald-950/20 text-emerald-300'">
               <span class="w-2 h-2 rounded-full"
                     [ngClass]="isMaintenanceActive() ? 'bg-amber-400 animate-ping' : 'bg-emerald-400'"></span>
               <span class="text-xs font-mono font-bold tracking-tight">
-                {{ isMaintenanceActive() ? 'MAINTENANCE ACTIVE' : 'ALL SYSTEMS OPERATIONAL' }}
+                {{ isMaintenanceActive() ? 'MAINTENANCE MODE ACTIVE' : 'ALL SYSTEMS OPERATIONAL' }}
               </span>
               <button
                 type="button"
                 (click)="toggleQuickMaintenance()"
-                class="ml-1 px-2 py-0.5 text-[10px] font-mono rounded transition-colors cursor-pointer font-bold"
+                class="ml-1 px-2.5 py-0.5 text-[10px] font-mono rounded-md transition-all cursor-pointer font-bold shadow-sm"
                 [ngClass]="isMaintenanceActive() ? 'bg-amber-500 text-black hover:bg-amber-400' : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'"
               >
                 {{ isMaintenanceActive() ? 'Disable' : 'Enable' }}
               </button>
             </div>
 
-            <!-- View Public Maintenance Page -->
+            <!-- View Public Maintenance Screen -->
             <a
               routerLink="/maintenance"
               target="_blank"
-              class="px-3 py-1.5 bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-xs font-mono rounded-lg transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
+              class="px-3 py-1.5 bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-xs font-mono rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
               title="Preview the live public maintenance screen"
             >
-              <svg class="w-3.5 h-3.5 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-              </svg>
-              <span>/maintenance</span>
+              <span>👁️ /maintenance</span>
             </a>
 
             <!-- Switch to Merchant View -->
             <a
               routerLink="/app/overview"
-              class="px-3 py-1.5 bg-indigo-950/40 hover:bg-indigo-900/60 border border-indigo-500/30 text-indigo-300 hover:text-indigo-200 text-xs font-mono rounded-lg transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
+              class="px-3 py-1.5 bg-indigo-950/40 hover:bg-indigo-900/60 border border-indigo-500/30 text-indigo-300 hover:text-indigo-200 text-xs font-mono rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
             >
               <span>📊 Merchant Console</span>
             </a>
@@ -106,117 +105,261 @@ interface AuditLogEntry {
             <button
               type="button"
               (click)="logout()"
-              class="px-3 py-1.5 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-500/30 text-rose-300 text-xs font-mono rounded-lg transition-all cursor-pointer"
+              class="px-3 py-1.5 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-500/30 text-rose-300 hover:text-rose-200 text-xs font-mono rounded-xl transition-all cursor-pointer"
             >
               <span>Exit 🚪</span>
             </button>
           </div>
         </div>
 
-        <!-- Modern HUD Tab Bar -->
-        <div class="max-w-7xl mx-auto mt-3.5 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+        <!-- High-Craft HUD Tab Navigation Bar -->
+        <div class="max-w-7xl mx-auto mt-4 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
           <button
             *ngFor="let tab of tabs"
             type="button"
             (click)="setTab(tab.id)"
-            class="px-3.5 py-1.5 rounded-lg text-xs font-mono font-medium transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer"
+            class="px-4 py-2 rounded-xl text-xs font-mono font-medium transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer relative"
             [ngClass]="activeTab === tab.id
-              ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-600/30 font-bold'
+              ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 font-bold scale-[1.02]'
               : 'bg-zinc-900/60 text-zinc-400 hover:text-zinc-200 border border-zinc-800/80 hover:border-zinc-700'"
           >
-            <span>{{ tab.icon }}</span>
+            <span class="text-sm">{{ tab.icon }}</span>
             <span>{{ tab.label }}</span>
-            <span *ngIf="tab.badge" class="px-1.5 py-0.2 bg-black/30 text-white text-[10px] rounded-full font-mono font-bold">
+            <span *ngIf="tab.badge" class="px-1.5 py-0.2 bg-black/40 text-white text-[10px] rounded-full font-mono font-bold">
               {{ tab.badge }}
             </span>
           </button>
         </div>
       </header>
 
-      <!-- Main Admin Content -->
-      <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 relative z-10">
+      <!-- Main Admin Content Container -->
+      <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 relative z-10 space-y-8">
 
         <!-- =================================================================== -->
-        <!-- TAB 1: SYSTEM HEALTH & LIVE TELEMETRY CENTRAL -->
+        <!-- TAB 1: SYSTEM TELEMETRY & VISUAL ARCHITECTURE RADAR -->
         <!-- =================================================================== -->
-        <div *ngIf="activeTab === 'telemetry'" class="space-y-6 animate-fadeIn">
+        <div *ngIf="activeTab === 'telemetry'" class="space-y-8 animate-fadeIn">
           
-          <!-- Top KPI Ribbon -->
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <!-- 4 Top Interactive Speedometer & Metric HUD Cards -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             
-            <!-- Latency Card -->
-            <div class="bg-zinc-900/60 border border-zinc-800 rounded-xl p-4 backdrop-blur-xl shadow-lg hover:border-indigo-500/40 transition-all">
-              <div class="flex items-center justify-between text-xs text-zinc-400 font-mono mb-2">
-                <span>Model F Latency (Avg)</span>
-                <span class="text-emerald-400 font-bold text-[10px] bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-500/30">Sub-5ms SLA</span>
-              </div>
-              <div class="text-2xl font-bold font-mono text-white flex items-baseline gap-1.5">
-                <span>{{ systemStatus()?.telemetry?.avg_latency_ms || 3.2 }}</span>
-                <span class="text-xs text-indigo-400 font-normal">ms</span>
-              </div>
-              <div class="text-[11px] text-zinc-500 font-mono mt-1 flex items-center justify-between">
-                <span>P95: {{ systemStatus()?.telemetry?.p95_latency_ms || 6.8 }}ms</span>
-                <span class="text-emerald-400 font-medium">● 100% SLA Met</span>
-              </div>
-            </div>
-
-            <!-- Volume Shielded -->
-            <div class="bg-zinc-900/60 border border-zinc-800 rounded-xl p-4 backdrop-blur-xl shadow-lg hover:border-purple-500/40 transition-all">
-              <div class="flex items-center justify-between text-xs text-zinc-400 font-mono mb-2">
-                <span>Fraud Shielded Volume</span>
-                <span class="text-purple-300 font-bold text-[10px] bg-purple-950/60 px-1.5 py-0.5 rounded border border-purple-500/30">Total Losses Prevented</span>
-              </div>
-              <div class="text-2xl font-bold font-mono text-purple-300">
-                &#36;{{ (systemStatus()?.telemetry?.total_fraud_blocked_usd || 142850).toLocaleString() }}
-              </div>
-              <div class="text-[11px] text-zinc-500 font-mono mt-1">Sybil Collusion Losses Intercepted</div>
-            </div>
-
-            <!-- Database Health -->
-            <div class="bg-zinc-900/60 border border-zinc-800 rounded-xl p-4 backdrop-blur-xl shadow-lg hover:border-emerald-500/40 transition-all">
-              <div class="flex items-center justify-between text-xs text-zinc-400 font-mono mb-2">
-                <span>Cloud MySQL State</span>
-                <span class="flex h-2 w-2 relative">
-                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            <!-- Latency Speedometer Gauge Card -->
+            <div class="bg-zinc-900/60 border border-zinc-800/90 rounded-2xl p-5 backdrop-blur-xl shadow-xl hover:border-indigo-500/40 transition-all group relative overflow-hidden">
+              <div class="flex items-center justify-between text-xs text-zinc-400 font-mono mb-3">
+                <span class="font-bold text-zinc-200 flex items-center gap-1.5">
+                  <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                  Inference Latency
+                </span>
+                <span class="text-emerald-400 font-bold text-[10px] bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-500/30">
+                  Sub-5ms SLA
                 </span>
               </div>
-              <div class="text-2xl font-bold font-mono text-emerald-400">
-                {{ systemStatus()?.database_health?.['status'] || 'CONNECTED' | uppercase }}
+              
+              <div class="flex items-baseline justify-between">
+                <div>
+                  <div class="text-3xl font-extrabold font-mono text-white tracking-tight flex items-baseline gap-1">
+                    <span>{{ systemStatus()?.telemetry?.avg_latency_ms || 3.2 }}</span>
+                    <span class="text-xs text-indigo-400 font-normal">ms</span>
+                  </div>
+                  <div class="text-[11px] text-zinc-400 font-mono mt-1">
+                    P95: <span class="text-zinc-200 font-semibold">{{ systemStatus()?.telemetry?.p95_latency_ms || 6.8 }}ms</span>
+                  </div>
+                </div>
+
+                <!-- Animated Mini Latency Arc Meter -->
+                <div class="relative w-12 h-12 flex items-center justify-center">
+                  <svg class="w-12 h-12 transform -rotate-90" viewBox="0 0 36 36">
+                    <path class="text-zinc-800" stroke-width="3.5" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                    <path class="text-emerald-400" stroke-dasharray="85, 100" stroke-width="3.5" stroke-linecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                  </svg>
+                  <span class="absolute text-[9px] font-mono text-emerald-300 font-bold">99%</span>
+                </div>
               </div>
-              <div class="text-[11px] text-zinc-500 font-mono mt-1">
-                Engine: {{ systemStatus()?.database_health?.['engine'] || 'MySQL 8.0 Cloud' }} (TLS 1.3)
+
+              <!-- Animated Progress Bar -->
+              <div class="mt-4 w-full bg-zinc-800/80 rounded-full h-1.5 overflow-hidden">
+                <div class="bg-gradient-to-r from-emerald-500 to-indigo-500 h-full rounded-full w-[92%] animate-pulse"></div>
               </div>
             </div>
 
-            <!-- Graph Density -->
-            <div class="bg-zinc-900/60 border border-zinc-800 rounded-xl p-4 backdrop-blur-xl shadow-lg hover:border-cyan-500/40 transition-all">
-              <div class="flex items-center justify-between text-xs text-zinc-400 font-mono mb-2">
-                <span>Active Graph Density</span>
-                <span class="text-cyan-400 font-bold text-[10px] bg-cyan-950/60 px-1.5 py-0.5 rounded border border-cyan-500/30">NetworkX</span>
+            <!-- Fraud Shielded Volume -->
+            <div class="bg-zinc-900/60 border border-zinc-800/90 rounded-2xl p-5 backdrop-blur-xl shadow-xl hover:border-purple-500/40 transition-all group relative overflow-hidden">
+              <div class="flex items-center justify-between text-xs text-zinc-400 font-mono mb-3">
+                <span class="font-bold text-zinc-200">Shielded Fraud Volume</span>
+                <span class="text-purple-300 font-bold text-[10px] bg-purple-950/60 px-2 py-0.5 rounded-full border border-purple-500/30">
+                  Losses Intercepted
+                </span>
               </div>
-              <div class="text-2xl font-bold font-mono text-cyan-300 flex items-baseline gap-1.5">
+
+              <div class="text-3xl font-extrabold font-mono text-purple-300 tracking-tight">
+                &#36;{{ (systemStatus()?.telemetry?.total_fraud_blocked_usd || 142850).toLocaleString() }}
+              </div>
+              <div class="text-[11px] text-zinc-400 font-mono mt-1 flex items-center justify-between">
+                <span>Sybil Farm Rejections:</span>
+                <span class="text-purple-300 font-semibold">1,248</span>
+              </div>
+
+              <div class="mt-4 w-full bg-zinc-800/80 rounded-full h-1.5 overflow-hidden flex">
+                <div class="bg-purple-500 h-full w-[65%]" title="Sybil Promo Rings"></div>
+                <div class="bg-rose-500 h-full w-[25%]" title="Card Testing Botnets"></div>
+                <div class="bg-amber-500 h-full w-[10%]" title="Account Takeover"></div>
+              </div>
+            </div>
+
+            <!-- Cloud MySQL State -->
+            <div class="bg-zinc-900/60 border border-zinc-800/90 rounded-2xl p-5 backdrop-blur-xl shadow-xl hover:border-emerald-500/40 transition-all group relative overflow-hidden">
+              <div class="flex items-center justify-between text-xs text-zinc-400 font-mono mb-3">
+                <span class="font-bold text-zinc-200">Cloud MySQL Cluster</span>
+                <span class="flex h-2.5 w-2.5 relative">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                </span>
+              </div>
+
+              <div class="text-3xl font-extrabold font-mono text-emerald-400 tracking-tight flex items-baseline gap-2">
+                <span>{{ systemStatus()?.database_health?.['status'] || 'CONNECTED' | uppercase }}</span>
+              </div>
+              <div class="text-[11px] text-zinc-400 font-mono mt-1 flex items-center justify-between">
+                <span>TLS v1.3 Encrypted</span>
+                <span class="text-emerald-300 font-semibold">1.8ms Ping</span>
+              </div>
+
+              <div class="mt-4 w-full bg-zinc-800/80 rounded-full h-1.5 overflow-hidden">
+                <div class="bg-emerald-500 h-full rounded-full w-full"></div>
+              </div>
+            </div>
+
+            <!-- Active Graph Density -->
+            <div class="bg-zinc-900/60 border border-zinc-800/90 rounded-2xl p-5 backdrop-blur-xl shadow-xl hover:border-cyan-500/40 transition-all group relative overflow-hidden">
+              <div class="flex items-center justify-between text-xs text-zinc-400 font-mono mb-3">
+                <span class="font-bold text-zinc-200">Bipartite Entity Graph</span>
+                <span class="text-cyan-400 font-bold text-[10px] bg-cyan-950/60 px-2 py-0.5 rounded-full border border-cyan-500/30">
+                  NetworkX Engine
+                </span>
+              </div>
+
+              <div class="text-3xl font-extrabold font-mono text-cyan-300 tracking-tight flex items-baseline gap-1.5">
                 <span>{{ systemStatus()?.telemetry?.active_graph_nodes || 4820 }}</span>
                 <span class="text-xs text-zinc-400 font-normal">Nodes</span>
               </div>
-              <div class="text-[11px] text-zinc-500 font-mono mt-1">
-                {{ systemStatus()?.telemetry?.active_graph_edges || 9410 }} Bipartite Projections
+              <div class="text-[11px] text-zinc-400 font-mono mt-1 flex items-center justify-between">
+                <span>Bipartite Edges:</span>
+                <span class="text-cyan-300 font-semibold">{{ systemStatus()?.telemetry?.active_graph_edges || 9410 }}</span>
+              </div>
+
+              <div class="mt-4 w-full bg-zinc-800/80 rounded-full h-1.5 overflow-hidden">
+                <div class="bg-cyan-500 h-full rounded-full w-[88%]"></div>
               </div>
             </div>
 
           </div>
 
-          <!-- Deep Diagnostic Cards -->
+          <!-- VISUAL INTERACTIVE ARCHITECTURE PIPELINE FLOW (CRYSTAL CLEAR DIAGRAM) -->
+          <div class="bg-zinc-900/60 border border-zinc-800 rounded-3xl p-6 sm:p-8 backdrop-blur-xl shadow-2xl space-y-6">
+            
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-zinc-800/80 pb-5">
+              <div>
+                <div class="flex items-center gap-2.5">
+                  <span class="p-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 text-sm">⚡</span>
+                  <h2 class="text-base font-bold text-white font-mono uppercase tracking-wider">
+                    Autonomous Defense Pipeline Architecture
+                  </h2>
+                </div>
+                <p class="text-xs text-zinc-400 mt-1">
+                  How an incoming checkout transaction travels through dynamic entity graphs, 33 point-in-time features, and Model F in sub-5ms.
+                </p>
+              </div>
+
+              <div class="flex items-center gap-2 text-xs font-mono">
+                <span class="px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-bold">
+                  ● Continuous Real-Time Flow
+                </span>
+              </div>
+            </div>
+
+            <!-- 5-Step Animated Visual Pipeline Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-3.5 relative">
+              
+              <!-- Step 1: Ingestion -->
+              <div class="p-4 rounded-2xl bg-zinc-950/80 border border-zinc-800 hover:border-indigo-500/40 transition-all space-y-2 group shadow-sm">
+                <div class="flex items-center justify-between">
+                  <span class="w-6 h-6 rounded-full bg-indigo-600/20 border border-indigo-500/40 text-indigo-400 text-xs font-bold font-mono flex items-center justify-center">1</span>
+                  <span class="text-[10px] font-mono text-zinc-500">0.7ms</span>
+                </div>
+                <div class="text-xs font-bold text-white font-mono">Inbound Payload</div>
+                <p class="text-[11px] text-zinc-400 leading-relaxed">
+                  Canonical checkout event ingested: user, amount, device ID, IP, and payment token.
+                </p>
+                <div class="text-[10px] font-mono text-emerald-400 pt-1">✓ Strict UUIDv4 Check</div>
+              </div>
+
+              <!-- Step 2: Bipartite Graph Projection -->
+              <div class="p-4 rounded-2xl bg-zinc-950/80 border border-zinc-800 hover:border-indigo-500/40 transition-all space-y-2 group shadow-sm">
+                <div class="flex items-center justify-between">
+                  <span class="w-6 h-6 rounded-full bg-indigo-600/20 border border-indigo-500/40 text-indigo-400 text-xs font-bold font-mono flex items-center justify-center">2</span>
+                  <span class="text-[10px] font-mono text-zinc-500">1.2ms</span>
+                </div>
+                <div class="text-xs font-bold text-white font-mono">Bipartite Graph</div>
+                <p class="text-[11px] text-zinc-400 leading-relaxed">
+                  Correlates shared devices, cards, IPs, and accounts into dynamic projection subgraphs.
+                </p>
+                <div class="text-[10px] font-mono text-cyan-400 pt-1">🕸️ 4.8k Nodes Linked</div>
+              </div>
+
+              <!-- Step 3: 33 Zero-Leakage Features -->
+              <div class="p-4 rounded-2xl bg-zinc-950/80 border border-zinc-800 hover:border-indigo-500/40 transition-all space-y-2 group shadow-sm">
+                <div class="flex items-center justify-between">
+                  <span class="w-6 h-6 rounded-full bg-indigo-600/20 border border-indigo-500/40 text-indigo-400 text-xs font-bold font-mono flex items-center justify-center">3</span>
+                  <span class="text-[10px] font-mono text-zinc-500">0.8ms</span>
+                </div>
+                <div class="text-xs font-bold text-white font-mono">33 Causal Features</div>
+                <p class="text-[11px] text-zinc-400 leading-relaxed">
+                  Computes rolling velocity, promo abuse ratios, and user tenure strictly isolated before checkout.
+                </p>
+                <div class="text-[10px] font-mono text-indigo-400 pt-1">⏱️ Guaranteed t &lt; t_pred</div>
+              </div>
+
+              <!-- Step 4: Model F (HistGBDT) -->
+              <div class="p-4 rounded-2xl bg-gradient-to-b from-indigo-950/30 to-zinc-950/80 border border-indigo-500/40 transition-all space-y-2 group shadow-lg">
+                <div class="flex items-center justify-between">
+                  <span class="w-6 h-6 rounded-full bg-indigo-600 text-white text-xs font-bold font-mono flex items-center justify-center shadow-md">4</span>
+                  <span class="text-[10px] font-mono text-indigo-300 font-bold">0.5ms</span>
+                </div>
+                <div class="text-xs font-bold text-white font-mono">Model F Classifier</div>
+                <p class="text-[11px] text-zinc-300 leading-relaxed">
+                  HistGradientBoosting non-linear evaluation evaluated under optimal cost-asymmetric policy (τ*=0.90).
+                </p>
+                <div class="text-[10px] font-mono text-purple-300 pt-1 font-bold">🎯 τ* = 0.90 Block</div>
+              </div>
+
+              <!-- Step 5: Autonomous Action -->
+              <div class="p-4 rounded-2xl bg-zinc-950/80 border border-zinc-800 hover:border-emerald-500/40 transition-all space-y-2 group shadow-sm">
+                <div class="flex items-center justify-between">
+                  <span class="w-6 h-6 rounded-full bg-emerald-600/20 border border-emerald-500/40 text-emerald-400 text-xs font-bold font-mono flex items-center justify-center">5</span>
+                  <span class="text-[10px] font-mono text-zinc-500">&lt; 3.2ms Total</span>
+                </div>
+                <div class="text-xs font-bold text-white font-mono">Action & Webhook</div>
+                <p class="text-[11px] text-zinc-400 leading-relaxed">
+                  Returns APPROVE, 2FA REVIEW, or BLOCK. Dispatches signed HMAC-SHA256 mitigation webhooks.
+                </p>
+                <div class="text-[10px] font-mono text-emerald-400 pt-1">⚡ Instant Verdict</div>
+              </div>
+
+            </div>
+
+          </div>
+
+          <!-- Deep Diagnostic & Circuit Breakers Grid -->
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             
-            <!-- AI Model F Deep Health -->
-            <div class="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-6 backdrop-blur-xl shadow-xl space-y-4">
-              <div class="flex items-center justify-between border-b border-zinc-800 pb-3">
+            <!-- AI Model F Deep Health Card -->
+            <div class="bg-zinc-900/60 border border-zinc-800 rounded-3xl p-6 backdrop-blur-xl shadow-xl space-y-4">
+              <div class="flex items-center justify-between border-b border-zinc-800/80 pb-3">
                 <div class="flex items-center gap-2">
-                  <span class="text-base">⚡</span>
-                  <h2 class="text-sm font-bold text-white font-mono uppercase tracking-wider">
-                    Model F Pipeline Status
-                  </h2>
+                  <span class="text-base">🧠</span>
+                  <h3 class="text-sm font-bold text-white font-mono uppercase tracking-wider">
+                    Model F Artifact Diagnostics
+                  </h3>
                 </div>
                 <span class="px-2.5 py-0.5 bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-[10px] font-mono rounded-full font-bold">
                   ACTIVE CANDIDATE
@@ -224,25 +367,25 @@ interface AuditLogEntry {
               </div>
 
               <div class="space-y-2.5 font-mono text-xs">
-                <div class="flex justify-between py-1.5 border-b border-zinc-800/60">
-                  <span class="text-zinc-400">Algorithm</span>
-                  <span class="text-white font-semibold">HistGradientBoostingClassifier</span>
+                <div class="flex justify-between py-2 border-b border-zinc-800/60">
+                  <span class="text-zinc-400">Architecture</span>
+                  <span class="text-white font-bold">HistGradientBoostingClassifier</span>
                 </div>
-                <div class="flex justify-between py-1.5 border-b border-zinc-800/60">
+                <div class="flex justify-between py-2 border-b border-zinc-800/60">
                   <span class="text-zinc-400">Point-in-Time Features</span>
-                  <span class="text-indigo-300 font-semibold">33 Features (0% Target Leakage)</span>
+                  <span class="text-indigo-300 font-bold">33 Features (0% Target Leakage)</span>
                 </div>
-                <div class="flex justify-between py-1.5 border-b border-zinc-800/60">
+                <div class="flex justify-between py-2 border-b border-zinc-800/60">
                   <span class="text-zinc-400">Optimal Decision Cutoff (τ*)</span>
-                  <span class="text-purple-300 font-semibold">0.90 (Block) / 0.50 (Review)</span>
+                  <span class="text-purple-300 font-bold">0.90 (Block) / 0.50 (Review)</span>
                 </div>
-                <div class="flex justify-between py-1.5 border-b border-zinc-800/60">
+                <div class="flex justify-between py-2 border-b border-zinc-800/60">
                   <span class="text-zinc-400">Benchmark Evaluation Size</span>
-                  <span class="text-white font-semibold">N = 6,929 Transactions</span>
+                  <span class="text-white font-bold">N = 6,929 Transactions</span>
                 </div>
-                <div class="flex justify-between py-1.5">
+                <div class="flex justify-between py-2">
                   <span class="text-zinc-400">Self-Healing Fallback Status</span>
-                  <span class="text-emerald-400 font-semibold">Resilient Classifier Ready</span>
+                  <span class="text-emerald-400 font-bold">Resilient Classifier Ready</span>
                 </div>
               </div>
 
@@ -251,7 +394,7 @@ interface AuditLogEntry {
                   type="button"
                   (click)="reloadModel()"
                   [disabled]="isReloadingModel"
-                  class="w-full py-2.5 bg-zinc-950 hover:bg-zinc-800 text-zinc-200 hover:text-white border border-zinc-800 rounded-xl text-xs font-mono font-medium transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                  class="w-full py-2.5 bg-zinc-950 hover:bg-zinc-800 text-zinc-200 hover:text-white border border-zinc-800 rounded-xl text-xs font-mono font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
                 >
                   <span *ngIf="isReloadingModel" class="w-3.5 h-3.5 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin"></span>
                   <span>{{ isReloadingModel ? 'Reloading Model Artifact...' : '🔄 Force In-Memory Model Refresh' }}</span>
@@ -260,13 +403,13 @@ interface AuditLogEntry {
             </div>
 
             <!-- Database & Storage Diagnostics -->
-            <div class="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-6 backdrop-blur-xl shadow-xl space-y-4">
-              <div class="flex items-center justify-between border-b border-zinc-800 pb-3">
+            <div class="bg-zinc-900/60 border border-zinc-800 rounded-3xl p-6 backdrop-blur-xl shadow-xl space-y-4">
+              <div class="flex items-center justify-between border-b border-zinc-800/80 pb-3">
                 <div class="flex items-center gap-2">
                   <span class="text-base">🗄️</span>
-                  <h2 class="text-sm font-bold text-white font-mono uppercase tracking-wider">
+                  <h3 class="text-sm font-bold text-white font-mono uppercase tracking-wider">
                     Aiven MySQL Cloud Cluster
-                  </h2>
+                  </h3>
                 </div>
                 <span class="px-2.5 py-0.5 bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 text-[10px] font-mono rounded-full font-bold">
                   MULTI-TENANT
@@ -274,25 +417,25 @@ interface AuditLogEntry {
               </div>
 
               <div class="space-y-2.5 font-mono text-xs">
-                <div class="flex justify-between py-1.5 border-b border-zinc-800/60">
+                <div class="flex justify-between py-2 border-b border-zinc-800/60">
                   <span class="text-zinc-400">Database Engine</span>
-                  <span class="text-white font-semibold">MySQL 8.0 Cloud Instance</span>
+                  <span class="text-white font-bold">MySQL 8.0 Cloud Instance</span>
                 </div>
-                <div class="flex justify-between py-1.5 border-b border-zinc-800/60">
+                <div class="flex justify-between py-2 border-b border-zinc-800/60">
                   <span class="text-zinc-400">SSL Encryption</span>
-                  <span class="text-emerald-400 font-semibold">REQUIRED (TLS v1.3)</span>
+                  <span class="text-emerald-400 font-bold">REQUIRED (TLS v1.3)</span>
                 </div>
-                <div class="flex justify-between py-1.5 border-b border-zinc-800/60">
+                <div class="flex justify-between py-2 border-b border-zinc-800/60">
                   <span class="text-zinc-400">Connection Pool</span>
-                  <span class="text-indigo-300 font-semibold">5 Active / 20 Max Capacity</span>
+                  <span class="text-indigo-300 font-bold">5 Active / 20 Max Capacity</span>
                 </div>
-                <div class="flex justify-between py-1.5 border-b border-zinc-800/60">
+                <div class="flex justify-between py-2 border-b border-zinc-800/60">
                   <span class="text-zinc-400">Idempotency Registry</span>
-                  <span class="text-white font-semibold">Strict UUIDv4 Key Verification</span>
+                  <span class="text-white font-bold">Strict UUIDv4 Key Verification</span>
                 </div>
-                <div class="flex justify-between py-1.5">
+                <div class="flex justify-between py-2">
                   <span class="text-zinc-400">Audit Trail Table</span>
-                  <span class="text-emerald-400 font-semibold">Append-Only Immutable Records</span>
+                  <span class="text-emerald-400 font-bold">Append-Only Immutable Records</span>
                 </div>
               </div>
 
@@ -300,7 +443,7 @@ interface AuditLogEntry {
                 <button
                   type="button"
                   (click)="refreshStatus()"
-                  class="w-full py-2.5 bg-zinc-950 hover:bg-zinc-800 text-zinc-200 hover:text-white border border-zinc-800 rounded-xl text-xs font-mono font-medium transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                  class="w-full py-2.5 bg-zinc-950 hover:bg-zinc-800 text-zinc-200 hover:text-white border border-zinc-800 rounded-xl text-xs font-mono font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
                 >
                   <span>⚡ Ping Database & Verify Schema</span>
                 </button>
@@ -310,21 +453,21 @@ interface AuditLogEntry {
           </div>
 
           <!-- Emergency Operations & Circuit Breakers -->
-          <div class="bg-zinc-900/60 border border-rose-500/25 rounded-2xl p-6 backdrop-blur-xl shadow-xl space-y-4">
-            <div class="flex items-center gap-2 border-b border-zinc-800 pb-3">
-              <span class="text-base">🚨</span>
-              <h2 class="text-sm font-bold text-rose-300 font-mono uppercase tracking-wider">
+          <div class="bg-zinc-900/60 border border-rose-500/25 rounded-3xl p-6 sm:p-7 backdrop-blur-xl shadow-2xl space-y-4">
+            <div class="flex items-center gap-2 border-b border-zinc-800/80 pb-3">
+              <span class="text-lg">🚨</span>
+              <h3 class="text-sm font-bold text-rose-300 font-mono uppercase tracking-wider">
                 Emergency Circuit Breakers & Master Operations
-              </h2>
+              </h3>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-1">
               <button
                 type="button"
                 (click)="triggerEmergency('QUARANTINE_TRAFFIC')"
-                class="p-4 bg-zinc-950/80 hover:bg-rose-950/30 border border-zinc-800 hover:border-rose-500/40 rounded-xl text-left transition-all group cursor-pointer"
+                class="p-4 bg-zinc-950/80 hover:bg-rose-950/40 border border-zinc-800 hover:border-rose-500/50 rounded-2xl text-left transition-all group cursor-pointer shadow-sm"
               >
-                <div class="text-rose-400 text-lg mb-2 group-hover:scale-110 transition-transform">🛑</div>
+                <div class="text-rose-400 text-xl mb-2 group-hover:scale-110 transition-transform">🛑</div>
                 <div class="text-xs font-bold text-white font-mono">Quarantine Traffic</div>
                 <div class="text-[10px] text-zinc-400 mt-1">Force all non-whitelisted transactions into 2FA step-up</div>
               </button>
@@ -332,9 +475,9 @@ interface AuditLogEntry {
               <button
                 type="button"
                 (click)="triggerEmergency('FLUSH_SESSIONS')"
-                class="p-4 bg-zinc-950/80 hover:bg-amber-950/30 border border-zinc-800 hover:border-amber-500/40 rounded-xl text-left transition-all group cursor-pointer"
+                class="p-4 bg-zinc-950/80 hover:bg-amber-950/40 border border-zinc-800 hover:border-amber-500/50 rounded-2xl text-left transition-all group cursor-pointer shadow-sm"
               >
-                <div class="text-amber-400 text-lg mb-2 group-hover:scale-110 transition-transform">🔒</div>
+                <div class="text-amber-400 text-xl mb-2 group-hover:scale-110 transition-transform">🔒</div>
                 <div class="text-xs font-bold text-white font-mono">Flush All Sessions</div>
                 <div class="text-[10px] text-zinc-400 mt-1">Invalidate active merchant tokens and force re-auth</div>
               </button>
@@ -342,9 +485,9 @@ interface AuditLogEntry {
               <button
                 type="button"
                 (click)="triggerEmergency('RESET_CACHE')"
-                class="p-4 bg-zinc-950/80 hover:bg-cyan-950/30 border border-zinc-800 hover:border-cyan-500/40 rounded-xl text-left transition-all group cursor-pointer"
+                class="p-4 bg-zinc-950/80 hover:bg-cyan-950/40 border border-zinc-800 hover:border-cyan-500/50 rounded-2xl text-left transition-all group cursor-pointer shadow-sm"
               >
-                <div class="text-cyan-400 text-lg mb-2 group-hover:scale-110 transition-transform">🧹</div>
+                <div class="text-cyan-400 text-xl mb-2 group-hover:scale-110 transition-transform">🧹</div>
                 <div class="text-xs font-bold text-white font-mono">Reset Rate Limiters</div>
                 <div class="text-[10px] text-zinc-400 mt-1">Clear sliding window IP tables and memory cache</div>
               </button>
@@ -352,9 +495,9 @@ interface AuditLogEntry {
               <button
                 type="button"
                 (click)="triggerEmergency('RELOAD_MODELS')"
-                class="p-4 bg-zinc-950/80 hover:bg-purple-950/30 border border-zinc-800 hover:border-purple-500/40 rounded-xl text-left transition-all group cursor-pointer"
+                class="p-4 bg-zinc-950/80 hover:bg-purple-950/40 border border-zinc-800 hover:border-purple-500/50 rounded-2xl text-left transition-all group cursor-pointer shadow-sm"
               >
-                <div class="text-purple-400 text-lg mb-2 group-hover:scale-110 transition-transform">⚡</div>
+                <div class="text-purple-400 text-xl mb-2 group-hover:scale-110 transition-transform">⚡</div>
                 <div class="text-xs font-bold text-white font-mono">Reload GBDT Tree</div>
                 <div class="text-[10px] text-zinc-400 mt-1">Re-instantiate HistGradientBoosting pipeline</div>
               </button>
@@ -369,15 +512,15 @@ interface AuditLogEntry {
         <div *ngIf="activeTab === 'merchants'" class="space-y-6 animate-fadeIn">
           
           <!-- Merchant Summary Header -->
-          <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-zinc-900/60 border border-zinc-800 rounded-2xl p-5 backdrop-blur-xl shadow-lg">
+          <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-zinc-900/60 border border-zinc-800 rounded-3xl p-6 backdrop-blur-xl shadow-xl">
             <div>
-              <h2 class="text-base font-bold text-white font-mono flex items-center gap-2">
+              <h2 class="text-base font-bold text-white font-mono flex items-center gap-2.5">
                 <span>🏢 Registered Enterprise Tenants</span>
-                <span class="px-2 py-0.5 bg-indigo-500/20 text-indigo-300 text-xs rounded-full">
+                <span class="px-2.5 py-0.5 bg-indigo-500/20 text-indigo-300 text-xs rounded-full font-bold">
                   {{ merchantsData()?.total_merchants || 3 }} Active Tenants
                 </span>
               </h2>
-              <p class="text-xs text-zinc-400 mt-0.5">
+              <p class="text-xs text-zinc-400 mt-1">
                 Manage merchant tenant credentials, API keys, operational tiers, and access privileges.
               </p>
             </div>
@@ -387,46 +530,46 @@ interface AuditLogEntry {
                 type="text"
                 [(ngModel)]="merchantSearch"
                 placeholder="Search merchant by name, ID, or key..."
-                class="px-3.5 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-xs font-mono text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500 w-full sm:w-64"
+                class="px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-xs font-mono text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500 w-full sm:w-72 shadow-inner"
               />
             </div>
           </div>
 
           <!-- Merchant Table -->
-          <div class="bg-zinc-900/60 border border-zinc-800 rounded-2xl overflow-hidden backdrop-blur-xl shadow-xl">
+          <div class="bg-zinc-900/60 border border-zinc-800 rounded-3xl overflow-hidden backdrop-blur-xl shadow-2xl">
             <div class="overflow-x-auto">
               <table class="w-full text-left text-xs font-mono">
                 <thead class="bg-zinc-950/80 border-b border-zinc-800 text-zinc-400 uppercase tracking-wider text-[11px]">
                   <tr>
-                    <th class="px-5 py-3.5">Merchant Organization</th>
-                    <th class="px-5 py-3.5">API Key Prefix</th>
-                    <th class="px-5 py-3.5">Tier & Created</th>
-                    <th class="px-5 py-3.5">Volume & Tx Count</th>
-                    <th class="px-5 py-3.5">Fraud Block Rate</th>
-                    <th class="px-5 py-3.5">Status</th>
-                    <th class="px-5 py-3.5 text-right">Actions</th>
+                    <th class="px-6 py-4">Merchant Organization</th>
+                    <th class="px-6 py-4">API Key Prefix</th>
+                    <th class="px-6 py-4">Tier & Created</th>
+                    <th class="px-6 py-4">Volume & Tx Count</th>
+                    <th class="px-6 py-4">Fraud Block Rate</th>
+                    <th class="px-6 py-4">Status</th>
+                    <th class="px-6 py-4 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-zinc-800/60">
                   <tr *ngFor="let m of filteredMerchants()" class="hover:bg-zinc-800/30 transition-colors">
-                    <td class="px-5 py-4">
+                    <td class="px-6 py-4">
                       <div class="font-bold text-white text-sm">{{ m.company_name }}</div>
                       <div class="text-[11px] text-zinc-400">{{ m.email }} • ID: {{ m.merchant_id }}</div>
                     </td>
-                    <td class="px-5 py-4">
-                      <span class="px-2 py-1 bg-zinc-950 border border-zinc-800 text-indigo-300 rounded font-mono text-xs">
+                    <td class="px-6 py-4">
+                      <span class="px-2.5 py-1 bg-zinc-950 border border-zinc-800 text-indigo-300 rounded-md font-mono text-xs font-semibold">
                         {{ m.api_key_prefix }}
                       </span>
                     </td>
-                    <td class="px-5 py-4">
+                    <td class="px-6 py-4">
                       <div class="text-purple-300 font-bold">{{ m.tier }}</div>
                       <div class="text-[10px] text-zinc-500">{{ m.created_at | date:'shortDate' }}</div>
                     </td>
-                    <td class="px-5 py-4">
+                    <td class="px-6 py-4">
                       <div class="text-white font-bold">&#36;{{ m.total_volume_usd.toLocaleString() }}</div>
                       <div class="text-[10px] text-zinc-400">{{ m.total_transactions }} Transactions</div>
                     </td>
-                    <td class="px-5 py-4">
+                    <td class="px-6 py-4">
                       <div class="flex items-center gap-2">
                         <span class="font-bold" [ngClass]="m.fraud_block_rate > 10 ? 'text-rose-400' : 'text-amber-400'">
                           {{ m.fraud_block_rate }}%
@@ -434,18 +577,18 @@ interface AuditLogEntry {
                         <span class="text-[10px] text-zinc-500">({{ m.blocked_count }} blocked)</span>
                       </div>
                     </td>
-                    <td class="px-5 py-4">
+                    <td class="px-6 py-4">
                       <span class="px-2.5 py-1 text-[10px] rounded-full font-bold uppercase tracking-wider"
                             [ngClass]="m.status === 'ACTIVE' ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' : 'bg-rose-500/15 text-rose-300 border border-rose-500/30'">
                         {{ m.status }}
                       </span>
                     </td>
-                    <td class="px-5 py-4 text-right space-x-2">
+                    <td class="px-6 py-4 text-right space-x-2">
                       <!-- Toggle Status Button -->
                       <button
                         type="button"
                         (click)="toggleMerchant(m)"
-                        class="px-2.5 py-1 text-[11px] font-mono rounded-lg transition-colors cursor-pointer border"
+                        class="px-2.5 py-1 text-[11px] font-mono rounded-lg transition-colors cursor-pointer border font-semibold"
                         [ngClass]="m.status === 'ACTIVE'
                           ? 'bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 border-rose-500/30'
                           : 'bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-300 border-emerald-500/30'"
@@ -466,7 +609,7 @@ interface AuditLogEntry {
                       <button
                         type="button"
                         (click)="confirmDeleteMerchant(m)"
-                        class="px-2.5 py-1 bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 hover:text-white border border-rose-500/30 text-[11px] font-mono rounded-lg transition-all cursor-pointer shadow-sm"
+                        class="px-2.5 py-1 bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 hover:text-white border border-rose-500/30 text-[11px] font-mono rounded-lg transition-all cursor-pointer shadow-sm font-semibold"
                         title="Permanently delete merchant account, users, credentials, and transactions"
                       >
                         🗑️ Delete
@@ -483,12 +626,12 @@ interface AuditLogEntry {
         <!-- TAB 3: DECISION POLICY & THRESHOLD MATRIX -->
         <!-- =================================================================== -->
         <div *ngIf="activeTab === 'policy'" class="space-y-6 animate-fadeIn">
-          <div class="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-7 backdrop-blur-xl shadow-xl space-y-6">
+          <div class="bg-zinc-900/60 border border-zinc-800 rounded-3xl p-7 sm:p-8 backdrop-blur-xl shadow-2xl space-y-6">
             
             <div>
-              <h2 class="text-base font-bold text-white font-mono flex items-center gap-2">
+              <h2 class="text-base font-bold text-white font-mono flex items-center gap-2.5">
                 <span>⚡ Live Model F Decision Threshold Matrix</span>
-                <span class="px-2 py-0.5 bg-indigo-500/20 text-indigo-300 text-xs rounded-full">
+                <span class="px-2.5 py-0.5 bg-indigo-500/20 text-indigo-300 text-xs rounded-full font-bold">
                   Real-Time Calibration
                 </span>
               </h2>
@@ -498,30 +641,32 @@ interface AuditLogEntry {
             </div>
 
             <!-- Continuous Spectrum Visualizer -->
-            <div class="p-4 rounded-xl bg-zinc-950/80 border border-zinc-800 space-y-2">
+            <div class="p-5 rounded-2xl bg-zinc-950/80 border border-zinc-800 space-y-3 shadow-inner">
               <div class="text-xs font-bold text-zinc-300 font-mono flex justify-between">
-                <span>Decision Spectrum (0.00 to 1.00)</span>
-                <span class="text-indigo-400">τ* Cutoff: {{ policyForm.value.block_threshold }}</span>
+                <span>Autonomous Decision Spectrum (0.00 to 1.00)</span>
+                <span class="text-indigo-400 font-bold">τ* Hard Block Cutoff: {{ policyForm.value.block_threshold }}</span>
               </div>
-              <div class="h-4 rounded-full bg-gradient-to-r from-emerald-500 via-amber-500 to-rose-500 w-full relative overflow-hidden shadow-inner">
+              
+              <div class="h-5 rounded-full bg-gradient-to-r from-emerald-500 via-amber-500 to-rose-500 w-full relative overflow-hidden shadow-inner">
                 <!-- Marker for Review -->
-                <div class="absolute top-0 bottom-0 w-0.5 bg-white shadow-lg" [style.left.%]="policyForm.value.review_threshold * 100"></div>
+                <div class="absolute top-0 bottom-0 w-1 bg-white shadow-xl" [style.left.%]="policyForm.value.review_threshold * 100"></div>
                 <!-- Marker for Block -->
-                <div class="absolute top-0 bottom-0 w-1 bg-white shadow-lg" [style.left.%]="policyForm.value.block_threshold * 100"></div>
+                <div class="absolute top-0 bottom-0 w-1.5 bg-white shadow-xl" [style.left.%]="policyForm.value.block_threshold * 100"></div>
               </div>
-              <div class="flex justify-between text-[10px] font-mono text-zinc-400 pt-1">
-                <span class="text-emerald-400">0.00 APPROVE</span>
-                <span class="text-amber-400">2FA REVIEW (≥ {{ policyForm.value.review_threshold }})</span>
-                <span class="text-rose-400">HARD BLOCK (≥ {{ policyForm.value.block_threshold }})</span>
+              
+              <div class="flex justify-between text-[11px] font-mono text-zinc-400 pt-1">
+                <span class="text-emerald-400 font-bold">0.00 APPROVE (Instant Pass)</span>
+                <span class="text-amber-400 font-bold">2FA REVIEW (≥ {{ policyForm.value.review_threshold }})</span>
+                <span class="text-rose-400 font-bold">HARD BLOCK (≥ {{ policyForm.value.block_threshold }})</span>
               </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
               <!-- Block Threshold Slider -->
-              <div class="bg-zinc-950/80 border border-zinc-800 rounded-xl p-5 space-y-3">
+              <div class="bg-zinc-950/80 border border-zinc-800 rounded-2xl p-5 space-y-3">
                 <div class="flex justify-between items-center font-mono">
                   <span class="text-xs font-bold text-rose-400 uppercase">Block Threshold (τ*)</span>
-                  <span class="text-lg font-black text-rose-300">{{ policyForm.value.block_threshold }}</span>
+                  <span class="text-xl font-black text-rose-300">{{ policyForm.value.block_threshold }}</span>
                 </div>
                 <input
                   type="range"
@@ -530,7 +675,7 @@ interface AuditLogEntry {
                   step="0.01"
                   [value]="policyForm.value.block_threshold"
                   (input)="onBlockThresholdChange($event)"
-                  class="w-full accent-rose-500 cursor-pointer"
+                  class="w-full accent-rose-500 cursor-pointer h-2 bg-zinc-800 rounded-lg"
                 />
                 <p class="text-[11px] text-zinc-500 font-mono">
                   Transactions with risk probability ≥ {{ policyForm.value.block_threshold }} will be immediately blocked.
@@ -538,10 +683,10 @@ interface AuditLogEntry {
               </div>
 
               <!-- Review Threshold Slider -->
-              <div class="bg-zinc-950/80 border border-zinc-800 rounded-xl p-5 space-y-3">
+              <div class="bg-zinc-950/80 border border-zinc-800 rounded-2xl p-5 space-y-3">
                 <div class="flex justify-between items-center font-mono">
                   <span class="text-xs font-bold text-amber-400 uppercase">Review Threshold (2FA)</span>
-                  <span class="text-lg font-black text-amber-300">{{ policyForm.value.review_threshold }}</span>
+                  <span class="text-xl font-black text-amber-300">{{ policyForm.value.review_threshold }}</span>
                 </div>
                 <input
                   type="range"
@@ -550,7 +695,7 @@ interface AuditLogEntry {
                   step="0.01"
                   [value]="policyForm.value.review_threshold"
                   (input)="onReviewThresholdChange($event)"
-                  class="w-full accent-amber-500 cursor-pointer"
+                  class="w-full accent-amber-500 cursor-pointer h-2 bg-zinc-800 rounded-lg"
                 />
                 <p class="text-[11px] text-zinc-500 font-mono">
                   Transactions between {{ policyForm.value.review_threshold }} and {{ policyForm.value.block_threshold }} trigger step-up 2FA.
@@ -568,9 +713,9 @@ interface AuditLogEntry {
                   *ngFor="let preset of presets"
                   type="button"
                   (click)="selectPreset(preset.id)"
-                  class="p-3.5 rounded-xl border text-left font-mono transition-all cursor-pointer"
+                  class="p-4 rounded-2xl border text-left font-mono transition-all cursor-pointer"
                   [ngClass]="selectedPreset === preset.id
-                    ? 'bg-indigo-950/60 border-indigo-500 text-white shadow-sm'
+                    ? 'bg-indigo-950/60 border-indigo-500 text-white shadow-lg'
                     : 'bg-zinc-950/60 border-zinc-800 text-zinc-400 hover:border-zinc-700'"
                 >
                   <div class="text-xs font-bold">{{ preset.label }}</div>
@@ -585,7 +730,7 @@ interface AuditLogEntry {
                 type="button"
                 (click)="savePolicy()"
                 [disabled]="isSavingPolicy"
-                class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs font-mono rounded-xl shadow-md shadow-indigo-600/20 transition-all flex items-center gap-2 cursor-pointer"
+                class="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs font-mono rounded-xl shadow-lg shadow-indigo-600/20 transition-all flex items-center gap-2 cursor-pointer"
               >
                 <span *ngIf="isSavingPolicy" class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
                 <span>{{ isSavingPolicy ? 'Broadcasting Policy Updates...' : '💾 Deploy Policy Updates' }}</span>
@@ -599,13 +744,13 @@ interface AuditLogEntry {
         <!-- TAB 4: MAINTENANCE MODE ORCHESTRATOR -->
         <!-- =================================================================== -->
         <div *ngIf="activeTab === 'maintenance'" class="space-y-6 animate-fadeIn">
-          <div class="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-7 backdrop-blur-xl shadow-xl space-y-6">
+          <div class="bg-zinc-900/60 border border-zinc-800 rounded-3xl p-7 sm:p-8 backdrop-blur-xl shadow-2xl space-y-6">
             
             <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-zinc-800 pb-5">
               <div>
-                <h2 class="text-base font-bold text-white font-mono flex items-center gap-2">
+                <h2 class="text-base font-bold text-white font-mono flex items-center gap-2.5">
                   <span>🛠️ System Maintenance & Upgrade Orchestrator</span>
-                  <span class="px-2 py-0.5 bg-amber-500/15 text-amber-300 text-xs rounded-full font-mono">
+                  <span class="px-2.5 py-0.5 bg-amber-500/15 text-amber-300 text-xs rounded-full font-mono font-bold">
                     PUBLIC GATING
                   </span>
                 </h2>
@@ -616,23 +761,23 @@ interface AuditLogEntry {
 
               <!-- Main Power Toggle -->
               <div class="flex items-center gap-3">
-                <span class="text-xs font-mono text-zinc-400">Maintenance Switch:</span>
+                <span class="text-xs font-mono text-zinc-400 font-bold">Maintenance Switch:</span>
                 <button
                   type="button"
                   (click)="maintenanceActive = !maintenanceActive"
-                  class="relative inline-flex h-7 w-14 items-center rounded-full transition-colors cursor-pointer"
-                  [ngClass]="maintenanceActive ? 'bg-amber-500 shadow-md shadow-amber-500/30' : 'bg-zinc-800'"
+                  class="relative inline-flex h-8 w-16 items-center rounded-full transition-colors cursor-pointer"
+                  [ngClass]="maintenanceActive ? 'bg-amber-500 shadow-lg shadow-amber-500/40' : 'bg-zinc-800'"
                 >
                   <span
-                    class="inline-block h-5 w-5 transform rounded-full bg-white transition-transform shadow-md"
-                    [ngClass]="maintenanceActive ? 'translate-x-8' : 'translate-x-1'"
+                    class="inline-block h-6 w-6 transform rounded-full bg-white transition-transform shadow-md"
+                    [ngClass]="maintenanceActive ? 'translate-x-9' : 'translate-x-1'"
                   ></span>
                 </button>
               </div>
             </div>
 
             <!-- Feedback Alert Toast Banner -->
-            <div *ngIf="maintenanceToast()" class="p-4 rounded-xl flex items-center justify-between gap-3 text-xs font-mono shadow-md transition-all"
+            <div *ngIf="maintenanceToast()" class="p-4 rounded-2xl flex items-center justify-between gap-3 text-xs font-mono shadow-md transition-all"
                  [ngClass]="maintenanceToast()?.type === 'success' ? 'bg-emerald-500/15 border border-emerald-500/40 text-emerald-200' : 'bg-rose-500/15 border border-rose-500/40 text-rose-200'">
               <div class="flex items-center gap-2.5">
                 <span class="text-base">{{ maintenanceToast()?.type === 'success' ? '🛡️' : '⚠️' }}</span>
@@ -650,7 +795,7 @@ interface AuditLogEntry {
                 </label>
                 <select
                   [(ngModel)]="maintenanceType"
-                  class="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-xs font-mono text-white focus:outline-none focus:border-indigo-500"
+                  class="w-full px-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl text-xs font-mono text-white focus:outline-none focus:border-indigo-500 shadow-inner"
                 >
                   <option value="SCHEDULED_UPGRADE">Scheduled Model & Engine Calibration</option>
                   <option value="THREAT_CONTAINMENT">Emergency Threat & Bot Containment</option>
@@ -667,7 +812,7 @@ interface AuditLogEntry {
                 <input
                   type="number"
                   [(ngModel)]="maintenanceDuration"
-                  class="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-xs font-mono text-white focus:outline-none focus:border-indigo-500"
+                  class="w-full px-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl text-xs font-mono text-white focus:outline-none focus:border-indigo-500 shadow-inner"
                 />
               </div>
 
@@ -680,7 +825,7 @@ interface AuditLogEntry {
                   type="text"
                   [(ngModel)]="maintenanceTitle"
                   placeholder="Enter headline displayed on /maintenance..."
-                  class="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-xs font-mono text-white focus:outline-none focus:border-indigo-500"
+                  class="w-full px-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl text-xs font-mono text-white focus:outline-none focus:border-indigo-500 shadow-inner"
                 />
               </div>
 
@@ -693,7 +838,7 @@ interface AuditLogEntry {
                   rows="3"
                   [(ngModel)]="maintenanceMessage"
                   placeholder="Enter description message for public visitors..."
-                  class="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-xs font-mono text-white focus:outline-none focus:border-indigo-500"
+                  class="w-full px-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl text-xs font-mono text-white focus:outline-none focus:border-indigo-500 shadow-inner"
                 ></textarea>
               </div>
             </div>
@@ -703,7 +848,7 @@ interface AuditLogEntry {
               <a
                 routerLink="/maintenance"
                 target="_blank"
-                class="text-xs text-indigo-400 hover:underline font-mono flex items-center gap-1"
+                class="text-xs text-indigo-400 hover:underline font-mono flex items-center gap-1 font-semibold"
               >
                 <span>🔗 Preview Live Public Maintenance Screen</span>
               </a>
@@ -712,7 +857,7 @@ interface AuditLogEntry {
                 type="button"
                 (click)="applyMaintenanceSettings()"
                 [disabled]="isApplyingMaintenance"
-                class="w-full sm:w-auto px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs font-mono rounded-xl shadow-md shadow-indigo-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                class="w-full sm:w-auto px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs font-mono rounded-xl shadow-lg shadow-indigo-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
                 <span *ngIf="isApplyingMaintenance" class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
                 <span>{{ isApplyingMaintenance ? 'Applying Maintenance Policy...' : '🚀 Apply Maintenance State' }}</span>
@@ -725,27 +870,27 @@ interface AuditLogEntry {
         <!-- TAB 5: GLOBAL AUDIT & SECURITY STREAM -->
         <!-- =================================================================== -->
         <div *ngIf="activeTab === 'audit'" class="space-y-6 animate-fadeIn">
-          <div class="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-6 backdrop-blur-xl shadow-xl space-y-4">
+          <div class="bg-zinc-900/60 border border-zinc-800 rounded-3xl p-6 sm:p-7 backdrop-blur-xl shadow-2xl space-y-4">
             <div class="flex items-center justify-between border-b border-zinc-800 pb-3">
               <div class="flex items-center gap-2">
                 <span class="text-base">📜</span>
-                <h2 class="text-sm font-bold text-white font-mono uppercase tracking-wider">
+                <h3 class="text-sm font-bold text-white font-mono uppercase tracking-wider">
                   SuperAdmin Session Audit Log (Immutable Stream)
-                </h2>
+                </h3>
               </div>
               <span class="text-xs font-mono text-zinc-400">Total Events: {{ auditLogs.length }}</span>
             </div>
 
-            <div class="space-y-2">
+            <div class="space-y-2.5">
               <div
                 *ngFor="let log of auditLogs"
-                class="p-3.5 bg-zinc-950 border border-zinc-800 rounded-xl flex items-start justify-between gap-4 font-mono text-xs hover:border-zinc-700 transition-colors"
+                class="p-4 bg-zinc-950 border border-zinc-800 rounded-2xl flex items-start justify-between gap-4 font-mono text-xs hover:border-zinc-700 transition-colors shadow-sm"
               >
                 <div class="flex items-start gap-3">
-                  <span class="text-sm">{{ log.status === 'SUCCESS' ? '🟢' : log.status === 'WARNING' ? '🟡' : '🔴' }}</span>
+                  <span class="text-base">{{ log.status === 'SUCCESS' ? '🟢' : log.status === 'WARNING' ? '🟡' : '🔴' }}</span>
                   <div>
-                    <div class="font-bold text-white">{{ log.action }}</div>
-                    <div class="text-[11px] text-zinc-400">{{ log.details }}</div>
+                    <div class="font-bold text-white text-sm">{{ log.action }}</div>
+                    <div class="text-[11px] text-zinc-400 mt-0.5">{{ log.details }}</div>
                   </div>
                 </div>
                 <div class="text-right whitespace-nowrap">
@@ -761,7 +906,7 @@ interface AuditLogEntry {
         <!-- DELETE MERCHANT CONFIRMATION MODAL -->
         <!-- =================================================================== -->
         <div *ngIf="merchantToDelete" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
-          <div class="bg-zinc-950 border border-rose-500/40 rounded-2xl p-7 max-w-md w-full shadow-2xl space-y-5">
+          <div class="bg-zinc-950 border border-rose-500/40 rounded-3xl p-7 max-w-md w-full shadow-2xl space-y-5">
             <div class="flex items-center gap-3 text-rose-400 border-b border-zinc-800 pb-3">
               <span class="text-2xl">⚠️</span>
               <div>
@@ -774,7 +919,7 @@ interface AuditLogEntry {
               Are you sure you want to permanently purge merchant <strong class="text-rose-300">{{ merchantToDelete.company_name }}</strong> (<span class="text-indigo-300">{{ merchantToDelete.merchant_id }}</span>)?
             </p>
 
-            <div class="p-3.5 bg-rose-950/30 border border-rose-500/20 rounded-xl text-[11px] font-mono text-rose-300 space-y-1.5">
+            <div class="p-4 bg-rose-950/30 border border-rose-500/20 rounded-2xl text-[11px] font-mono text-rose-300 space-y-1.5">
               <div class="flex items-center gap-2"><span>💥</span> <span>All registered merchant user logins will be deleted.</span></div>
               <div class="flex items-center gap-2"><span>🔑</span> <span>All API keys & auth sessions will be revoked.</span></div>
               <div class="flex items-center gap-2"><span>📊</span> <span>All transaction logs & entity graphs will be purged.</span></div>
@@ -785,7 +930,7 @@ interface AuditLogEntry {
                 type="button"
                 (click)="merchantToDelete = null"
                 [disabled]="isDeletingMerchant"
-                class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-xs font-mono transition-colors cursor-pointer"
+                class="px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-xl text-xs font-mono transition-colors cursor-pointer"
               >
                 Cancel
               </button>
@@ -793,7 +938,7 @@ interface AuditLogEntry {
                 type="button"
                 (click)="executeDeleteMerchant()"
                 [disabled]="isDeletingMerchant"
-                class="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-lg text-xs font-mono transition-all flex items-center gap-2 cursor-pointer shadow-sm disabled:opacity-50"
+                class="px-5 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl text-xs font-mono transition-all flex items-center gap-2 cursor-pointer shadow-lg shadow-rose-600/30 disabled:opacity-50"
               >
                 <span *ngIf="isDeletingMerchant" class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
                 <span>{{ isDeletingMerchant ? 'Purging Account...' : '🔥 Permanently Purge Account' }}</span>
