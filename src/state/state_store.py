@@ -464,12 +464,41 @@ class RuntimeStateStore:
                 conn.commit()
             return
 
-        # Production / Default: Seed primary verified tenant only if DB is fresh and empty
+        # Production / Default: Purge any legacy synthetic test accounts from disk
         with self._get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT COUNT(*) FROM merchants")
-            cnt = cursor.fetchone()[0]
-            if cnt == 0:
+            test_patterns = [
+                "%@store.in", "%@store.com", "%@empty.io", "%@ecommerce.io",
+                "%@merchant.com", "%@example.com", "%@a.com", "%@b.com",
+                "%@techcorp.io", "%@client.com", "dev@apexretail.com", "admin@novadigital.io", "sandbox@merchant.in"
+            ]
+            for pat in test_patterns:
+                cursor.execute("SELECT merchant_id FROM merchants WHERE email LIKE ?", (pat,))
+                junk_ids = [row["merchant_id"] for row in cursor.fetchall()]
+                for j_id in junk_ids:
+                    cursor.execute("DELETE FROM auth_sessions WHERE merchant_id = ?", (j_id,))
+                    cursor.execute("DELETE FROM api_keys WHERE merchant_id = ?", (j_id,))
+                    cursor.execute("DELETE FROM users WHERE merchant_id = ?", (j_id,))
+                    cursor.execute("DELETE FROM runtime_transactions WHERE merchant_id = ?", (j_id,))
+                    cursor.execute("DELETE FROM merchant_actions WHERE merchant_id = ?", (j_id,))
+                    cursor.execute("DELETE FROM merchant_integrations WHERE merchant_id = ?", (j_id,))
+                    cursor.execute("DELETE FROM merchants WHERE merchant_id = ?", (j_id,))
+
+            # Also delete merchants with test/malicious names generated during security tests
+            cursor.execute("SELECT merchant_id FROM merchants WHERE company_name LIKE 'Corp %' OR company_name LIKE 'Store %' OR company_name LIKE 'SQLi%' OR company_name IN ('Alpha Corp', 'Beta Corp', 'Idem Corp', 'Idemp Store', 'Retry Store', 'Probe Store', 'List Store', 'Vance Enterprises', 'Rotate Store', 'Empty Mart', 'Pop Store', 'Apex Retail Global', 'Nova Digital Goods', 'Sandbox Merchant')")
+            junk_ids2 = [row["merchant_id"] for row in cursor.fetchall()]
+            for j_id in junk_ids2:
+                cursor.execute("DELETE FROM auth_sessions WHERE merchant_id = ?", (j_id,))
+                cursor.execute("DELETE FROM api_keys WHERE merchant_id = ?", (j_id,))
+                cursor.execute("DELETE FROM users WHERE merchant_id = ?", (j_id,))
+                cursor.execute("DELETE FROM runtime_transactions WHERE merchant_id = ?", (j_id,))
+                cursor.execute("DELETE FROM merchant_actions WHERE merchant_id = ?", (j_id,))
+                cursor.execute("DELETE FROM merchant_integrations WHERE merchant_id = ?", (j_id,))
+                cursor.execute("DELETE FROM merchants WHERE merchant_id = ?", (j_id,))
+
+            # Check if verified Microsoft account exists, if not seed it
+            cursor.execute("SELECT COUNT(*) FROM merchants WHERE email = 'je0744@srmist.edu.in' OR merchant_id = 'm_56a9a1b3fe'")
+            if cursor.fetchone()[0] == 0:
                 cursor.execute(
                     "INSERT OR IGNORE INTO merchants (merchant_id, company_name, email, created_at) VALUES (?, ?, ?, ?)",
                     ("m_56a9a1b3fe", "Microsoft", "je0744@srmist.edu.in", now_str),
@@ -485,7 +514,7 @@ class RuntimeStateStore:
                     "INSERT OR IGNORE INTO api_keys (key_id, merchant_id, key_hash, key_prefix, label, is_active, created_at) VALUES (?, ?, ?, ?, ?, 1, ?)",
                     ("key_56a9a1b3fe_init", "m_56a9a1b3fe", k_hash, k_prefix, "Primary Production Key", now_str),
                 )
-                conn.commit()
+            conn.commit()
 
     def _insert_graph_edges(self, merchant_id: str, user_id: str, dev: str, ip: str, pmt: str, ship: str, bill: str, dt: datetime):
         """Adds bipartite entity edges to the merchant's isolated graph."""
