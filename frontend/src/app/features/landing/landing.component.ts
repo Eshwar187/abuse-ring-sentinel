@@ -134,7 +134,7 @@ interface AttackScenario {
             <strong>33 point-in-time features</strong> across dynamic entity graphs to detect Sybil attacks, voucher harvesting, and card testing in real time.
           </p>
 
-          <!-- CTAs & Real Git Clone -->
+          <!-- Hero CTAs -->
           <div class="mt-9 flex flex-col sm:flex-row items-center justify-center gap-3.5">
             <a
               routerLink="/signup"
@@ -143,17 +143,16 @@ interface AttackScenario {
               <span>Get API Credentials Free →</span>
             </a>
             
-            <button
-              type="button"
-              (click)="copyGitCloneCommand()"
-              class="w-full sm:w-auto flex items-center justify-between gap-3 px-4 py-3 rounded-lg bg-zinc-900/90 hover:bg-zinc-800/90 border border-zinc-800 text-zinc-300 font-mono text-xs transition-all cursor-pointer group"
+            <a
+              routerLink="/demo"
+              class="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-zinc-900/90 hover:bg-zinc-800/90 border border-zinc-800 text-zinc-300 hover:text-white text-xs font-semibold transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
             >
-              <span class="text-zinc-500 select-none">$</span>
-              <span class="text-zinc-200">git clone https://github.com/Eshwar187/abuse-ring-sentinel.git</span>
-              <span class="text-[11px] text-zinc-400 group-hover:text-white transition-colors">
-                {{ copiedCli() ? '✓ Copied' : 'Copy' }}
-              </span>
-            </button>
+              <svg class="w-3.5 h-3.5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>Explore 6.9k Benchmark Demo</span>
+            </a>
           </div>
 
           <!-- Enterprise Metrics Bar -->
@@ -845,7 +844,6 @@ print(<span class="text-emerald-300">"Risk Score:"</span>, result[<span class="t
 })
 export class LandingPageComponent {
   readonly activeSdkTab = signal<'node' | 'python' | 'curl'>('node');
-  readonly copiedCli = signal<boolean>(false);
   readonly copiedSdk = signal<boolean>(false);
 
   readonly activeScenario = signal<'sybil' | 'card_test' | 'ato' | 'legit'>('sybil');
@@ -948,12 +946,6 @@ export class LandingPageComponent {
     if (d === 'BLOCK') return 'text-rose-400';
     if (d === 'APPROVE') return 'text-emerald-400';
     return 'text-amber-400';
-  }
-
-  copyGitCloneCommand(): void {
-    navigator.clipboard?.writeText('git clone https://github.com/Eshwar187/abuse-ring-sentinel.git');
-    this.copiedCli.set(true);
-    setTimeout(() => this.copiedCli.set(false), 2000);
   }
 
   copyCodeSnippet(): void {
