@@ -54,3 +54,10 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Databases & Runtime State
+*.db
+*.sqlite
+*.sqlite3
+data/runtime/*.db
+demo_merchant/*.db

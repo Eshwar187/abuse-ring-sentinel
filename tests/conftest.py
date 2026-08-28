@@ -10,5 +10,6 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 # Set test environment
-os.environ.setdefault("APP_ENV", "testing")
-os.environ.setdefault("DB_ENGINE", "sqlite")
+os.environ["APP_ENV"] = "testing"
+os.environ["DB_ENGINE"] = "sqlite"
+os.environ["SQLITE_DB_PATH"] = "data/runtime/test_state.db"

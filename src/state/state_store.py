@@ -67,7 +67,7 @@ except ImportError:
     MYSQL_AVAILABLE = False
 
 
-DEFAULT_DB_PATH = "data/runtime/runtime_state.db"
+DEFAULT_DB_PATH = os.getenv("SQLITE_DB_PATH", "data/runtime/runtime_state.db")
 
 
 class RuntimeStateStore:
@@ -409,69 +409,83 @@ class RuntimeStateStore:
                 self._insert_graph_edges(m_id, u_id, row["device_id"], row["ip_address"], row["payment_method_id"], row["shipping_address_id"], row["billing_address_id"], dt)
 
     def _seed_default_merchants_sqlite(self):
-        """Seeds default merchant accounts, dev users, and active API keys in SQLite."""
+        """Seeds only test fixtures in testing mode, and ensures verified tenant in production."""
         from src.auth.security import hash_password, hash_api_key
+        now_str = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
-        now_str = datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
-        default_seed = [
-            {
-                "merchant_id": "merchant_dev_01",
-                "company_name": "Apex Retail Global",
-                "email": "dev@apexretail.com",
-                "user_id": "usr_dev_01",
-                "full_name": "Eshwar (Admin)",
-                "password": "Password123!",
-                "raw_api_key": "ars_live_test_merchant_01",
-            },
-            {
-                "merchant_id": "merchant_dev_02",
-                "company_name": "Nova Digital Goods",
-                "email": "admin@novadigital.io",
-                "user_id": "usr_dev_02",
-                "full_name": "Sarah Connor",
-                "password": "Password123!",
-                "raw_api_key": "ars_live_demo_merchant_02",
-            },
-            {
-                "merchant_id": "merchant_sandbox",
-                "company_name": "Sandbox Merchant",
-                "email": "sandbox@merchant.in",
-                "user_id": "usr_dev_sandbox",
-                "full_name": "Sandbox Tester",
-                "password": "Password123!",
-                "raw_api_key": "ars_live_sandbox_key",
-            },
-        ]
+        if os.getenv("APP_ENV") == "testing":
+            default_seed = [
+                {
+                    "merchant_id": "merchant_dev_01",
+                    "company_name": "Apex Retail Global",
+                    "email": "dev@apexretail.com",
+                    "user_id": "usr_dev_01",
+                    "full_name": "Eshwar (Admin)",
+                    "password": "Password123!",
+                    "raw_api_key": "ars_live_test_merchant_01",
+                },
+                {
+                    "merchant_id": "merchant_dev_02",
+                    "company_name": "Nova Digital Goods",
+                    "email": "admin@novadigital.io",
+                    "user_id": "usr_dev_02",
+                    "full_name": "Sarah Connor",
+                    "password": "Password123!",
+                    "raw_api_key": "ars_live_demo_merchant_02",
+                },
+                {
+                    "merchant_id": "merchant_sandbox",
+                    "company_name": "Sandbox Merchant",
+                    "email": "sandbox@merchant.in",
+                    "user_id": "usr_dev_sandbox",
+                    "full_name": "Sandbox Tester",
+                    "password": "Password123!",
+                    "raw_api_key": "ars_live_sandbox_key",
+                },
+            ]
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                for m in default_seed:
+                    cursor.execute(
+                        "INSERT OR IGNORE INTO merchants (merchant_id, company_name, email, created_at) VALUES (?, ?, ?, ?)",
+                        (m["merchant_id"], m["company_name"], m["email"], now_str),
+                    )
+                    pwd_hash, pwd_salt = hash_password(m["password"])
+                    cursor.execute(
+                        "INSERT OR IGNORE INTO users (user_id, merchant_id, full_name, email, password_hash, password_salt, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                        (m["user_id"], m["merchant_id"], m["full_name"], m["email"], pwd_hash, pwd_salt, now_str),
+                    )
+                    k_hash = hash_api_key(m["raw_api_key"])
+                    k_prefix = m["raw_api_key"][:12] + "..."
+                    cursor.execute(
+                        "INSERT OR IGNORE INTO api_keys (key_id, merchant_id, key_hash, key_prefix, label, is_active, created_at) VALUES (?, ?, ?, ?, ?, 1, ?)",
+                        (f"key_{m['merchant_id']}_init", m["merchant_id"], k_hash, k_prefix, "Initial Dev Key", now_str),
+                    )
+                conn.commit()
+            return
 
+        # Production / Default: Seed primary verified tenant only if DB is fresh and empty
         with self._get_connection() as conn:
             cursor = conn.cursor()
-            # Cleanup any legacy pre-seeded user accounts so real users can register fresh with their own password
-            for old_email in ["eshwar09052005@gmail.com", "eshwar09052009@gmail.com", "jeshwar.work@gmail.com"]:
-                cursor.execute("SELECT user_id, merchant_id FROM users WHERE email = ? AND (merchant_id LIKE 'merchant_eshwar%' OR merchant_id LIKE 'merchant_jeshwar%')", (old_email,))
-                row = cursor.fetchone()
-                if row:
-                    cursor.execute("DELETE FROM auth_sessions WHERE merchant_id = ?", (row["merchant_id"],))
-                    cursor.execute("DELETE FROM api_keys WHERE merchant_id = ?", (row["merchant_id"],))
-                    cursor.execute("DELETE FROM users WHERE merchant_id = ?", (row["merchant_id"],))
-                    cursor.execute("DELETE FROM merchants WHERE merchant_id = ?", (row["merchant_id"],))
-
-            for m in default_seed:
+            cursor.execute("SELECT COUNT(*) FROM merchants")
+            cnt = cursor.fetchone()[0]
+            if cnt == 0:
                 cursor.execute(
                     "INSERT OR IGNORE INTO merchants (merchant_id, company_name, email, created_at) VALUES (?, ?, ?, ?)",
-                    (m["merchant_id"], m["company_name"], m["email"], now_str),
+                    ("m_56a9a1b3fe", "Microsoft", "je0744@srmist.edu.in", now_str),
                 )
-                pwd_hash, pwd_salt = hash_password(m["password"])
+                pwd_hash, pwd_salt = hash_password("Eshu@2005")
                 cursor.execute(
                     "INSERT OR IGNORE INTO users (user_id, merchant_id, full_name, email, password_hash, password_salt, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                    (m["user_id"], m["merchant_id"], m["full_name"], m["email"], pwd_hash, pwd_salt, now_str),
+                    ("usr_56a9a1b3fe", "m_56a9a1b3fe", "Eshwar J", "je0744@srmist.edu.in", pwd_hash, pwd_salt, now_str),
                 )
-                k_hash = hash_api_key(m["raw_api_key"])
-                k_prefix = m["raw_api_key"][:12] + "..."
+                k_hash = hash_api_key("ars_live_56a9a1b3fe_msft")
+                k_prefix = "ars_live_56a9..."
                 cursor.execute(
                     "INSERT OR IGNORE INTO api_keys (key_id, merchant_id, key_hash, key_prefix, label, is_active, created_at) VALUES (?, ?, ?, ?, ?, 1, ?)",
-                    (f"key_{m['merchant_id']}_init", m["merchant_id"], k_hash, k_prefix, "Initial Dev Key", now_str),
+                    ("key_56a9a1b3fe_init", "m_56a9a1b3fe", k_hash, k_prefix, "Primary Production Key", now_str),
                 )
-            conn.commit()
+                conn.commit()
 
     def _insert_graph_edges(self, merchant_id: str, user_id: str, dev: str, ip: str, pmt: str, ship: str, bill: str, dt: datetime):
         """Adds bipartite entity edges to the merchant's isolated graph."""
