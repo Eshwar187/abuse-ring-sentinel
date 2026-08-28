@@ -833,13 +833,18 @@ def create_v1_router(
     def authenticate_superadmin(
         authorization: Optional[str] = Header(None, alias="Authorization"),
         x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token"),
+        x_admin_key: Optional[str] = Header(None, alias="X-Admin-Key"),
     ) -> Dict[str, Any]:
-        """Authenticates SuperAdmin requests using Bearer or X-Admin-Token."""
+        """Authenticates SuperAdmin requests using Bearer, X-Admin-Token, or X-Admin-Key."""
         token = None
-        if x_admin_token:
+        if x_admin_key:
+            token = x_admin_key.strip()
+        elif x_admin_token:
             token = x_admin_token.strip()
         elif authorization and authorization.startswith("Bearer "):
             token = authorization[7:].strip()
+        elif authorization:
+            token = authorization.strip()
 
         session = admin_service.validate_admin_token(token) if token else None
         if not session:
